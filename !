@@ -1,0 +1,42 @@
+# This is a combination of 2 commits.
+# This is the 1st commit message:
+
+init
+
+# This is the commit message #2:
+
+#f
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Author:    Ivan Mikhailov <meehighlov@192.168.1.47>
+# Date:      Sun Jun 30 17:12:54 2024 +0300
+# Committer: Ivan Mikhailov <meehighlov@MacBook-Air.local>
+#
+# interactive rebase in progress; onto 39f0014
+# Last commands done (2 commands done):
+#    pick 2727686 init
+#    squash 1e450bb f
+# No commands remaining.
+# You are currently rebasing branch 'main' on '39f0014'.
+#
+# Changes to be committed:
+#	new file:   .dockerignore
+#	new file:   .env.example
+#	modified:   .gitignore
+#	new file:   Dockerfile
+#	new file:   db/entities.go
+#	new file:   db/init.go
+#	new file:   db/queries.go
+#	new file:   go.mod
+#	new file:   go.sum
+#	new file:   main.go
+#	new file:   src/auth.go
+#	new file:   src/handlers.go
+#	new file:   src/job.go
+#	new file:   src/logging.go
+#	new file:   telegram/client.go
+#	new file:   telegram/models.go
+#	new file:   test
+#
