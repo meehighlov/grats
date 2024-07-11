@@ -10,16 +10,29 @@ import (
 )
 
 func main() {
-	src.SetupFileLogging("grats.log")
-	// todo load .env from basedir
-	err := godotenv.Load()
+	logFile := src.SetupFileLogging("grats.log")
+	defer logFile.Close()
+
+	curDir, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+	}
+
+	err = godotenv.Load(curDir + "/.env")
 	if err != nil {
 		fmt.Println("Error loading .env file")
 		log.Println("Error loading .env file")
+
 		return
 	}
 
-	tc := telegram.NewClient(os.Getenv("BOT_TOKEN"))
+	botToken := os.Getenv("BOT_TOKEN")
+	if botToken == "" {
+		fmt.Println("BOT_TOKEN is not set. Exiting.")
+		return
+	}
+
+	tc := telegram.NewClient(botToken)
 
 	fmt.Println("Polling started.")
 	log.Println("Polling started.")
