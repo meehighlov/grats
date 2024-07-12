@@ -107,10 +107,13 @@ func (message *Message) GetSenderChatIdStr() string {
 	return strconv.Itoa(message.SenderChat.Id)
 }
 
-func (message *Message) GetCommand() string {
+func (message *Message) GetCommand() *string {
 	parts := strings.Fields(message.Text)
 	if len(parts) > 0 {
-		return parts[0]
+		if strings.HasPrefix(parts[0], "/")  {
+			return &parts[0]
+		}
+		return nil
 	}
-	return ""
+	return nil
 }

@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/meehighlov/grats/src"
-	"github.com/meehighlov/grats/telegram"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/meehighlov/grats/src"
+	"github.com/meehighlov/grats/src/handlers"
+	"github.com/meehighlov/grats/telegram"
 )
 
 func main() {
@@ -36,5 +38,5 @@ func main() {
 
 	fmt.Println("Polling started.")
 	log.Println("Polling started.")
-	src.StartPolling(tc)
+	handlers.StartPolling(tc)
 }
