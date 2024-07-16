@@ -4,16 +4,15 @@ import (
 	"strconv"
 )
 
-
 type User struct {
 	// telegram user -> bot's user
 
-	ID int `json:"id"`  // id will be taken from telegram
-	Name string `json:"name"`
+	ID         int    `json:"id"` // id will be taken from telegram
+	Name       string `json:"name"`
 	TGusername string `json:"tgusername"`
-	ChatId int `json:"chatid"`  // chatId - id of chat with user, bot uses it to send notification
-	Birthday string `json:"birthday"`
-	IsAdmin int `json:"isadmin"`
+	ChatId     int    `json:"chatid"` // chatId - id of chat with user, bot uses it to send notification
+	Birthday   string `json:"birthday"`
+	IsAdmin    int    `json:"isadmin"`
 
 	Friends []Friend
 }
@@ -35,11 +34,11 @@ func (user *User) FriendsListAsString() string {
 }
 
 type Friend struct {
-	ID int `json:"id"`
-	Name string `json:"name"`
-	UserId int `json:"userid"`
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	UserId   int    `json:"userid"`
 	BirthDay string `json:"birthday"`
-	ChatId int `json:"chatid"`
+	ChatId   int    `json:"chatid"`
 }
 
 func (friend *Friend) GetChatIdStr() string {
