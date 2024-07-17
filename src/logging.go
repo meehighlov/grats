@@ -1,8 +1,8 @@
 package src
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"os"
 )
 

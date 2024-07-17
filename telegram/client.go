@@ -5,8 +5,8 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"time"
 	"strconv"
+	"time"
 
 	"encoding/json"
 )
@@ -26,7 +26,7 @@ type telegramClient struct {
 	httpClient *http.Client
 }
 
-type APICaller interface {
+type apiCaller interface {
 	SendMessage(chatId, text string, needForceReply bool) *Message
 	GetUpdates(updatesOffset int) (*UpdateResponse, error)
 	GetMe() (*User, error)
@@ -35,14 +35,14 @@ type APICaller interface {
 
 // --------------------------------------------------------------- telegram client  ---------------------------------------------------------------
 
-func NewClient(token string) APICaller {
+func newClient(token string) apiCaller {
 	// http client timeout > telegram getUpdates timeout
 	httpClient := &http.Client{Timeout: 20 * time.Second}
 	urlHead := "https://api.telegram.org/bot"
 	return &telegramClient{
-		token: token,
-		urlHead: urlHead,
-		baseUrl: urlHead + token,
+		token:      token,
+		urlHead:    urlHead,
+		baseUrl:    urlHead + token,
 		httpClient: httpClient,
 	}
 }
@@ -155,10 +155,10 @@ func (tc *telegramClient) SendMessage(chatId, text string, needForceReply bool) 
 
 	body := requestBodyType{
 		"chat_id": chatId,
-		"text": text,
+		"text":    text,
 		"reply_markup": requestBodyType{
 			"force_reply": needForceReply,
-			"selective": needForceReply,
+			"selective":   needForceReply,
 		},
 	}
 
@@ -173,7 +173,7 @@ func (tc *telegramClient) GetUpdates(updatesOffset int) (*UpdateResponse, error)
 	queryParams := requestQueryParamsType{
 		// timeout should be less than http client timeout
 		"timeout": "10",
-		"offset": strconv.Itoa(updatesOffset),
+		"offset":  strconv.Itoa(updatesOffset),
 	}
 
 	err := tc.sendRequest("GET", "getUpdates", nil, &queryParams, &res)

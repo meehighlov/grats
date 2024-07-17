@@ -34,9 +34,13 @@ func main() {
 		return
 	}
 
-	tc := telegram.NewClient(botToken)
+	bot := telegram.NewBot(botToken)
 
-	fmt.Println("Polling started.")
+	bot.RegisterCommandHandler("/start", handlers.StartHandler)
+	bot.RegisterCommandHandler("/help", handlers.HelpHandler)
+	bot.RegisterCommandHandler("/list", handlers.ListBirthdaysHandler)
+	bot.RegisterChatHandler("/add", handlers.AddBirthdayChatHandler())
+
+	bot.StartPolling()
 	log.Println("Polling started.")
-	handlers.StartPolling(tc)
 }

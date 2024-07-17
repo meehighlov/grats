@@ -6,7 +6,7 @@ import (
 	"github.com/meehighlov/grats/telegram"
 )
 
-func HelpHandler(tc telegram.APICaller, message telegram.Message) error {
+func HelpHandler(event telegram.Event) error {
 	commands := []string{
 		"Это список моих команд🙌\n",
 		"/add - добавить день рождения",
@@ -15,7 +15,7 @@ func HelpHandler(tc telegram.APICaller, message telegram.Message) error {
 
 	msg := strings.Join(commands, "\n")
 
-	tc.SendMessage(message.GetChatIdStr(), msg, false)
+	event.Reply(msg)
 
 	return nil
 }

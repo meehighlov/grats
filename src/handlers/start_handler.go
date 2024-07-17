@@ -7,7 +7,8 @@ import (
 	"github.com/meehighlov/grats/telegram"
 )
 
-func StartHandler(tc telegram.APICaller, message telegram.Message) error {
+func StartHandler(event telegram.Event) error {
+	message := event.GetMessage()
 
 	isAdmin := 0
 	if message.From.IsAdmin() {
@@ -30,7 +31,7 @@ func StartHandler(tc telegram.APICaller, message telegram.Message) error {
 		message.From.Username,
 	)
 
-	tc.SendMessage(message.GetChatIdStr(), hello, false)
+	event.Reply(hello)
 
 	return nil
 }

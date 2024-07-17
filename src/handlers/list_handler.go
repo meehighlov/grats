@@ -8,7 +8,8 @@ import (
 	"github.com/meehighlov/grats/telegram"
 )
 
-func ListBirthdaysHandler(tc telegram.APICaller, message telegram.Message) error {
+func ListBirthdaysHandler(event telegram.Event) error {
+	message := event.GetMessage()
 	friends, err := (&db.Friend{UserId: message.From.Id}).GetAll()
 
 	if err != nil {
@@ -17,7 +18,7 @@ func ListBirthdaysHandler(tc telegram.APICaller, message telegram.Message) error
 	}
 
 	if len(friends) == 0 {
-		tc.SendMessage(message.GetChatIdStr(), "Записей пока нет✨", false)
+		event.Reply("Записей пока нет✨")
 		return nil
 	}
 
@@ -29,7 +30,7 @@ func ListBirthdaysHandler(tc telegram.APICaller, message telegram.Message) error
 		msg.WriteString("\n")
 	}
 
-	tc.SendMessage(message.GetChatIdStr(), msg.String(), false)
+	event.Reply(msg.String())
 
 	return nil
 }

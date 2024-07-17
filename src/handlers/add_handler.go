@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -12,61 +11,35 @@ import (
 
 const ENTER_FRIEND_NAME_STEP = 1
 const ENTER_FRIEND_BIRTHDAY_STEP = 2
-const SAVE_FRIEND = 3
+const SAVE_FRIEND_STEP = 3
+const DONE = -1
 
-var COMMAND = "/add"
-
-func AddBirthdayHandler(tc telegram.APICaller, message telegram.Message, ctx telegram.ChatContext) error {
-	currentStep := ctx.GetStepDone() + 1
-	ctx.SetCommandInProgress(COMMAND)
-
-	switch currentStep {
-	case ENTER_FRIEND_NAME_STEP:
-		enterFriendName(tc, &message)
-	case ENTER_FRIEND_BIRTHDAY_STEP:
-		enterBirthday(tc, &message, ctx)
-	case SAVE_FRIEND:
-		err := saveFriend(tc, &message, ctx)
-		if err != nil {
-			return nil
-		}
-		ctx.Reset()
-		return nil
-	default:
-		logMsg := fmt.Sprintf("Step %d not supported for %s, resetting context", currentStep, COMMAND)
-		log.Println(logMsg)
-		ctx.Reset()
-		return nil
-	}
-
-	ctx.SetStepDone(currentStep)
-
-	return nil
-}
-
-func enterFriendName(tc telegram.APICaller, message *telegram.Message) error {
+func EnterFriendName(event telegram.Event) (int, error) {
 	msg := "Введи имя именинника✨\n\nЭто может быть 👉 имя и фамилия, никнейм и т.д."
 
-	tc.SendMessage(message.GetChatIdStr(), msg, false)
+	event.Reply(msg)
 
-	return nil
+	return ENTER_FRIEND_BIRTHDAY_STEP, nil
 }
 
-func enterBirthday(tc telegram.APICaller, message *telegram.Message, ctx telegram.ChatContext) error {
-	ctx.AppendUserResponse(message.Text)
+func EnterBirthday(event telegram.Event) (int, error) {
+	event.GetContext().AppendUserResponse(event.GetMessage().Text)
 
-	msg := "Введи дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 01.02.2003 или 01.02 "
+	msg := "Введи дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 01.02.2003 или 01.02"
 
-	tc.SendMessage(message.GetChatIdStr(), msg, false)
+	event.Reply(msg)
 
-	return nil
+	return SAVE_FRIEND_STEP, nil
 }
 
-func saveFriend(tc telegram.APICaller, message *telegram.Message, ctx telegram.ChatContext) error {
+func SaveFriend(event telegram.Event) (int, error) {
+	message := event.GetMessage()
+	ctx := event.GetContext()
+
 	if err := validateBirthdaty(message.Text); err != nil {
 		errMsg := "Не могу разобрать дату🤔\n\nВведи дату снова🙌"
-		tc.SendMessage(message.GetChatIdStr(), errMsg, false)
-		return err
+		event.Reply(errMsg)
+		return SAVE_FRIEND_STEP, err
 	}
 
 	ctx.AppendUserResponse(message.Text)
@@ -81,9 +54,9 @@ func saveFriend(tc telegram.APICaller, message *telegram.Message, ctx telegram.C
 	friend.Save()
 
 	msg := fmt.Sprintf("День рождения для %s добавлен 💾", data[0])
-	tc.SendMessage(message.GetChatIdStr(), msg, false)
+	event.Reply(msg)
 
-	return nil
+	return DONE, nil
 }
 
 func validateBirthdaty(birtday string) error {
@@ -108,4 +81,14 @@ func validateBirthdaty(birtday string) error {
 	}
 
 	return nil
+}
+
+func AddBirthdayChatHandler() map[int]telegram.CommandStepHandler {
+	handlers := make(map[int]telegram.CommandStepHandler)
+
+	handlers[ENTER_FRIEND_NAME_STEP] = EnterFriendName
+	handlers[ENTER_FRIEND_BIRTHDAY_STEP] = EnterBirthday
+	handlers[SAVE_FRIEND_STEP] = SaveFriend
+
+	return handlers
 }
