@@ -1,13 +1,18 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/meehighlov/grats/db"
+	"github.com/meehighlov/grats/internal/db"
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/telegram"
 )
 
 func StartHandler(event telegram.Event) error {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	message := event.GetMessage()
 
 	isAdmin := 0
@@ -25,14 +30,14 @@ func StartHandler(event telegram.Event) error {
 		IsAdmin:    isAdmin,
 	}
 
-	user.Save()
+	user.Save(ctx)
 
 	hello := fmt.Sprintf(
 		"Привет, %s 👋 Я сохраняю дни рождения и напоминаю о них🥳 \n\n /help - покажет все команды🙌",
 		message.From.Username,
 	)
 
-	event.Reply(hello)
+	event.Reply(ctx, hello)
 
 	return nil
 }

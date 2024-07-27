@@ -1,9 +1,11 @@
 package telegram
 
+import "context"
+
 type Event interface {
 	GetContext() ChatContext
 	GetMessage() *Message
-	Reply(string) *Message
+	Reply(context.Context, string) *Message
 	getCommand() string
 	getStepHandlers() map[int]CommandStepHandler
 }
@@ -30,9 +32,8 @@ func (e *event) GetMessage() *Message {
 	return &e.message
 }
 
-func (e *event) Reply(text string) *Message {
-	needForceReply := false
-	msg, _ := e.bot.client.SendMessage(e.message.GetChatIdStr(), text, needForceReply)
+func (e *event) Reply(ctx context.Context, text string) *Message {
+	msg, _ := e.bot.client.SendMessage(ctx, e.message.GetChatIdStr(), text)
 	return msg
 }
 

@@ -1,7 +1,9 @@
 package telegram
 
+import "context"
+
 func (bot *bot) StartPolling() error {
-	updates := bot.client.GetUpdatesChannel()
+	updates := bot.client.GetUpdatesChannel(context.Background())
 
 	for update := range updates {
 		chatContext := bot.getOrCreateChatContext(update.Message.GetChatIdStr())

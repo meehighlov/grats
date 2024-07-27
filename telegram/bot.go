@@ -15,7 +15,7 @@ type bot struct {
 }
 
 func NewBot(token string) *bot {
-	client := newClient(token)
+	client := newClient(token, nil)
 	cache_ := cache.New(10*time.Minute, 10*time.Minute)
 	commandHandlers := make(map[string]CommandHandler)
 	chatHandlers := make(map[string]map[int]CommandStepHandler)
