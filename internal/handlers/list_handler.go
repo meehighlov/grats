@@ -2,23 +2,28 @@ package handlers
 
 import (
 	"bytes"
-	"log"
+	"context"
+	"log/slog"
 
-	"github.com/meehighlov/grats/db"
+	"github.com/meehighlov/grats/internal/config"
+	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/telegram"
 )
 
 func ListBirthdaysHandler(event telegram.Event) error {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	message := event.GetMessage()
-	friends, err := (&db.Friend{UserId: message.From.Id}).Filter()
+	friends, err := (&db.Friend{UserId: message.From.Id}).Filter(ctx)
 
 	if err != nil {
-		log.Println("Error fetching friends", err.Error())
+		slog.Error("Error fetching friends" + err.Error())
 		return nil
 	}
 
 	if len(friends) == 0 {
-		event.Reply("Записей пока нет✨")
+		event.Reply(ctx, "Записей пока нет✨")
 		return nil
 	}
 
@@ -30,7 +35,7 @@ func ListBirthdaysHandler(event telegram.Event) error {
 		msg.WriteString("\n")
 	}
 
-	event.Reply(msg.String())
+	event.Reply(ctx, msg.String())
 
 	return nil
 }

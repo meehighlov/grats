@@ -1,0 +1,15 @@
+[Unit]
+Description=grats
+After=network.target
+
+[Service]
+User=root
+Type=simple
+WorkingDirectory=/root/go/bin
+ExecStart=/root/go/bin/grats
+Restart=always
+RestartSec=4
+StandardOutput=inherit
+
+[Install]
+WantedBy=multi-user.target

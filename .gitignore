@@ -25,3 +25,5 @@ go.work.sum
 .vscode
 grats.db
 grats.log
+job.log
+.idea
