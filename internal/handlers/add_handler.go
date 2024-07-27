@@ -1,64 +1,77 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/meehighlov/grats/db"
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/telegram"
 )
 
-const ENTER_FRIEND_NAME_STEP = 1
-const ENTER_FRIEND_BIRTHDAY_STEP = 2
-const SAVE_FRIEND_STEP = 3
-const DONE = -1
+const (
+	ENTER_FRIEND_NAME_STEP = 1
+	ENTER_FRIEND_BIRTHDAY_STEP = 2
+	SAVE_FRIEND_STEP = 3
+	DONE = -1
+)
 
 func enterFriendName(event telegram.Event) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	msg := "Введи имя именинника✨\n\nнапример 👉 Райан Гослинг"
 
-	event.Reply(msg)
+	event.Reply(ctx, msg)
 
 	return ENTER_FRIEND_BIRTHDAY_STEP, nil
 }
 
 func enterBirthday(event telegram.Event) (int, error) {
-	event.GetContext().AppendUserResponse(event.GetMessage().Text)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
+	event.GetContext().AppendText(event.GetMessage().Text)
 
 	msg := "Введи дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 12.11.1980 или 12.11"
 
-	event.Reply(msg)
+	event.Reply(ctx, msg)
 
 	return SAVE_FRIEND_STEP, nil
 }
 
 func saveFriend(event telegram.Event) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	message := event.GetMessage()
-	ctx := event.GetContext()
+	chatContext := event.GetContext()
 
 	if err := validateBirthdaty(message.Text); err != nil {
 		errMsg := "Дата не попадает под формат🤔\n\nвведи дату снова🙌"
-		event.Reply(errMsg)
+		event.Reply(ctx, errMsg)
 		return SAVE_FRIEND_STEP, err
 	}
 
-	ctx.AppendUserResponse(message.Text)
-	data := ctx.GetUserResponses()
+	chatContext.AppendText(message.Text)
+	data := chatContext.GetTexts()
 
 	friend := db.Friend{
 		BaseFields: db.NewBaseFields(),
-		Name:     data[0],
-		BirthDay: data[1],
-		UserId:   message.From.Id,
-		ChatId:   message.Chat.Id,
+		Name:       data[0],
+		BirthDay:   data[1],
+		UserId:     message.From.Id,
+		ChatId:     message.Chat.Id,
 	}
 
 	friend.RenewNotifayAt()
 
-	friend.Save()
+	friend.Save(context.Background())
 
 	msg := fmt.Sprintf("День рождения для %s добавлен 💾\n\nНапомню тебе о нем %s🔔", data[0], *friend.GetNotifyAt())
-	event.Reply(msg)
+	event.Reply(ctx, msg)
 
 	return DONE, nil
 }

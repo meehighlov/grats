@@ -1,17 +1,18 @@
-package src
+package auth
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"os"
-	"strings"
+	"log/slog"
 
 	"github.com/meehighlov/grats/db"
+	"github.com/meehighlov/grats/internal/config"
+
 	"github.com/meehighlov/grats/telegram"
 )
 
 func IsAdmin(tgusername string) bool {
-	for _, auth_user_name := range strings.Split(os.Getenv("ADMINS"), ",") {
+	for _, auth_user_name := range config.Cfg().AdminList() {
 		if auth_user_name == tgusername {
 			return true
 		}
@@ -21,7 +22,7 @@ func IsAdmin(tgusername string) bool {
 }
 
 func inAccessList(tgusername string) bool {
-	hasAccess := (&db.Access{TGusername: tgusername}).IsExist()
+	hasAccess := (&db.Access{TGusername: tgusername}).IsExist(context.Background())
 	return hasAccess
 }
 
@@ -33,7 +34,7 @@ func Auth(handler telegram.CommandHandler) telegram.CommandHandler {
 		}
 
 		msg := fmt.Sprintf("Unauthorized access attempt by user: id=%d usernmae=%s", message.From.Id, message.From.Username)
-		log.Println(msg)
+		slog.Info(msg)
 
 		return nil
 	}

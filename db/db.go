@@ -2,15 +2,16 @@ package db
 
 import (
 	"database/sql"
+	"log/slog"
+
 	_ "github.com/mattn/go-sqlite3"
-	"log"
 )
 
 var sqliteConn *sql.DB
 
-func init() {
+func MustSetup(dsn string, logger *slog.Logger) {
 	var err error
-	sqliteConn, err = sql.Open("sqlite3", "grats.db?cache=shared")
+	sqliteConn, err = sql.Open("sqlite3", dsn)
 	sqliteConn.SetMaxOpenConns(1)
 
 	if err != nil {
@@ -20,27 +21,26 @@ func init() {
 		panic(err)
 	}
 
-	err = create_tables()
+	err = create_tables(logger)
 	if err != nil {
-		log.Println("Error configuring database")
-		panic("Database is not configured")
+		panic("Error configuring database")
 	}
 
-	log.Println("Database is ready")
+	logger.Info("Database is ready")
 }
 
-func create_table(create_table_sql string) error {
+func create_table(create_table_sql string, logger *slog.Logger) error {
 	_, err := sqliteConn.Exec(create_table_sql)
 	if err != nil {
-		log.Println("Error when trying to prepare statement during creating tables")
-		log.Println(err)
+		logger.Error("Error when trying to prepare statement during creating tables")
+		logger.Error(err.Error())
 		return err
 	}
 
 	return nil
 }
 
-func create_tables() error {
+func create_tables(logger *slog.Logger) error {
 	create_user_table_sql := `CREATE TABLE IF NOT EXISTS user (
 		id VARCHAR PRIMARY KEY,
 		tgid INTEGER,
@@ -80,7 +80,7 @@ func create_tables() error {
 		create_friend_table_sql,
 		create_access_table_sql,
 	} {
-		err := create_table(table)
+		err := create_table(table, logger)
 		if err != nil {
 			return err
 		}

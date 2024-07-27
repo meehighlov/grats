@@ -1,8 +1,12 @@
 package telegram
 
 type ChatContext interface {
-	AppendUserResponse(string) error
-	GetUserResponses() []string
+	// appends text to context
+	AppendText(string) error
+
+	// gets all saved text in context
+	GetTexts() []string
+
 	getCommandInProgress() string
 	setCommandInProgress(string) error
 	getStepTODO() int
@@ -21,12 +25,12 @@ func newChatContext(chatId string) *chatContext {
 	return &chatContext{chatId, []string{}, "", ENTRYPOINT_STEP}
 }
 
-func (ctx *chatContext) AppendUserResponse(userResponse string) error {
+func (ctx *chatContext) AppendText(userResponse string) error {
 	ctx.userResponses = append(ctx.userResponses, userResponse)
 	return nil
 }
 
-func (ctx *chatContext) GetUserResponses() []string {
+func (ctx *chatContext) GetTexts() []string {
 	return ctx.userResponses
 }
 

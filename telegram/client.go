@@ -1,10 +1,13 @@
 package telegram
 
 import (
-	"bytes"
+	"context"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
+	"net/url"
+	"os"
+	"path"
 	"strconv"
 	"time"
 
@@ -12,223 +15,163 @@ import (
 )
 
 // --------------------------------------------------------------- Types ---------------------------------------------------------------
-
-type requestBodyType map[string]interface{}
-type requestQueryParamsType map[string]string
 type UpdatesChannel chan Update
 
 type telegramClient struct {
-	urlHead string
-	token   string
-	baseUrl string
-
-	// todo use interface instead of concrete type
+	host       string
+	token      string
+	basePath   string
 	httpClient *http.Client
+	logger     *slog.Logger
 }
 
 type ApiCaller interface {
-	SendMessage(chatId, text string, needForceReply bool) (*Message, error)
+	SendMessage(context.Context, string, string) (*Message, error)
 }
 
 type apiCaller interface {
-	SendMessage(chatId, text string, needForceReply bool) (*Message, error)
-	GetUpdates(updatesOffset int) (*UpdateResponse, error)
-	GetMe() (*User, error)
-	GetUpdatesChannel() UpdatesChannel
+	SendMessage(context.Context, string, string) (*Message, error)
+	GetUpdates(context.Context, int) (*UpdateResponse, error)
+	GetUpdatesChannel(context.Context) UpdatesChannel
 }
 
 // --------------------------------------------------------------- telegram client  ---------------------------------------------------------------
 
-func NewClient(token string) ApiCaller {
+func setupLogger(logger * slog.Logger) *slog.Logger {
+	if logger != nil {
+		return logger
+	} else {
+		return slog.New(
+			slog.NewJSONHandler(
+				os.Stdout,
+				&slog.HandlerOptions{Level: slog.LevelDebug},
+			),
+		)
+	}
+}
+
+func NewClient(token string, logger *slog.Logger) ApiCaller {
 	// http client timeout > telegram getUpdates timeout
-	httpClient := &http.Client{Timeout: 20 * time.Second}
-	urlHead := "https://api.telegram.org/bot"
+	httpClient := &http.Client{Timeout: 25 * time.Second}
+	host := "api.telegram.org"
+
 	return &telegramClient{
 		token:      token,
-		urlHead:    urlHead,
-		baseUrl:    urlHead + token,
+		host:       host,
+		basePath:   "bot" + token,
 		httpClient: httpClient,
+
+		// do we need turn off logger from outside?
+		logger:     setupLogger(logger),
 	}
 }
 
-func newClient(token string) apiCaller {
+func newClient(token string, logger *slog.Logger) apiCaller {
 	// http client timeout > telegram getUpdates timeout
 	httpClient := &http.Client{Timeout: 20 * time.Second}
-	urlHead := "https://api.telegram.org/bot"
+	host := "api.telegram.org"
 	return &telegramClient{
 		token:      token,
-		urlHead:    urlHead,
-		baseUrl:    urlHead + token,
+		host:       host,
+		basePath:   "bot" + token,
 		httpClient: httpClient,
+
+		// do we need turn off logger from outside?
+		logger:     setupLogger(logger),
 	}
 }
 
-func (tc *telegramClient) send(request *http.Request) (*http.Response, error) {
-	response, err := tc.httpClient.Do(request)
+func (tc *telegramClient) sendRequest(ctx context.Context, method string, query url.Values) (data []byte, err error) {
+	defer func() { err = wrapIfErr("can't do request", err) }()
 
-	if err != nil {
-		log.Println("HTTP request failed", err.Error())
-		return nil, err
+	u := url.URL{
+		Scheme: "https",
+		Host:   tc.host,
+		Path:   path.Join(tc.basePath, method),
 	}
 
-	return response, nil
-}
-
-func (tc *telegramClient) prepareRequestBody(requestBody *requestBodyType) (io.Reader, error) {
-	if requestBody == nil {
-		return nil, nil
-	}
-
-	jsonData, err := json.Marshal(requestBody)
-	if err != nil {
-		log.Println("Failed to marshal request body " + err.Error())
-		return nil, err
-	}
-
-	return bytes.NewBuffer(jsonData), nil
-}
-
-func (tc *telegramClient) prepareQueryParams(queryParams *requestQueryParamsType, requset *http.Request) error {
-	if queryParams == nil {
-		return nil
-	}
-
-	query := requset.URL.Query()
-
-	for key, value := range *queryParams {
-		query.Add(key, value)
-	}
-
-	requset.URL.RawQuery = query.Encode()
-
-	return nil
-}
-
-func (tc *telegramClient) prepareRequest(method, urlTail string, requestBody *requestBodyType, queryParams *requestQueryParamsType) (*http.Request, error) {
-	body, err := tc.prepareRequestBody(requestBody)
-
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	url := tc.baseUrl + "/" + urlTail
-	req, err := http.NewRequest(method, url, body)
+	req.URL.RawQuery = query.Encode()
+
+	resp, err := tc.httpClient.Do(req)
 	if err != nil {
-		log.Fatalf("Failed to create request " + err.Error())
+		return nil, err
 	}
-	req.Header.Add("Content-Type", "application/json")
+	defer func() { _ = resp.Body.Close() }()
 
-	tc.prepareQueryParams(queryParams, req)
-
-	return req, nil
-}
-
-func (tc *telegramClient) getBodyBytes(response *http.Response) ([]byte, error) {
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("Failed to parse response body " + err.Error())
 		return nil, err
 	}
 
 	return body, nil
 }
 
-func (tc *telegramClient) sendRequest(method, urlTail string, body *requestBodyType, queryParams *requestQueryParamsType, responseModel interface{}) error {
-	request, err := tc.prepareRequest(method, urlTail, body, queryParams)
-
-	if err != nil {
-		return err
-	}
-
-	response, err := tc.send(request)
-
-	if err != nil {
-		return err
-	}
-
-	body_bytes, read_err := tc.getBodyBytes(response)
-
-	if read_err != nil {
-		return read_err
-	}
-
-	if response.StatusCode == http.StatusOK {
-		json.Unmarshal(body_bytes, responseModel)
-		return nil
-	}
-
-	log.Println("Bad status code:", response.StatusCode, "body:", string(body_bytes))
-
-	return nil
-}
-
 // --------------------------------------------------------------- API methods implementation ---------------------------------------------------------------
 
-func (tc *telegramClient) SendMessage(chatId, text string, needForceReply bool) (*Message, error) {
-	res := Message{}
+func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string) (*Message, error) {
+	q := url.Values{}
+	q.Add("chat_id", chatId)
+	q.Add("text", text)
 
-	body := requestBodyType{
-		"chat_id": chatId,
-		"text":    text,
-		"reply_markup": requestBodyType{
-			"force_reply": needForceReply,
-			"selective":   needForceReply,
-		},
-	}
-
-	err := tc.sendRequest("POST", "sendMessage", &body, nil, res)
-
-	return &res, err
-}
-
-func (tc *telegramClient) GetUpdates(updatesOffset int) (*UpdateResponse, error) {
-	res := UpdateResponse{}
-
-	queryParams := requestQueryParamsType{
-		// timeout should be less than http client timeout
-		"timeout": "10",
-		"offset":  strconv.Itoa(updatesOffset),
-	}
-
-	err := tc.sendRequest("GET", "getUpdates", nil, &queryParams, &res)
-
+	data, err := tc.sendRequest(ctx, "sendMessage", q)
 	if err != nil {
 		return nil, err
 	}
 
-	return &res, nil
+	model := Message{}
+	if err := json.Unmarshal(data, &model); err != nil {
+		return nil, err
+	}
+
+	return &model, err
 }
 
-func (tc *telegramClient) GetMe() (*User, error) {
-	res := GetMeReponse{}
-	tc.sendRequest("GET", "getMe", nil, nil, &res)
-	return &res.Result, nil
+func (tc *telegramClient) GetUpdates(ctx context.Context, offset int) (*UpdateResponse, error) {
+	q := url.Values{}
+	q.Add("offset", strconv.Itoa(offset))
+	q.Add("limit", strconv.Itoa(100))
+	q.Add("timeout", "20")
+
+	data, err := tc.sendRequest(ctx, "getUpdates", q)
+	if err != nil {
+		return nil, err
+	}
+
+	model := UpdateResponse{}
+	if err := json.Unmarshal(data, &model); err != nil {
+		return nil, err
+	}
+
+	return &model, nil
 }
 
 // --------------------------------------------------------------- polling ---------------------------------------------------------------
 
-func (tc *telegramClient) GetUpdatesChannel() UpdatesChannel {
+func (tc *telegramClient) GetUpdatesChannel(ctx context.Context) UpdatesChannel {
 	updatesChannelSize := 100
-	updatesOffset := -1
+	offset := -1
 
 	ch := make(chan Update, updatesChannelSize)
 
 	go func() {
 		for {
-			updates, err := tc.GetUpdates(updatesOffset)
+			updates, err := tc.GetUpdates(ctx, offset)
 			if err != nil {
-				log.Println(err)
-				log.Println("Failed to get updates, retrying in 3 seconds...")
+				tc.logger.Error(err.Error())
+				tc.logger.Error("Failed to get updates, retrying in 3 seconds...")
 				time.Sleep(time.Second * time.Duration(3))
 
 				continue
 			}
 
 			for _, update := range updates.Result {
-				if update.UpdateId >= updatesOffset {
-					updatesOffset = update.UpdateId + 1
+				if update.UpdateId >= offset {
+					offset = update.UpdateId + 1
 					ch <- update
 				}
 			}

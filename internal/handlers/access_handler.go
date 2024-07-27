@@ -2,31 +2,35 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"log"
 	"strings"
 
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/db"
 	"github.com/meehighlov/grats/telegram"
 )
 
-const GRANT_ACCESS_ENTRYPOINT = 1
-const SAVE_TG_USERNAME = 2
-
-const REVOKE_ACCESS_ENTRYPOINT = 1
-const UPDATE_ACCESS_INFO = 2
+const (
+	GRANT_ACCESS_ENTRYPOINT = 1
+	SAVE_TG_USERNAME = 2
+	REVOKE_ACCESS_ENTRYPOINT = 1
+	UPDATE_ACCESS_INFO = 2
+)
 
 func AccessListHandler(event telegram.Event) error {
-	accessList, err := (&db.Access{}).All()
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
+	accessList, err := (&db.Access{}).All(ctx)
 
 	if err != nil {
-		log.Println("Error fetching access list", err.Error())
-		event.Reply(err.Error())
+		event.Reply(ctx, err.Error())
 		return nil
 	}
 
 	if len(*accessList) == 0 {
-		event.Reply("В таблице доступов нет записей✨")
+		event.Reply(ctx, "В таблице доступов нет записей✨")
 		return nil
 	}
 
@@ -36,57 +40,69 @@ func AccessListHandler(event telegram.Event) error {
 		msg.WriteString("\n")
 	}
 
-	event.Reply(msg.String())
+	event.Reply(ctx, msg.String())
 
 	return nil
 }
 
 func grantAccess(event telegram.Event) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	msg := "Кому предоставить доступ? Введи имя пользователя тг😘"
 
-	event.Reply(msg)
+	event.Reply(ctx, msg)
 
 	return SAVE_TG_USERNAME, nil
 }
 
 func saveAccess(event telegram.Event) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	tgusername := event.GetMessage().Text
 	tgusername = strings.Replace(tgusername, "@", "", 1)
 
-	err := (&db.Access{BaseFields: db.NewBaseFields(), TGusername: tgusername}).Save()
+	err := (&db.Access{BaseFields: db.NewBaseFields(), TGusername: tgusername}).Save(ctx)
 
 	if err != nil {
-		event.Reply(err.Error())
+		event.Reply(ctx, err.Error())
 		return SAVE_TG_USERNAME, nil
 	}
 
 	msg := fmt.Sprintf("Доступ для %s предоставлен, пусть пробует зайти💋", tgusername)
 
-	event.Reply(msg)
+	event.Reply(ctx, msg)
 
 	return telegram.STEPS_DONE, nil
 }
 
 func revokeAccess(event telegram.Event) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	msg := "У кого отбираем доступ?😡"
 
-	event.Reply(msg)
+	event.Reply(ctx, msg)
 
 	return UPDATE_ACCESS_INFO, nil
 }
 
 func updateAccessInfo(event telegram.Event) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
+	defer cancel()
+
 	tgusername := strings.Replace(event.GetMessage().Text, "@", "", 1)
-	err := (&db.Access{TGusername: tgusername}).Delete()
+	err := (&db.Access{TGusername: tgusername}).Delete(ctx)
 
 	if err != nil {
-		event.Reply(err.Error())
+		event.Reply(ctx, err.Error())
 		return UPDATE_ACCESS_INFO, nil
 	}
 
 	msg := fmt.Sprintf("Доступ для %s закрыт🖐", event.GetMessage().Text)
 
-	event.Reply(msg)
+	event.Reply(ctx, msg)
 
 	return telegram.STEPS_DONE, nil
 }

@@ -1,53 +1,40 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"os"
+	"context"
 
-	"github.com/joho/godotenv"
-	"github.com/meehighlov/grats/src"
-	"github.com/meehighlov/grats/src/handlers"
+	"github.com/meehighlov/grats/db"
+	"github.com/meehighlov/grats/internal/auth"
+	"github.com/meehighlov/grats/internal/config"
+	"github.com/meehighlov/grats/internal/handlers"
+	"github.com/meehighlov/grats/internal/lib"
 	"github.com/meehighlov/grats/telegram"
 )
 
 func main() {
-	os.Setenv("TZ", "Europe/Moscow")
+	cfg := config.MustLoad()
 
-	logFile := src.SetupFileLogging("grats.log")
-	defer logFile.Close()
+	logger := lib.MustSetupLogging("grats.log", true, cfg.ENV)
 
-	curDir, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Error getting working directory. Exiting.")
-		return
-	}
+	// todo use db migrations
+	db.MustSetup("grats.db", logger)
 
-	err = godotenv.Load(curDir + "/.env")
-	if err != nil {
-		fmt.Println("Error loading .env file. Exiting.")
+	bot := telegram.NewBot(cfg.BotToken)
 
-		return
-	}
+	go handlers.BirthdayNotifer(
+		context.Background(),
+		cfg.BotToken,
+		lib.MustSetupLogging("grats.job.log", false, cfg.ENV),
+	)
 
-	botToken := os.Getenv("BOT_TOKEN")
-	if botToken == "" {
-		fmt.Println("BOT_TOKEN is not set. Exiting.")
-		return
-	}
-
-	bot := telegram.NewBot(botToken)
-
-	go src.BirthdayNotifer(botToken)
-
-	bot.RegisterCommandHandler("/start", src.Auth(handlers.StartHandler))
-	bot.RegisterCommandHandler("/help", src.Auth(handlers.HelpHandler))
-	bot.RegisterCommandHandler("/list", src.Auth(handlers.ListBirthdaysHandler))
-	bot.RegisterCommandHandler("/add", src.Auth(telegram.FSM(handlers.AddBirthdayChatHandler())))
-	bot.RegisterCommandHandler("/access_list", src.Admin(handlers.AccessListHandler))
-	bot.RegisterCommandHandler("/access_grant", src.Admin(telegram.FSM(handlers.GrantAccessChatHandler())))
-	bot.RegisterCommandHandler("/access_revoke", src.Admin(telegram.FSM(handlers.RevokeAccessChatHandler())))
+	bot.RegisterCommandHandler("/start", auth.Auth(handlers.StartHandler))
+	bot.RegisterCommandHandler("/help", auth.Auth(handlers.HelpHandler))
+	bot.RegisterCommandHandler("/list", auth.Auth(handlers.ListBirthdaysHandler))
+	bot.RegisterCommandHandler("/add", auth.Auth(telegram.FSM(handlers.AddBirthdayChatHandler())))
+	bot.RegisterCommandHandler("/access_list", auth.Admin(handlers.AccessListHandler))
+	bot.RegisterCommandHandler("/access_grant", auth.Admin(telegram.FSM(handlers.GrantAccessChatHandler())))
+	bot.RegisterCommandHandler("/access_revoke", auth.Admin(telegram.FSM(handlers.RevokeAccessChatHandler())))
 
 	bot.StartPolling()
-	log.Println("Polling started.")
+	logger.Info("Polling started.")
 }

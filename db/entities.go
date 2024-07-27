@@ -2,7 +2,7 @@ package db
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -11,7 +11,7 @@ import (
 )
 
 type BaseFields struct {
-	ID string
+	ID        string
 	CreatedAt string
 	UpdatedAt string
 }
@@ -36,10 +36,10 @@ type User struct {
 
 	BaseFields
 
-	TGId       int  // id will be taken from telegram
+	TGId       int // id will be taken from telegram
 	Name       string
 	TGusername string
-	ChatId     int  // chatId - id of chat with user, bot uses it to send notification
+	ChatId     int // chatId - id of chat with user, bot uses it to send notification
 	Birthday   string
 	IsAdmin    int
 
@@ -68,12 +68,12 @@ func (user *User) FriendsListAsString() string {
 type Friend struct {
 	BaseFields
 
-	Name     string
-	UserId   int
-	BirthDay string
-	ChatId   int
-	notifyAt string
-	FilterNotifyAt string  // this params is only for filtering
+	Name           string
+	UserId         int
+	BirthDay       string
+	ChatId         int
+	notifyAt       string
+	FilterNotifyAt string // this params is only for filtering
 }
 
 func (friend *Friend) GetNotifyAt() *string {
@@ -89,14 +89,14 @@ func (friend *Friend) RenewNotifayAt() (string, error) {
 	birthday, err := time.Parse(format, birtday_wo_year)
 
 	if err != nil {
-		log.Println("notify date creation: cannot parse birthday:", err.Error())
+		slog.Error("notify date creation: cannot parse birthday:" + err.Error())
 		return "", nil
 	}
 
 	today, err := time.Parse(format, time.Now().Format(format))
 
 	if err != nil {
-		log.Println("notify date creation: cannot parse today date:", err.Error())
+		slog.Error("notify date creation: cannot parse today date:" + err.Error())
 		return "", nil
 	}
 
@@ -115,14 +115,14 @@ func (friend *Friend) NotifyNeeded() (bool, error) {
 	today, err := time.Parse(format, time.Now().Format(format))
 
 	if err != nil {
-		log.Println("notify check error: cannot parse today date:", err.Error())
+		slog.Error("notify check error: cannot parse today date:" + err.Error())
 		return false, err
 	}
 
 	notifyAt, err := time.Parse(format, *friend.GetNotifyAt())
 
 	if err != nil {
-		log.Println("notify check error: cannot parse notify date:", err.Error())
+		slog.Error("notify check error: cannot parse notify date:" + err.Error())
 		return false, err
 	}
 
@@ -138,7 +138,7 @@ func (friend *Friend) UpdateNotifyAt() (string, error) {
 	notifyAt, err := time.Parse(format, *friend.GetNotifyAt())
 
 	if err != nil {
-		log.Println("error updating notfiy date:", err.Error())
+		slog.Error("error updating notfiy date:" + err.Error())
 		return *friend.GetNotifyAt(), err
 	}
 
