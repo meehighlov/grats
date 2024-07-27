@@ -11,9 +11,9 @@ import (
 )
 
 type BaseFields struct {
-	ID string `json:"id"`
-	CreatedAt string `json:"createdat"`
-	UpdatedAt string `json:"updatedat"`
+	ID string
+	CreatedAt string
+	UpdatedAt string
 }
 
 func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error) {
@@ -36,12 +36,12 @@ type User struct {
 
 	BaseFields
 
-	TGId       int    `json:"id"` // id will be taken from telegram
-	Name       string `json:"name"`
-	TGusername string `json:"tgusername"`
-	ChatId     int    `json:"chatid"` // chatId - id of chat with user, bot uses it to send notification
-	Birthday   string `json:"birthday"`
-	IsAdmin    int    `json:"isadmin"`
+	TGId       int  // id will be taken from telegram
+	Name       string
+	TGusername string
+	ChatId     int  // chatId - id of chat with user, bot uses it to send notification
+	Birthday   string
+	IsAdmin    int
 
 	Friends []Friend
 }
@@ -68,11 +68,12 @@ func (user *User) FriendsListAsString() string {
 type Friend struct {
 	BaseFields
 
-	Name     string `json:"name"`
-	UserId   int    `json:"userid"`
-	BirthDay string `json:"birthday"`
-	ChatId   int    `json:"chatid"`
-	notifyAt string `json:"notifyat"`
+	Name     string
+	UserId   int
+	BirthDay string
+	ChatId   int
+	notifyAt string
+	FilterNotifyAt string  // this params is only for filtering
 }
 
 func (friend *Friend) GetNotifyAt() *string {
@@ -157,7 +158,7 @@ func (friend *Friend) GetChatIdStr() string {
 type Access struct {
 	BaseFields
 
-	TGusername string `json:"tgusername"`
+	TGusername string
 }
 
 func (access *Access) GetTGUserName() string {

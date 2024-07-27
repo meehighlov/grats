@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	os.Setenv("TZ", "Europe/Moscow")
+
 	logFile := src.SetupFileLogging("grats.log")
 	defer logFile.Close()
 

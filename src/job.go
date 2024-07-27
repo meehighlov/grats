@@ -31,10 +31,15 @@ func notify(client telegram.ApiCaller, friends []db.Friend) error {
 func run(client telegram.ApiCaller) {
 	log.Println("Starting job for checking birthdays")
 
-	for {
-		date := time.Now().Format("02.01.2006")
+	location, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		panic(err.Error())
+	}
 
-		friends, err := (&db.Friend{}).FilterByNotifyDate(date)
+	for {
+		date := time.Now().In(location).Format("02.01.2006")
+
+		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter()
 
 		if err != nil {
 			log.Println("Error getting birthdays: " + err.Error())

@@ -57,7 +57,7 @@ func saveFriend(event telegram.Event) (int, error) {
 
 	friend.Save()
 
-	msg := fmt.Sprintf("День рождения для %s добавлен 💾", data[0])
+	msg := fmt.Sprintf("День рождения для %s добавлен 💾\n\nНапомню тебе о нем %s🔔", data[0], *friend.GetNotifyAt())
 	event.Reply(msg)
 
 	return DONE, nil

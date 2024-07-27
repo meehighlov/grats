@@ -10,7 +10,7 @@ import (
 
 func ListBirthdaysHandler(event telegram.Event) error {
 	message := event.GetMessage()
-	friends, err := (&db.Friend{UserId: message.From.Id}).FilterByUserId()
+	friends, err := (&db.Friend{UserId: message.From.Id}).Filter()
 
 	if err != nil {
 		log.Println("Error fetching friends", err.Error())

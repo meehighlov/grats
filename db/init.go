@@ -6,27 +6,31 @@ import (
 	"log"
 )
 
-var Client *sql.DB
+var sqliteConn *sql.DB
 
 func init() {
 	var err error
-	Client, err = sql.Open("sqlite3", "grats.db?cache=shared")
-	Client.SetMaxOpenConns(1)
+	sqliteConn, err = sql.Open("sqlite3", "grats.db?cache=shared")
+	sqliteConn.SetMaxOpenConns(1)
 
 	if err != nil {
 		panic(err)
 	}
-	if err = Client.Ping(); err != nil {
+	if err = sqliteConn.Ping(); err != nil {
 		panic(err)
 	}
 
-	create_tables()
+	err = create_tables()
+	if err != nil {
+		log.Println("Error configuring database")
+		panic("Database is not configured")
+	}
 
 	log.Println("Database is ready")
 }
 
 func create_table(create_table_sql string) error {
-	_, err := Client.Exec(create_table_sql)
+	_, err := sqliteConn.Exec(create_table_sql)
 	if err != nil {
 		log.Println("Error when trying to prepare statement during creating tables")
 		log.Println(err)
