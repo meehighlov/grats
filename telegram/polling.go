@@ -3,7 +3,10 @@ package telegram
 import "context"
 
 func (bot *bot) StartPolling() error {
-	updates := bot.client.GetUpdatesChannel(context.Background())
+	withCancel, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	updates := bot.client.GetUpdatesChannel(withCancel)
 
 	for update := range updates {
 		chatContext := bot.getOrCreateChatContext(update.Message.GetChatIdStr())

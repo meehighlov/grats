@@ -21,11 +21,7 @@ func main() {
 
 	bot := telegram.NewBot(cfg.BotToken)
 
-	go handlers.BirthdayNotifer(
-		context.Background(),
-		cfg.BotToken,
-		lib.MustSetupLogging("job.log", false, cfg.ENV),
-	)
+	go handlers.BirthdayNotifer(context.Background(), lib.MustSetupLogging("job.log", false, cfg.ENV), cfg)
 
 	bot.RegisterCommandHandler("/start", auth.Auth(handlers.StartHandler))
 	bot.RegisterCommandHandler("/help", auth.Auth(handlers.HelpHandler))

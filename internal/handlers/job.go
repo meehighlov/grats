@@ -4,19 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/meehighlov/grats/internal/db"
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/telegram"
 )
 
 const CHECK_TIMEOUT_SEC = 10
 
 func notify(ctx context.Context, client telegram.ApiCaller, friends []db.Friend, logger *slog.Logger) error {
-	msg := "🔔Сегодня день рождения у %s🥳"
+	msgTemplate := "🔔Сегодня день рождения у %s🥳"
 	for _, friend := range friends {
-		msg = fmt.Sprintf(msg, friend.Name)
+		msg := fmt.Sprintf(msgTemplate, friend.Name)
 		_, err := client.SendMessage(ctx, friend.GetChatIdStr(), msg)
 		if err != nil {
 			logger.Error("Notification not sent:" + err.Error())
@@ -29,10 +29,10 @@ func notify(ctx context.Context, client telegram.ApiCaller, friends []db.Friend,
 	return nil
 }
 
-func run(ctx context.Context, client telegram.ApiCaller, logger *slog.Logger) {
+func run(ctx context.Context, client telegram.ApiCaller, logger *slog.Logger, cfg *config.Config) {
 	logger.Info("Starting job for checking birthdays")
 
-	location, err := time.LoadLocation("Europe/Moscow")
+	location, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -52,8 +52,15 @@ func run(ctx context.Context, client telegram.ApiCaller, logger *slog.Logger) {
 	}
 }
 
-func BirthdayNotifer(ctx context.Context, token string, logger *slog.Logger) error {
-	client := telegram.NewClient(token, logger)
+func BirthdayNotifer(
+	ctx context.Context,
+	logger *slog.Logger,
+	cfg *config.Config,
+) error {
+	withCancel, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	client := telegram.NewClient(cfg.BotToken, logger)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -61,7 +68,7 @@ func BirthdayNotifer(ctx context.Context, token string, logger *slog.Logger) err
 
 			logger.Error(errMsg)
 
-			reportChatId := os.Getenv("REPORT_CHAT_ID")
+			reportChatId := cfg.ReportChatId
 			_, err := client.SendMessage(context.Background(), reportChatId, errMsg)
 			if err != nil {
 				logger.Error("panic report error:" + err.Error())
@@ -69,7 +76,7 @@ func BirthdayNotifer(ctx context.Context, token string, logger *slog.Logger) err
 		}
 	}()
 
-	run(ctx, client, logger)
+	run(withCancel, client, logger, cfg)
 
 	return nil
 }
