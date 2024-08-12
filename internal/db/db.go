@@ -63,7 +63,9 @@ func create_tables(logger *slog.Logger) error {
 		userid INTEGER,
 		notifyat VARCHAR,
 		createdat VARCHAR,
-		updatedat VARCHAR
+		updatedat VARCHAR,
+
+		UNIQUE(name,chatid)
 	);`
 
 	create_access_table_sql := `CREATE TABLE IF NOT EXISTS access (

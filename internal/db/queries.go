@@ -94,6 +94,9 @@ func (friend *Friend) Filter(ctx context.Context) ([]Friend, error) {
 	if friend.UserId != 0 {
 		where = append(where, "userid=$userid")
 	}
+	if friend.Name != "" {
+		where = append(where, "name=$name")
+	}
 
 	where_ := strings.Join(where, " AND ")
 	query := `SELECT id, name, birthday, userid, chatid, notifyat, createdat, updatedat FROM friend WHERE ` + where_ + `;`
@@ -103,6 +106,7 @@ func (friend *Friend) Filter(ctx context.Context) ([]Friend, error) {
 		query,
 		sql.Named("userid", friend.UserId),
 		sql.Named("notifyat", friend.FilterNotifyAt),
+		sql.Named("name", friend.Name),
 	)
 	if err != nil {
 		slog.Error("Error when filtering friends " + err.Error())
@@ -159,6 +163,22 @@ func (friend *Friend) Save(ctx context.Context) error {
 		return err
 	}
 	slog.Debug("Friend added/updated")
+
+	return nil
+}
+
+func (friend *Friend) Delete(ctx context.Context) error {
+	_, err := sqliteConn.ExecContext(
+		ctx,
+		`DELETE FROM friend WHERE name = $1;`,
+		&friend.Name,
+	)
+	if err != nil {
+		slog.Error("Error when trying to delete friend row: " + err.Error())
+		return err
+	}
+
+	slog.Debug("Friend row deleted")
 
 	return nil
 }

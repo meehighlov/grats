@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -33,7 +34,21 @@ func enterBirthday(event telegram.Event) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
-	event.GetContext().AppendText(event.GetMessage().Text)
+	friendName := strings.TrimSpace(event.GetMessage().Text)
+
+	entities, err := (&db.Friend{Name: friendName}).Filter(ctx)
+	if err != nil {
+		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
+		slog.Error("error filtering friends while accepting name to save: " + err.Error())
+		return DONE, err
+	}
+
+	if len(entities) != 0 {
+		event.Reply(ctx,"Такое имя уже есть😅 попробуй снова, учитывай верхний и нижний регистр букв")
+		return ENTER_FRIEND_BIRTHDAY_STEP, nil
+	}
+
+	event.GetContext().AppendText(friendName)
 
 	msg := "Введи дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 12.11.1980 или 12.11"
 
