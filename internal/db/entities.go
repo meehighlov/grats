@@ -76,7 +76,21 @@ type Friend struct {
 	FilterNotifyAt string // this params is only for filtering
 }
 
-func (friend *Friend) ThisMonthAfterToday() bool {
+func (friend *Friend) CountDaysToBirthday() int {
+	now := time.Now()
+	notify, err := time.Parse("02.01.2006", *friend.GetNotifyAt())
+	if err != nil {
+		slog.Error("error parsing notify during count days to birthday: " + err.Error())
+		return -1
+	}
+
+	diff := now.Sub(notify)
+	diff_days := diff.Hours() / 24
+
+	return int(diff_days)
+}
+
+func (friend *Friend) IsThisMonthAfterToday() bool {
 	now := strings.Split(time.Now().Format("02.01.2006"), ".")
 	thisMonth := strings.Split(friend.BirthDay, ".")[1] == now[1]
 	afterToday := strings.Split(friend.BirthDay, ".")[0] > now[0]

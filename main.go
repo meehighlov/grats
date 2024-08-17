@@ -19,7 +19,7 @@ func main() {
 	// todo use db migrations
 	db.MustSetup("grats.db", logger)
 
-	bot := telegram.NewBot(cfg.BotToken, logger)
+	bot := telegram.NewBot(cfg.BotToken, nil)
 
 	go handlers.BirthdayNotifer(context.Background(), lib.MustSetupLogging("job.log", false, cfg.ENV), cfg)
 

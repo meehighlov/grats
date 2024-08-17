@@ -64,7 +64,7 @@ func listBirthdaysAsMessage(friends []db.Friend, limit, offset int) string {
 		if friend.IsTodayBirthday() {
 			msg.WriteString(" 🥳")
 		} else {
-			if friend.ThisMonthAfterToday() {
+			if friend.IsThisMonthAfterToday() {
 				msg.WriteString(" 🕒")
 			}
 		}
@@ -75,26 +75,15 @@ func listBirthdaysAsMessage(friends []db.Friend, limit, offset int) string {
 }
 
 func birthdayComparator(friends []db.Friend, i, j int) bool {
-	bd_i := strings.Split(friends[i].BirthDay, ".")
-	bd_j := strings.Split(friends[j].BirthDay, ".")
-
 	if friends[i].IsTodayBirthday() {
 		return true
 	}
-
 	if friends[j].IsTodayBirthday() {
 		return false
 	}
-
-	if friends[i].ThisMonthAfterToday() {
-		return true
-	}
-
-	if friends[j].ThisMonthAfterToday() {
-		return false
-	}
-
-	return strings.Join([]string{bd_i[1], bd_i[0]}, ".") > strings.Join([]string{bd_j[1], bd_j[0]}, ".")
+	countI := friends[i].CountDaysToBirthday()
+	countJ := friends[j].CountDaysToBirthday()
+	return countI > countJ
 }
 
 func buildPagiButtons(total, limit, offset int) [][]map[string]string {
