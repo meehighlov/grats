@@ -18,13 +18,17 @@ func (bot *bot) StartPolling() error {
 			command = command_
 			chatContext.reset()
 		} else {
-			command_ = chatContext.getCommandInProgress()
-			if command_ != "" {
-				command = command_
+			if update.CallbackQuery.Id != "" {
+				command = CALLBACK_QUERY_COMMAND
+			} else {
+				command_ = chatContext.getCommandInProgress()
+				if command_ != "" {
+					command = command_
+				}
 			}
 		}
 
-		event := newEvent(bot, update.Message, chatContext, command)
+		event := newEvent(bot, update, chatContext, command)
 
 		commandHandler, found := bot.commandHandlers[command]
 

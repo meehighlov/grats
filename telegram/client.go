@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -31,6 +32,10 @@ type ApiCaller interface {
 
 type apiCaller interface {
 	SendMessage(context.Context, string, string) (*Message, error)
+	SendMessageWithReplyMarkup(context.Context, string, string, [][]map[string]string) (*Message, error)
+	EditMessageReplyMarkup(context.Context, string, string, [][]map[string]string) (*Message, error)
+	EditMessageText(context.Context, string, string, string, [][]map[string]string) (*Message, error)
+	AnswerCallbackQuery(context.Context, string) error
 	GetUpdates(context.Context, int) (*UpdateResponse, error)
 	GetUpdatesChannel(context.Context) UpdatesChannel
 }
@@ -98,7 +103,10 @@ func (tc *telegramClient) sendRequest(ctx context.Context, method string, query 
 	req.URL.RawQuery = query.Encode()
 
 	resp, err := tc.httpClient.Do(req)
+
+	// tc.logger.Debug(fmt.Sprintf("status code for %s is %d", method, resp.StatusCode))
 	if err != nil {
+		tc.logger.Error("error making request: " + err.Error())
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -106,6 +114,10 @@ func (tc *telegramClient) sendRequest(ctx context.Context, method string, query 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusBadRequest {
+		tc.logger.Info(fmt.Sprintf("Bad request: %s", string(body)))
 	}
 
 	return body, nil
@@ -129,6 +141,106 @@ func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string) 
 	}
 
 	return &model, err
+}
+
+func (tc *telegramClient) SendMessageWithReplyMarkup(ctx context.Context, chatId, text string, replyMarkup [][]map[string]string) (*Message, error) {
+	mrakup_ := map[string][][]map[string]string{}
+	mrakup_["inline_keyboard"] = replyMarkup
+	markup, err := json.Marshal(mrakup_)
+	if err != nil {
+		tc.logger.Error("inline keyboard marshaling error")
+		return nil, err
+	}
+
+	q := url.Values{}
+	q.Add("chat_id", chatId)
+	q.Add("text", text)
+	q.Add("reply_markup", string(markup))
+
+	data, err := tc.sendRequest(ctx, "sendMessage", q)
+	if err != nil {
+		tc.logger.Error("error sending message with reply markup: " + err.Error())
+		return nil, err
+	}
+
+	model := Message{}
+	if err := json.Unmarshal(data, &model); err != nil {
+		return nil, err
+	}
+
+	return &model, err
+}
+
+func (tc *telegramClient) EditMessageReplyMarkup(
+	ctx context.Context,
+	chatId string,
+	messageId string,
+	inlineKeyboardMarkup [][]map[string]string,
+) (*Message, error) {
+	replyMarkup, err := json.Marshal(inlineKeyboardMarkup)
+	if err != nil {
+		tc.logger.Error("inline keyboard marshaling error")
+		return nil, err
+	}
+
+	q := url.Values{}
+	q.Add("chat_id", chatId)
+	q.Add("message_id", messageId)
+	q.Add("reply_markup", string(replyMarkup))
+
+	data, err := tc.sendRequest(ctx, "editMessageReplyMarkup", q)
+	if err != nil {
+		return nil, err
+	}
+
+	model := Message{}
+	if err := json.Unmarshal(data, &model); err != nil {
+		return nil, err
+	}
+
+	return &model, err
+}
+
+func (tc *telegramClient) EditMessageText(ctx context.Context, chatId, messageId, text string, replyMarkup [][]map[string]string) (*Message, error) {
+	q := url.Values{}
+	q.Add("chat_id", chatId)
+	q.Add("message_id", messageId)
+	q.Add("text", text)
+
+	mrakup_ := map[string][][]map[string]string{}
+	mrakup_["inline_keyboard"] = replyMarkup
+	markup, err := json.Marshal(mrakup_)
+	if err != nil {
+		tc.logger.Error("inline keyboard marshaling error")
+		return nil, err
+	}
+	q.Add("reply_markup", string(markup))
+
+	data, err := tc.sendRequest(ctx, "editMessageText", q)
+	if err != nil {
+		tc.logger.Error("error editing message: " + err.Error())
+		return nil, err
+	}
+
+	model := Message{}
+	if err := json.Unmarshal(data, &model); err != nil {
+		return nil, err
+	}
+
+	return &model, err
+}
+
+func (tc *telegramClient) AnswerCallbackQuery(ctx context.Context, queryId string) error {
+	q := url.Values{}
+	q.Add("callback_query_id", queryId)
+
+	_, err := tc.sendRequest(ctx, "answerCallbackQuery", q)
+	if err != nil {
+		tc.logger.Error("answer callback query request error: " + err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func (tc *telegramClient) GetUpdates(ctx context.Context, offset int) (*UpdateResponse, error) {

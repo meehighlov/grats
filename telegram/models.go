@@ -70,6 +70,7 @@ type Message struct {
 	ReplyToMessage ReplyToMessage `json:"reply_to_message"`
 	NewChatMembers []User         `json:"new_chat_members"`
 	LeftChatMember User           `json:"left_chat_member"`
+	ReplyMarkup    InlineKeyboardMarkup `json:"reply_markup"`
 }
 
 func (m *Message) IsReply() bool {
@@ -83,6 +84,21 @@ func (m *Message) HasLeftChatMember() bool {
 type Update struct {
 	UpdateId int     `json:"update_id"`
 	Message  Message `json:"message"`
+	InlineQuery InlineQuery `json:"inline_query"`
+	CallbackQuery CallbackQuery `json:"callback_query"`
+}
+
+type InlineQuery struct {
+	Id string `json:"id"`
+	From User `json:"from"`
+	Query string `json:"query"`
+}
+
+type CallbackQuery struct {
+	Id string `json:"id"`
+	From User `json:"from"`
+	Message Message `json:"message"`
+	Data string `json:"data"`
 }
 
 type GetMeReponse struct {
@@ -95,6 +111,15 @@ type UpdateResponse struct {
 	Result []Update `json:"result"`
 }
 
+type InlineKeyboardButton struct {
+	Text         string `json:"text"`
+	CallbackData string `json:"callback_data"`
+}
+
+type InlineKeyboardMarkup struct {
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
 func (update *UpdateResponse) GetLastUpdateId() int {
 	return update.Result[len(update.Result)-1].UpdateId
 }
@@ -105,6 +130,10 @@ func (message *Message) GetChatIdStr() string {
 
 func (message *Message) GetSenderChatIdStr() string {
 	return strconv.Itoa(message.SenderChat.Id)
+}
+
+func (message *Message) GetMessageIdStr() string {
+	return strconv.Itoa(message.MessageId)
 }
 
 func (message *Message) GetCommand() string {

@@ -19,7 +19,7 @@ func main() {
 	// todo use db migrations
 	db.MustSetup("grats.db", logger)
 
-	bot := telegram.NewBot(cfg.BotToken)
+	bot := telegram.NewBot(cfg.BotToken, logger)
 
 	go handlers.BirthdayNotifer(context.Background(), lib.MustSetupLogging("job.log", false, cfg.ENV), cfg)
 
@@ -28,6 +28,7 @@ func main() {
 	bot.RegisterCommandHandler("/list", auth.Auth(handlers.ListBirthdaysHandler))
 	bot.RegisterCommandHandler("/add", auth.Auth(telegram.FSM(handlers.AddBirthdayChatHandler())))
 	bot.RegisterCommandHandler("/delete", auth.Auth(telegram.FSM(handlers.DeleteFriendChatHandler())))
+	bot.RegisterCallbackQueryHandler(handlers.CallbackQueryHandler)
 
 	bot.RegisterCommandHandler("/access_list", auth.Admin(handlers.AccessListHandler))
 	bot.RegisterCommandHandler("/access_grant", auth.Admin(telegram.FSM(handlers.GrantAccessChatHandler())))

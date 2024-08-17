@@ -1,9 +1,12 @@
 package telegram
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func wrapErr(msg string, err error) error {
-	return fmt.Errorf("%s: %w", msg, err)
+	err_ := fmt.Errorf("%s: %w", msg, err)
+	return err_
 }
 
 func wrapIfErr(msg string, err error) error {
