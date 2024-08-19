@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/meehighlov/grats/internal/config"
 )
 
 type BaseFields struct {
@@ -17,7 +18,11 @@ type BaseFields struct {
 }
 
 func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error) {
-	now := time.Now().Format("02.01.2006T15:04:05")
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " entityId: " + b.ID)
+	}
+	now := time.Now().In(location).Format("02.01.2006T15:04:05")
 	if b.CreatedAt == "" {
 		b.CreatedAt = now
 	}
@@ -27,8 +32,13 @@ func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error
 }
 
 func NewBaseFields() BaseFields {
-	now := time.Now().Format("02.01.2006T15:04:05")
-	return BaseFields{uuid.New().String(), now, now}
+	id := uuid.New().String()
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " NewEntityId: " + id)
+	}
+	now := time.Now().In(location).Format("02.01.2006T15:04:05")
+	return BaseFields{id, now, now}
 }
 
 type User struct {
@@ -68,16 +78,23 @@ func (user *User) FriendsListAsString() string {
 type Friend struct {
 	BaseFields
 
+	// todo store timezone in friend table or somewere in db - for user's specific timezone
+
 	Name           string
 	UserId         int
 	BirthDay       string
 	ChatId         int
 	notifyAt       string
-	FilterNotifyAt string // this params is only for filtering
+	FilterNotifyAt string // this param is only for filtering
 }
 
 func (friend *Friend) CountDaysToBirthday() int {
-	now := time.Now()
+	// todo store timezone in friend table or somewere in db - for user's specific timezone
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
+	}
+	now := time.Now().In(location)
 	notify, err := time.Parse("02.01.2006", *friend.GetNotifyAt())
 	if err != nil {
 		slog.Error("error parsing notify during count days to birthday: " + err.Error())
@@ -91,7 +108,11 @@ func (friend *Friend) CountDaysToBirthday() int {
 }
 
 func (friend *Friend) IsThisMonthAfterToday() bool {
-	now := strings.Split(time.Now().Format("02.01.2006"), ".")
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
+	}
+	now := strings.Split(time.Now().In(location).Format("02.01.2006"), ".")
 	thisMonth := strings.Split(friend.BirthDay, ".")[1] == now[1]
 	afterToday := strings.Split(friend.BirthDay, ".")[0] > now[0]
 
@@ -99,7 +120,11 @@ func (friend *Friend) IsThisMonthAfterToday() bool {
 }
 
 func (friend *Friend) IsTodayBirthday() bool {
-	now := strings.Split(time.Now().Format("02.01.2006"), ".")
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
+	}
+	now := strings.Split(time.Now().In(location).Format("02.01.2006"), ".")
 	bd := strings.Split(friend.BirthDay, ".")
 
 	return now[0] == bd[0] && now[1] == bd[1]
@@ -122,14 +147,19 @@ func (friend *Friend) RenewNotifayAt() (string, error) {
 		return "", nil
 	}
 
-	today, err := time.Parse(format, time.Now().Format(format))
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
+	}
+
+	today, err := time.Parse(format, time.Now().In(location).Format(format))
 
 	if err != nil {
 		slog.Error("notify date creation: cannot parse today date:" + err.Error())
 		return "", nil
 	}
 
-	year := time.Now().Year()
+	year := time.Now().In(location).Year()
 	if today.After(birthday) || today.Equal(birthday) {
 		year += 1
 	}
@@ -139,40 +169,22 @@ func (friend *Friend) RenewNotifayAt() (string, error) {
 	return *friend.GetNotifyAt(), nil
 }
 
-func (friend *Friend) NotifyNeeded() (bool, error) {
-	format := "02.01.2006" // day.month.year
-	today, err := time.Parse(format, time.Now().Format(format))
-
-	if err != nil {
-		slog.Error("notify check error: cannot parse today date:" + err.Error())
-		return false, err
-	}
-
-	notifyAt, err := time.Parse(format, *friend.GetNotifyAt())
-
-	if err != nil {
-		slog.Error("notify check error: cannot parse notify date:" + err.Error())
-		return false, err
-	}
-
-	if today.Equal(notifyAt) {
-		return true, nil
-	}
-
-	return false, nil
-}
-
 func (friend *Friend) UpdateNotifyAt() (string, error) {
 	format := "02.01.2006" // day.month.year
 	notifyAt, err := time.Parse(format, *friend.GetNotifyAt())
 
 	if err != nil {
-		slog.Error("error updating notfiy date:" + err.Error())
+		slog.Error("error updating notfiy date: " + err.Error())
 		return *friend.GetNotifyAt(), err
 	}
 
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
+	}
+
 	// in case of duplicated call
-	if notifyAt.Year() != time.Now().Year() {
+	if notifyAt.Year() != time.Now().In(location).Year() {
 		return *friend.GetNotifyAt(), nil
 	}
 

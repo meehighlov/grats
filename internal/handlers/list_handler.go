@@ -126,7 +126,7 @@ func ListBirthdaysCallbackQueryHandler(event telegram.Event) error {
 	slog.Debug(fmt.Sprintf("direction: %s limit: %d offset: %s", direction, limit_, offset))
 
 	if direction == "<" {
-		slog.Debug("back to previous screen")
+		slog.Debug("back to previous screen, offset not changed")
 	}
 	if direction == "<<<" {
 		offset_ = 0
