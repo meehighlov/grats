@@ -29,21 +29,20 @@ func FriendInfoCallbackQueryHandler(event telegram.Event) error {
 	friend := friends[0]
 
 	msgLines := []string{
-		fmt.Sprintf("Имя %s", friend.Name),
-		fmt.Sprintf("День рождения %s", friend.BirthDay),
-		fmt.Sprintf("Напомню о нем %s", *friend.GetNotifyAt()),
-		"\n",
+		fmt.Sprintf("🟢 %s", friend.Name),
+		fmt.Sprintf("🟢 %s", friend.BirthDay),
+		fmt.Sprintf("🟢 Напомню о нем %s", *friend.GetNotifyAt()),
 	}
 
 	if friend.IsTodayBirthday() {
-		msgLines = append(msgLines, fmt.Sprintf("Сегодня %s празднует день рождения🥳", friend.Name))
+		msgLines = append(msgLines, fmt.Sprintf("🥳 Сегодня %s празднует день рождения", friend.Name))
 	} else {
 		if friend.IsThisMonthAfterToday() {
-			msgLines = append(msgLines, fmt.Sprintf("У %s скоро день рождения🕒", friend.Name))
+			msgLines = append(msgLines, fmt.Sprintf("🕒 У %s скоро день рождения", friend.Name))
 		}
 	}
 
-	msg := strings.Join(msgLines, "\n")
+	msg := strings.Join(msgLines, "\n\n")
 
 	markup := [][]map[string]string{
 		{
