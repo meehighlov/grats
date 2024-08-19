@@ -104,7 +104,6 @@ func (tc *telegramClient) sendRequest(ctx context.Context, method string, query 
 
 	resp, err := tc.httpClient.Do(req)
 
-	// tc.logger.Debug(fmt.Sprintf("status code for %s is %d", method, resp.StatusCode))
 	if err != nil {
 		tc.logger.Error("error making request: " + err.Error())
 		return nil, err

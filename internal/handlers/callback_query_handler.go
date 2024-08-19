@@ -15,14 +15,14 @@ func CallbackQueryHandler(event telegram.Event) error {
 
 	event.AnswerCallbackQuery(ctx)
 
-	command := strings.Split(strings.Split(event.GetCallbackQuery().Data, ";")[0], ":")[1]
+	command := strings.Split(event.GetCallbackQuery().Data, ";")[0]
 
 	slog.Debug("handling callback query, command: " + command)
 
 	if command == "list" {
 		ListBirthdaysCallbackQueryHandler(event)
 	}
-	if command == "friend_info" {
+	if command == "info" {
 		FriendInfoCallbackQueryHandler(event)
 	}
 	if command == "delete_friend" {

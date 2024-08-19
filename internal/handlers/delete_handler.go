@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -16,10 +17,24 @@ func DeleteFriendCallbackQueryHandler(event telegram.Event) error {
 
 	params := strings.Split(event.GetCallbackQuery().Data, ";")
 
-	friendId := strings.Split(params[1], ":")[1]
+	friendId := params[1]
 
 	baseFields := db.BaseFields{ID: friendId}
-	err := (&db.Friend{BaseFields: baseFields}).Delete(ctx)
+	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx)
+
+	if err != nil {
+		event.ReplyCallbackQuery(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
+		slog.Error("error serching friend when deleting: " + err.Error())
+	}
+
+	if len(friends) == 0 {
+		slog.Error("not found friend row by id: " + friendId)
+		return err
+	}
+
+	friend := friends[0]
+
+	err = friend.Delete(ctx)
 
 	if err != nil {
 		event.ReplyCallbackQuery(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
@@ -29,13 +44,16 @@ func DeleteFriendCallbackQueryHandler(event telegram.Event) error {
 	markup := [][]map[string]string{
 		{
 			{
-				"text": "вернуться к списку⬅️",
-				"callback_data": "command:list;limit:5;offset:0;direction:<<<",
+				"text": "👈к списку",
+				"callback_data": fmt.Sprintf("list;%d;<", LIST_START_OFFSET),
 			},
 		},
 	}
 
 	event.EditCalbackMessage(ctx, "Напоминание удалено👋", markup)
+
+	callBackMsg := fmt.Sprintf("Напоминание для %s (%s) удалено🙌", friend.Name, friend.BirthDay)
+	event.ReplyCallbackQuery(ctx, callBackMsg)
 
 	return nil
 }

@@ -62,24 +62,29 @@ func birthdayComparator(friends []db.Friend, i, j int) bool {
 
 func buildPagiButtons(total, limit, offset int) [][]map[string]string {
 	if offset == total {
-		return [][]map[string]string{}
+		return [][]map[string]string{{
+			{
+				"text": "свернуть👆",
+				"callback_data": fmt.Sprintf("list;%d;direction:<<<", LIST_START_OFFSET),
+			},
+		}}
 	}
 	var keyBoard []map[string]string
 	if offset + limit >= total {
-		previousButton := map[string]string{"text": "назад", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:<<", limit, offset)}
+		previousButton := map[string]string{"text": "👈назад", "callback_data": fmt.Sprintf("list;%d;<<", offset)}
 		keyBoard = []map[string]string{previousButton}
 	} else {
 		if offset == 0 {
-			nextButton := map[string]string{"text": "вперед", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:>>", limit, offset)}
+			nextButton := map[string]string{"text": "вперед👉", "callback_data": fmt.Sprintf("list;%d;>>", offset)}
 			keyBoard = []map[string]string{nextButton}
 		} else {
-			nextButton := map[string]string{"text": "вперед", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:>>", limit, offset)}
-			previousButton := map[string]string{"text": "назад", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:<<", limit, offset)}
+			nextButton := map[string]string{"text": "вперед👉", "callback_data": fmt.Sprintf("list;%d;>>", offset)}
+			previousButton := map[string]string{"text": "👈назад", "callback_data": fmt.Sprintf("list;%d;<<", offset)}
 			keyBoard = []map[string]string{previousButton, nextButton}
 		}
 	}
 
-	allButton := map[string]string{"text": fmt.Sprintf("показать все (%d)", total), "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:<>", limit, offset)}
+	allButton := map[string]string{"text": fmt.Sprintf("показать все (%d)👇", total), "callback_data": fmt.Sprintf("list;%d;<>", offset)}
 	allButtonBar := []map[string]string{allButton}
 
 	markup := [][]map[string]string{}
@@ -99,17 +104,13 @@ func ListBirthdaysCallbackQueryHandler(event telegram.Event) error {
 	callbackQuery := event.GetCallbackQuery()
 	payload := callbackQuery.Data
 	params := strings.Split(payload, ";")
-	limit := strings.Split(params[1], ":")[1]
-	offset := strings.Split(params[2], ":")[1]
 
-	limit_, err  := strconv.Atoi(limit)
-	if err != nil {
-		slog.Error("error parsing params in list pagination callback query: " + err.Error())
-		return err
-	}
+	offset := params[1]
+
+	limit_ := LIST_LIMIT
 	offset_, err := strconv.Atoi(offset)
 	if err != nil {
-		slog.Error("error parsing params in list pagination callback query: " + err.Error())
+		slog.Error("error parsing offset in list pagination callback query: " + err.Error())
 		return err
 	}
 
@@ -120,10 +121,13 @@ func ListBirthdaysCallbackQueryHandler(event telegram.Event) error {
 		return nil
 	}
 
-	direction := strings.Split(strings.Split(callbackQuery.Data, ";")[3], ":")[1]
+	direction := strings.Split(callbackQuery.Data, ";")[2]
 
-	slog.Debug(fmt.Sprintf("direction: %s limit: %s offset: %s", direction, limit, offset))
+	slog.Debug(fmt.Sprintf("direction: %s limit: %d offset: %s", direction, limit_, offset))
 
+	if direction == "<" {
+		slog.Debug("back to previous screen")
+	}
 	if direction == "<<<" {
 		offset_ = 0
 	}
@@ -172,7 +176,7 @@ func buildFriendsButtons(friends []db.Friend, limit, offset int) []map[string]st
 
 		button := map[string]string{
 			"text": buttonText,
-			"callback_data": fmt.Sprintf("command:friend_info;id:%s", friend.ID),
+			"callback_data": fmt.Sprintf("info;%s;%d", friend.ID, offset),
 		}
 		buttons = append(buttons, button)
 	}
