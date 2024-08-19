@@ -47,11 +47,11 @@ func FriendInfoCallbackQueryHandler(event telegram.Event) error {
 	markup := [][]map[string]string{
 		{
 			{
-				"text": "удалить напоминание👋",
+				"text": "удалить👋",
 				"callback_data": fmt.Sprintf("command:delete_friend;id:%s", eventId),
 			},
 			{
-				"text": "вернуться к списку⬅️",
+				"text": "к списку⬅️",
 				"callback_data": "command:list;limit:5;offset:0;direction:<<<",
 			},
 		},
