@@ -27,3 +27,4 @@ grats.db
 grats.log
 job.log
 .idea
+.DS_Store

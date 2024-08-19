@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -18,6 +17,9 @@ const (
 	LIST_PAGINATION_SHIFT = 5
 	LIST_LIMIT = 5
 	LIST_START_OFFSET = 0
+
+	HEADER_MESSAGE_LIST_NOT_EMPTY = "Нажми, чтобы узнать детали✨"
+	HEADER_MESSAGE_LIST_IS_EMPTY = "Записей пока нет✨"
 )
 
 func ListBirthdaysHandler(event telegram.Event) error {
@@ -33,45 +35,17 @@ func ListBirthdaysHandler(event telegram.Event) error {
 	}
 
 	if len(friends) == 0 {
-		event.Reply(ctx, "Записей пока нет✨")
+		event.Reply(ctx, HEADER_MESSAGE_LIST_IS_EMPTY)
 		return nil
 	}
 
 	event.ReplyWithKeyboard(
 		ctx,
-		listBirthdaysAsMessage(friends, LIST_LIMIT, LIST_START_OFFSET),
-		buildPagiButtons(len(friends), LIST_LIMIT, LIST_START_OFFSET),
+		HEADER_MESSAGE_LIST_NOT_EMPTY,
+		buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET),
 	)
 
 	return nil
-}
-
-func listBirthdaysAsMessage(friends []db.Friend, limit, offset int) string {
-	sort.Slice(friends, func(i, j int) bool { return birthdayComparator(friends, i, j) })
-	var msg bytes.Buffer
-	for i, friend := range friends {
-		if offset != len(friends) {
-			if i == limit + offset {
-				break
-			}
-			if i < offset {
-				continue
-			}
-		}
-		msg.WriteString(friend.Name)
-		msg.WriteString(" ")
-		msg.WriteString(friend.BirthDay)
-		if friend.IsTodayBirthday() {
-			msg.WriteString(" 🥳")
-		} else {
-			if friend.IsThisMonthAfterToday() {
-				msg.WriteString(" 🕒")
-			}
-		}
-		msg.WriteString("\n")
-	}
-
-	return msg.String()
 }
 
 func birthdayComparator(friends []db.Friend, i, j int) bool {
@@ -92,15 +66,15 @@ func buildPagiButtons(total, limit, offset int) [][]map[string]string {
 	}
 	var keyBoard []map[string]string
 	if offset + limit >= total {
-		previousButton := map[string]string{"text": "<<", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:<<", limit, offset)}
+		previousButton := map[string]string{"text": "назад", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:<<", limit, offset)}
 		keyBoard = []map[string]string{previousButton}
 	} else {
 		if offset == 0 {
-			nextButton := map[string]string{"text": ">>", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:>>", limit, offset)}
+			nextButton := map[string]string{"text": "вперед", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:>>", limit, offset)}
 			keyBoard = []map[string]string{nextButton}
 		} else {
-			nextButton := map[string]string{"text": ">>", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:>>", limit, offset)}
-			previousButton := map[string]string{"text": "<<", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:<<", limit, offset)}
+			nextButton := map[string]string{"text": "вперед", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:>>", limit, offset)}
+			previousButton := map[string]string{"text": "назад", "callback_data": fmt.Sprintf("command:list;limit:%d;offset:%d;direction:<<", limit, offset)}
 			keyBoard = []map[string]string{previousButton, nextButton}
 		}
 	}
@@ -119,7 +93,7 @@ func buildPagiButtons(total, limit, offset int) [][]map[string]string {
 	return markup
 }
 
-func ListBirthdaysPagination(event telegram.Event) error {
+func ListBirthdaysCallbackQueryHandler(event telegram.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 	callbackQuery := event.GetCallbackQuery()
@@ -150,6 +124,9 @@ func ListBirthdaysPagination(event telegram.Event) error {
 
 	slog.Debug(fmt.Sprintf("direction: %s limit: %s offset: %s", direction, limit, offset))
 
+	if direction == "<<<" {
+		offset_ = 0
+	}
 	if direction == ">>" {
 		offset_ += LIST_PAGINATION_SHIFT
 	} 
@@ -160,9 +137,60 @@ func ListBirthdaysPagination(event telegram.Event) error {
 		offset_ = len(friends)
 	}
 
-	msg := listBirthdaysAsMessage(friends, limit_, offset_)
+	msg := HEADER_MESSAGE_LIST_NOT_EMPTY
+	if len(friends) == 0 {
+		msg = HEADER_MESSAGE_LIST_IS_EMPTY
+	}
 
-	event.EditCalbackMessage(ctx, msg, buildPagiButtons(len(friends), limit_, offset_))
+	event.EditCalbackMessage(ctx, msg, buildFriendsListMarkup(friends, limit_, offset_))
 
 	return nil
+}
+
+func buildFriendsButtons(friends []db.Friend, limit, offset int) []map[string]string {
+	sort.Slice(friends, func(i, j int) bool { return birthdayComparator(friends, i, j) })
+	var buttons []map[string]string
+	for i, friend := range friends {
+		if offset != len(friends) {
+			if i == limit + offset {
+				break
+			}
+			if i < offset {
+				continue
+			}
+		}
+
+		buttonText := fmt.Sprintf("%s %s", friend.Name, friend.BirthDay)
+
+		if friend.IsTodayBirthday() {
+			buttonText = fmt.Sprintf("%s 🥳", buttonText)
+		} else {
+			if friend.IsThisMonthAfterToday() {
+				buttonText = fmt.Sprintf("%s 🕒", buttonText)
+			}
+		}
+
+		button := map[string]string{
+			"text": buttonText,
+			"callback_data": fmt.Sprintf("command:friend_info;id:%s", friend.ID),
+		}
+		buttons = append(buttons, button)
+	}
+
+	return buttons
+}
+
+func buildFriendsListMarkup(friends []db.Friend, limit, offset int) [][]map[string]string {
+	friendsListAsButtons := buildFriendsButtons(friends, limit, offset)
+	pagiButtons := buildPagiButtons(len(friends), limit, offset)
+
+	markup := [][]map[string]string{}
+
+	for _, button := range friendsListAsButtons {
+		markup = append(markup, []map[string]string{button})
+	}
+
+	markup = append(markup, pagiButtons...)
+
+	return markup
 }

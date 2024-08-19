@@ -7,6 +7,7 @@ type Event interface {
 	GetMessage() *Message
 	GetCallbackQuery() *CallbackQuery
 	Reply(context.Context, string) *Message
+	ReplyCallbackQuery(context.Context, string) *Message
 	ReplyWithKeyboard(context.Context, string, [][]map[string]string) *Message
 	EditCalbackMessage(context.Context, string, [][]map[string]string) *Message
 	AnswerCallbackQuery(context.Context) bool
@@ -42,6 +43,11 @@ func (e *event) GetCallbackQuery() *CallbackQuery {
 
 func (e *event) Reply(ctx context.Context, text string) *Message {
 	msg, _ := e.bot.client.SendMessage(ctx, e.GetMessage().GetChatIdStr(), text)
+	return msg
+}
+
+func (e *event) ReplyCallbackQuery(ctx context.Context, text string) *Message {
+	msg, _ := e.bot.client.SendMessage(ctx, e.GetCallbackQuery().Message.GetChatIdStr(), text)
 	return msg
 }
 

@@ -27,7 +27,6 @@ func main() {
 	bot.RegisterCommandHandler("/help", auth.Auth(handlers.HelpHandler))
 	bot.RegisterCommandHandler("/list", auth.Auth(handlers.ListBirthdaysHandler))
 	bot.RegisterCommandHandler("/add", auth.Auth(telegram.FSM(handlers.AddBirthdayChatHandler())))
-	bot.RegisterCommandHandler("/delete", auth.Auth(telegram.FSM(handlers.DeleteFriendChatHandler())))
 	bot.RegisterCallbackQueryHandler(handlers.CallbackQueryHandler)
 
 	bot.RegisterCommandHandler("/access_list", auth.Admin(handlers.AccessListHandler))

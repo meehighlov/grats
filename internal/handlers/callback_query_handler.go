@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/config"
@@ -15,8 +16,17 @@ func CallbackQueryHandler(event telegram.Event) error {
 	event.AnswerCallbackQuery(ctx)
 
 	command := strings.Split(strings.Split(event.GetCallbackQuery().Data, ";")[0], ":")[1]
+
+	slog.Debug("handling callback query, command: " + command)
+
 	if command == "list" {
-		ListBirthdaysPagination(event)
+		ListBirthdaysCallbackQueryHandler(event)
+	}
+	if command == "friend_info" {
+		FriendInfoCallbackQueryHandler(event)
+	}
+	if command == "delete_friend" {
+		DeleteFriendCallbackQueryHandler(event)
 	}
 	return nil
 }
