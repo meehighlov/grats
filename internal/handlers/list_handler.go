@@ -176,7 +176,7 @@ func buildFriendsButtons(friends []db.Friend, limit, offset int) []map[string]st
 
 		button := map[string]string{
 			"text": buttonText,
-			"callback_data": fmt.Sprintf("info;%s;%d", friend.ID, offset),
+			"callback_data": info.NewInfo(),
 		}
 		buttons = append(buttons, button)
 	}

@@ -25,7 +25,7 @@ func CallbackQueryHandler(event telegram.Event) error {
 	if command == "info" {
 		FriendInfoCallbackQueryHandler(event)
 	}
-	if command == "delete_friend" {
+	if command == "delete" {
 		DeleteFriendCallbackQueryHandler(event)
 	}
 	return nil
