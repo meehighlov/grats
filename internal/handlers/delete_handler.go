@@ -8,7 +8,7 @@ import (
 
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	models "github.com/meehighlov/grats/internal/models/call-back-data"
+	"github.com/meehighlov/grats/internal/models"
 	"github.com/meehighlov/grats/telegram"
 )
 
@@ -16,9 +16,9 @@ func DeleteFriendCallbackQueryHandler(event telegram.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
-	params := models.DeleteFromRaw(event.GetCallbackQuery().Data)
+	params := models.CallbackFromString(event.GetCallbackQuery().Data)
 
-	friendId := params.ID()
+	friendId := params.Id
 
 	baseFields := db.BaseFields{ID: friendId}
 	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx)

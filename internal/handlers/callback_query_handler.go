@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/meehighlov/grats/internal/config"
-	models "github.com/meehighlov/grats/internal/models/call-back-data"
+	"github.com/meehighlov/grats/internal/models"
 	"github.com/meehighlov/grats/telegram"
 )
 
@@ -15,7 +15,7 @@ func CallbackQueryHandler(event telegram.Event) error {
 
 	event.AnswerCallbackQuery(ctx)
 
-	command := models.GetCommandFromCallbackData(event.GetCallbackQuery().Data)
+	command := models.CallbackFromString(event.GetCallbackQuery().Data).Command
 
 	slog.Debug("handling callback query, command: " + command)
 

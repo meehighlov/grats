@@ -9,7 +9,7 @@ import (
 
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	models "github.com/meehighlov/grats/internal/models/call-back-data"
+	"github.com/meehighlov/grats/internal/models"
 	"github.com/meehighlov/grats/telegram"
 )
 
@@ -103,9 +103,9 @@ func ListBirthdaysCallbackQueryHandler(event telegram.Event) error {
 	defer cancel()
 	callbackQuery := event.GetCallbackQuery()
 
-	params := models.ListFromRaw(event.GetCallbackQuery().Data)
+	params := models.CallbackFromString(event.GetCallbackQuery().Data)
 
-	offset := params.Pagination().Offset
+	offset := params.Pagination.Offset
 
 	limit_ := LIST_LIMIT
 	offset_, err := strconv.Atoi(offset)
@@ -121,7 +121,7 @@ func ListBirthdaysCallbackQueryHandler(event telegram.Event) error {
 		return nil
 	}
 
-	direction := params.Pagination().Direction
+	direction := params.Pagination.Direction
 
 	slog.Debug(fmt.Sprintf("direction: %s limit: %d offset: %s", direction, limit_, offset))
 
