@@ -18,9 +18,9 @@ func FriendInfoCallbackQueryHandler(event telegram.Event) error {
 
 	callbackQuery := event.GetCallbackQuery()
 
-	info := models.InfoFromRaw(callbackQuery.Data)
+	params := models.InfoFromRaw(callbackQuery.Data)
 
-	baseFields := db.BaseFields{ID: info.ID()}
+	baseFields := db.BaseFields{ID: params.ID()}
 	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx)
 
 	if err != nil {
@@ -49,19 +49,19 @@ func FriendInfoCallbackQueryHandler(event telegram.Event) error {
 
 	msg := strings.Join(msgLines, "\n\n")
 
-	_, offset, _ := info.Pagination()
+	offset := params.Pagination().Offset
 
 	markup := [][]map[string]string{
 		{
 			{
 				"text": "👈к списку",
-				"callback_data": fmt.Sprintf("list;%s;<", offset),
+				"callback_data": models.CallList(offset, "<").String(),
 			},
 		},
 		{
 			{
 				"text": "удалить👋",
-				"callback_data": fmt.Sprintf("delete;%s", info.ID()),
+				"callback_data": models.СallDelete(params.ID()).String(),
 			},
 		},
 	}

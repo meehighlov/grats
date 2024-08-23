@@ -10,7 +10,7 @@ type Info struct {
 	offset string
 }
 
-func NewInfo(id, offset string) *Info {
+func CallInfo(id, offset string) *Info {
 	return &Info{
 		id: id,
 		offset: offset,
@@ -26,7 +26,7 @@ func InfoFromRaw(raw string) *Info {
 }
 
 func (i *Info) String() string {
-	return fmt.Sprintf("%s;%s", i.Command(), i.offset)
+	return fmt.Sprintf("%s;%s;%s", i.Command(), i.ID(), i.Pagination().Offset)
 }
 
 func (i *Info) Command() string {
@@ -41,6 +41,6 @@ func (i *Info) Entity() string {
 	return "friend"
 }
 
-func (i *Info) Pagination() (_, offset, _ string) {
-	return "", "offset", ""
+func (i *Info) Pagination() Pagination {
+	return Pagination{Limit: "0", Offset: i.offset, Direction: ""}
 }

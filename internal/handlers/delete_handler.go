@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
+	"strconv"
 
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
+	models "github.com/meehighlov/grats/internal/models/call-back-data"
 	"github.com/meehighlov/grats/telegram"
 )
 
@@ -15,9 +16,9 @@ func DeleteFriendCallbackQueryHandler(event telegram.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
-	params := strings.Split(event.GetCallbackQuery().Data, ";")
+	params := models.DeleteFromRaw(event.GetCallbackQuery().Data)
 
-	friendId := params[1]
+	friendId := params.ID()
 
 	baseFields := db.BaseFields{ID: friendId}
 	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx)
@@ -45,7 +46,7 @@ func DeleteFriendCallbackQueryHandler(event telegram.Event) error {
 		{
 			{
 				"text": "👈к списку",
-				"callback_data": fmt.Sprintf("list;%d;<", LIST_START_OFFSET),
+				"callback_data": models.CallList(strconv.Itoa(LIST_START_OFFSET), "<").String(),
 			},
 		},
 	}
