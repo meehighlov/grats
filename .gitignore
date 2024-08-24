@@ -23,8 +23,7 @@ go.work.sum
 
 .env
 .vscode
-grats.db
-grats.log
-job.log
+*.db
+*.log
 .idea
 .DS_Store
