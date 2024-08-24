@@ -32,14 +32,14 @@ func FriendInfoCallbackQueryHandler(event telegram.Event) error {
 
 	// todo take from db
 	friendTimezone := "мск"
-	
+
 	emoji, zodiacName := friend.GetZodiacSign()
 
 	msgLines := []string{
 		fmt.Sprintf("✨ %s", friend.Name),
 		fmt.Sprintf("🗓 %s", friend.BirthDay),
 		fmt.Sprintf("%s %s", emoji, zodiacName),
-		fmt.Sprintf("🔔 Напомню о нем %s в полночь, часовой пояс - %s", *friend.GetNotifyAt(), friendTimezone),
+		fmt.Sprintf("🔔 Напомню %s в полночь (по %s)", *friend.GetNotifyAt(), friendTimezone),
 	}
 
 	if friend.IsTodayBirthday() {
