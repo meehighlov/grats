@@ -2,12 +2,14 @@
 
 ## Запуск
 
-1. сделать копию файла .env.example
-```shell
-cp .env.example .env
-```
-2. добавить в .env все неустановленные значения
-3. запустить из корня проекта
-```shell
-go run main.go
-```
+1. создаем .env файл и добавляем его в /cmd/grats (пример .env.example)
+2. запускаем миграции
+   - устанавливаем goose, например: brew install goose
+   - из каталога /cmd/grats запускаем команду
+   ```shell
+   goose -dir=../../migrations sqlite3 grats.db up
+   ```
+3. запускаем бота из каталога /cmd/grats:
+   ```shell
+   go run main.go
+   ```
