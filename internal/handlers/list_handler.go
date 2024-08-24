@@ -61,6 +61,9 @@ func birthdayComparator(friends []db.Friend, i, j int) bool {
 }
 
 func buildPagiButtons(total, limit, offset int) [][]map[string]string {
+	if total == 0 {
+		return [][]map[string]string{}
+	}
 	if offset == total {
 		return [][]map[string]string{{
 			{

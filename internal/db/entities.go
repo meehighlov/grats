@@ -88,6 +88,79 @@ type Friend struct {
 	FilterNotifyAt string // this param is only for filtering
 }
 
+func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {
+	parts := strings.Split(friend.BirthDay, ".")
+	birtday_wo_year := strings.Join(parts[:2], ".")
+
+	return time.Parse(format, birtday_wo_year)
+}
+
+func (friend *Friend) GetZodiacSign() (emoji, text string) {
+	format := "02.01" // day.month
+	birthday, err := friend.BirthDayAsObj(format)
+
+	if err != nil {
+		slog.Error("define zodiac sign error: cannot parse birthday: " + err.Error())
+		return "🌙", "это луна"
+	}
+
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone during zodiac sign defenition, error: " + err.Error() + " friendId: " + friend.ID)
+		return "🌙", "это луна"
+	}
+
+	border := func (month time.Month, day int) time.Time {
+		return time.Date(0, month, day, 0, 0, 0, 0, location)
+	}
+
+	if birthday.After(border(time.March, 21)) && birthday.Before(border(time.April, 20)) {
+		return "♈️", "овен"
+	}
+	if birthday.After(border(time.April, 20)) && birthday.Before(border(time.May, 21)) {
+		return "♉", "телец"
+	}
+	if birthday.After(border(time.May, 21)) && birthday.Before(border(time.June, 22)) {
+		return "♊", "близнецы"
+	}
+	if birthday.After(border(time.June, 22)) && birthday.Before(border(time.July, 23)) {
+		return "♋", "рак"
+	}
+	if birthday.After(border(time.July, 23)) && birthday.Before(border(time.August, 23)) {
+		return "♌", "лев"
+	}
+	if birthday.After(border(time.August, 23)) && birthday.Before(border(time.September, 23)) {
+		return "♍", "дева"
+	}
+	if birthday.After(border(time.September, 23)) && birthday.Before(border(time.October, 24)) {
+		return "♎", "весы"
+	}
+	if birthday.After(border(time.October, 24)) && birthday.Before(border(time.November, 22)) {
+		return "♏", "скорпион"
+	}
+	if birthday.After(border(time.November, 22)) && birthday.Before(border(time.December, 22)) {
+		return "♐", "стрелец"
+	}
+	if birthday.After(border(time.December, 22)) && birthday.Before(border(time.December, 31)) {
+		return "♑", "козерог"
+	}
+	if birthday.Equal(border(time.December, 31)) {
+		return "♑", "козерог"
+	}
+	if birthday.After(border(time.January, 1)) && birthday.Before(border(time.January, 20)) {
+		return "♑", "козерог"
+	}
+	if birthday.After(border(time.January, 20)) && birthday.Before(border(time.February, 19)) {
+		return "♒", "водолей"
+	}
+	if birthday.After(border(time.February, 19)) && birthday.Before(border(time.March, 21)) {
+		return "♓", "рыбы"
+	}
+
+	slog.Error("zodiac sign was not defined by birthday: " + friend.BirthDay)
+	return "🌙", "это луна"
+}
+
 func (friend *Friend) CountDaysToBirthday() int {
 	// todo store timezone in friend table or somewere in db - for user's specific timezone
 	location, err := time.LoadLocation(config.Cfg().Timezone)
@@ -137,13 +210,10 @@ func (friend *Friend) GetNotifyAt() *string {
 func (friend *Friend) RenewNotifayAt() (string, error) {
 	format := "02.01" // day.month
 
-	parts := strings.Split(friend.BirthDay, ".")
-	birtday_wo_year := strings.Join(parts[:2], ".")
-
-	birthday, err := time.Parse(format, birtday_wo_year)
+	birthday, err := friend.BirthDayAsObj(format)
 
 	if err != nil {
-		slog.Error("notify date creation: cannot parse birthday:" + err.Error())
+		slog.Error("notify date creation: cannot parse birthday: " + err.Error())
 		return "", nil
 	}
 
