@@ -27,17 +27,42 @@ type telegramClient struct {
 }
 
 type ApiCaller interface {
-	SendMessage(context.Context, string, string) (*Message, error)
+	SendMessage(context.Context, string, string, ...sendMessageOption) (*Message, error)
 }
 
 type apiCaller interface {
-	SendMessage(context.Context, string, string) (*Message, error)
-	SendMessageWithReplyMarkup(context.Context, string, string, [][]map[string]string) (*Message, error)
+	SendMessage(context.Context, string, string, ...sendMessageOption) (*Message, error)
 	EditMessageReplyMarkup(context.Context, string, string, [][]map[string]string) (*Message, error)
 	EditMessageText(context.Context, string, string, string, [][]map[string]string) (*Message, error)
 	AnswerCallbackQuery(context.Context, string) error
 	GetUpdates(context.Context, int) (*UpdateResponse, error)
 	GetUpdatesChannel(context.Context) UpdatesChannel
+}
+
+type sendMessageOption func(q url.Values) error
+
+func WithParseMode(parseMode string) sendMessageOption {
+	return func(q url.Values) error {
+		q.Add("parse_mode", parseMode)
+		return nil
+	}
+}
+
+func WithMarkDown() sendMessageOption {
+	return WithParseMode("MarkDown")
+}
+
+func WithReplyMurkup(replyMarkup [][]map[string]string) sendMessageOption {
+	return func(q url.Values) error {
+		mrakup_ := map[string][][]map[string]string{}
+		mrakup_["inline_keyboard"] = replyMarkup
+		markup, err := json.Marshal(mrakup_)
+		if err != nil {
+			return nil
+		}
+		q.Add("reply_markup", string(markup))
+		return nil
+	}
 }
 
 // --------------------------------------------------------------- telegram client  ---------------------------------------------------------------
@@ -124,41 +149,23 @@ func (tc *telegramClient) sendRequest(ctx context.Context, method string, query 
 
 // --------------------------------------------------------------- API methods implementation ---------------------------------------------------------------
 
-func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string) (*Message, error) {
+func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string, opts ...sendMessageOption) (*Message, error) {
 	q := url.Values{}
 	q.Add("chat_id", chatId)
 	q.Add("text", text)
 
-	data, err := tc.sendRequest(ctx, "sendMessage", q)
-	if err != nil {
-		return nil, err
+	for _, optSetter := range opts {
+		err := optSetter(q)
+		if err != nil {
+			tc.logger.Error(
+				"telegram client sendMessage error preparing query params",
+				"error contins", err.Error(),
+			)
+		}
 	}
-
-	model := Message{}
-	if err := json.Unmarshal(data, &model); err != nil {
-		return nil, err
-	}
-
-	return &model, err
-}
-
-func (tc *telegramClient) SendMessageWithReplyMarkup(ctx context.Context, chatId, text string, replyMarkup [][]map[string]string) (*Message, error) {
-	mrakup_ := map[string][][]map[string]string{}
-	mrakup_["inline_keyboard"] = replyMarkup
-	markup, err := json.Marshal(mrakup_)
-	if err != nil {
-		tc.logger.Error("inline keyboard marshaling error")
-		return nil, err
-	}
-
-	q := url.Values{}
-	q.Add("chat_id", chatId)
-	q.Add("text", text)
-	q.Add("reply_markup", string(markup))
 
 	data, err := tc.sendRequest(ctx, "sendMessage", q)
 	if err != nil {
-		tc.logger.Error("error sending message with reply markup: " + err.Error())
 		return nil, err
 	}
 
@@ -214,6 +221,7 @@ func (tc *telegramClient) EditMessageText(ctx context.Context, chatId, messageId
 		return nil, err
 	}
 	q.Add("reply_markup", string(markup))
+	q.Add("parse_mode", "MarkDown")
 
 	data, err := tc.sendRequest(ctx, "editMessageText", q)
 	if err != nil {

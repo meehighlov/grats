@@ -6,8 +6,8 @@ type Event interface {
 	GetContext() ChatContext
 	GetMessage() *Message
 	GetCallbackQuery() *CallbackQuery
-	Reply(context.Context, string) *Message
-	ReplyCallbackQuery(context.Context, string) *Message
+	Reply(context.Context, string, ...sendMessageOption) *Message
+	ReplyCallbackQuery(context.Context, string, ...sendMessageOption) *Message
 	ReplyWithKeyboard(context.Context, string, [][]map[string]string) *Message
 	EditCalbackMessage(context.Context, string, [][]map[string]string) *Message
 	AnswerCallbackQuery(context.Context) bool
@@ -41,22 +41,22 @@ func (e *event) GetCallbackQuery() *CallbackQuery {
 	return &e.update.CallbackQuery
 }
 
-func (e *event) Reply(ctx context.Context, text string) *Message {
-	msg, _ := e.bot.client.SendMessage(ctx, e.GetMessage().GetChatIdStr(), text)
+func (e *event) Reply(ctx context.Context, text string, opts ...sendMessageOption) *Message {
+	msg, _ := e.bot.client.SendMessage(ctx, e.GetMessage().GetChatIdStr(), text, opts...)
 	return msg
 }
 
-func (e *event) ReplyCallbackQuery(ctx context.Context, text string) *Message {
-	msg, _ := e.bot.client.SendMessage(ctx, e.GetCallbackQuery().Message.GetChatIdStr(), text)
+func (e *event) ReplyCallbackQuery(ctx context.Context, text string, opts ...sendMessageOption) *Message {
+	msg, _ := e.bot.client.SendMessage(ctx, e.GetCallbackQuery().Message.GetChatIdStr(), text, opts...)
 	return msg
 }
 
 func (e *event) ReplyWithKeyboard(ctx context.Context, text string, keyboard [][]map[string]string) *Message {
-	msg, _ := e.bot.client.SendMessageWithReplyMarkup(
+	msg, _ := e.bot.client.SendMessage(
 		ctx,
 		e.GetMessage().GetChatIdStr(),
 		text,
-		keyboard,
+		WithReplyMurkup(keyboard),
 	)
 
 	return msg
