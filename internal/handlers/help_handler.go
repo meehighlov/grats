@@ -5,12 +5,12 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	"github.com/meehighlov/grats/telegram"
 )
 
-func HelpHandler(event telegram.Event) error {
+func HelpHandler(event common.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 

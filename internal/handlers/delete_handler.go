@@ -6,17 +6,16 @@ import (
 	"log/slog"
 	"strconv"
 
+	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	"github.com/meehighlov/grats/internal/models"
-	"github.com/meehighlov/grats/telegram"
 )
 
-func DeleteFriendCallbackQueryHandler(event telegram.Event) error {
+func DeleteFriendCallbackQueryHandler(event common.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
-	params := models.CallbackFromString(event.GetCallbackQuery().Data)
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	friendId := params.Id
 
@@ -46,7 +45,7 @@ func DeleteFriendCallbackQueryHandler(event telegram.Event) error {
 		{
 			{
 				"text": "👈к списку",
-				"callback_data": models.CallList(strconv.Itoa(LIST_START_OFFSET), "<").String(),
+				"callback_data": common.CallList(strconv.Itoa(LIST_START_OFFSET), "<").String(),
 			},
 		},
 	}

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-
-	"github.com/meehighlov/grats/telegram"
 )
 
 func isAdmin(tgusername string) bool {
@@ -26,8 +25,8 @@ func inAccessList(tgusername string) bool {
 	return hasAccess
 }
 
-func Auth(handler telegram.CommandHandler) telegram.CommandHandler {
-	return func(event telegram.Event) error {
+func Auth(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
+	return func(event common.Event) error {
 		message := event.GetMessage()
 		if isAdmin(message.From.Username) || inAccessList(message.From.Username) {
 			return handler(event)
@@ -40,8 +39,8 @@ func Auth(handler telegram.CommandHandler) telegram.CommandHandler {
 	}
 }
 
-func Admin(handler telegram.CommandHandler) telegram.CommandHandler {
-	return func(event telegram.Event) error {
+func Admin(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
+	return func(event common.Event) error {
 		message := event.GetMessage()
 		if isAdmin(message.From.Username) {
 			return handler(event)

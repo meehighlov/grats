@@ -7,10 +7,9 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	"github.com/meehighlov/grats/internal/models"
-	"github.com/meehighlov/grats/telegram"
 )
 
 const (
@@ -22,7 +21,7 @@ const (
 	HEADER_MESSAGE_LIST_IS_EMPTY = "Записей пока нет✨"
 )
 
-func ListBirthdaysHandler(event telegram.Event) error {
+func ListBirthdaysHandler(event common.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
@@ -68,26 +67,26 @@ func buildPagiButtons(total, limit, offset int) [][]map[string]string {
 		return [][]map[string]string{{
 			{
 				"text": "свернуть👆",
-				"callback_data": models.CallList(strconv.Itoa(LIST_START_OFFSET), "<<<").String(),
+				"callback_data": common.CallList(strconv.Itoa(LIST_START_OFFSET), "<<<").String(),
 			},
 		}}
 	}
 	var keyBoard []map[string]string
 	if offset + limit >= total {
-		previousButton := map[string]string{"text": "👈назад", "callback_data": models.CallList(strconv.Itoa(offset), "<<").String()}
+		previousButton := map[string]string{"text": "👈назад", "callback_data": common.CallList(strconv.Itoa(offset), "<<").String()}
 		keyBoard = []map[string]string{previousButton}
 	} else {
 		if offset == 0 {
-			nextButton := map[string]string{"text": "вперед👉", "callback_data": models.CallList(strconv.Itoa(offset), ">>").String()}
+			nextButton := map[string]string{"text": "вперед👉", "callback_data": common.CallList(strconv.Itoa(offset), ">>").String()}
 			keyBoard = []map[string]string{nextButton}
 		} else {
-			nextButton := map[string]string{"text": "вперед👉", "callback_data": models.CallList(strconv.Itoa(offset), ">>").String()}
-			previousButton := map[string]string{"text": "👈назад", "callback_data": models.CallList(strconv.Itoa(offset), "<<").String()}
+			nextButton := map[string]string{"text": "вперед👉", "callback_data": common.CallList(strconv.Itoa(offset), ">>").String()}
+			previousButton := map[string]string{"text": "👈назад", "callback_data": common.CallList(strconv.Itoa(offset), "<<").String()}
 			keyBoard = []map[string]string{previousButton, nextButton}
 		}
 	}
 
-	allButton := map[string]string{"text": fmt.Sprintf("показать все (%d)👇", total), "callback_data": models.CallList(strconv.Itoa(offset), "<>").String()}
+	allButton := map[string]string{"text": fmt.Sprintf("показать все (%d)👇", total), "callback_data": common.CallList(strconv.Itoa(offset), "<>").String()}
 	allButtonBar := []map[string]string{allButton}
 
 	markup := [][]map[string]string{}
@@ -101,12 +100,12 @@ func buildPagiButtons(total, limit, offset int) [][]map[string]string {
 	return markup
 }
 
-func ListBirthdaysCallbackQueryHandler(event telegram.Event) error {
+func ListBirthdaysCallbackQueryHandler(event common.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 	callbackQuery := event.GetCallbackQuery()
 
-	params := models.CallbackFromString(event.GetCallbackQuery().Data)
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	offset := params.Pagination.Offset
 
@@ -179,7 +178,7 @@ func buildFriendsButtons(friends []db.Friend, limit, offset int) []map[string]st
 
 		button := map[string]string{
 			"text": buttonText,
-			"callback_data": models.CallInfo(friend.ID, strconv.Itoa(offset)).String(),
+			"callback_data": common.CallInfo(friend.ID, strconv.Itoa(offset)).String(),
 		}
 		buttons = append(buttons, button)
 	}

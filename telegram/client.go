@@ -27,11 +27,7 @@ type telegramClient struct {
 }
 
 type ApiCaller interface {
-	SendMessage(context.Context, string, string, ...sendMessageOption) (*Message, error)
-}
-
-type apiCaller interface {
-	SendMessage(context.Context, string, string, ...sendMessageOption) (*Message, error)
+	SendMessage(context.Context, string, string, ...SendMessageOption) (*Message, error)
 	EditMessageReplyMarkup(context.Context, string, string, [][]map[string]string) (*Message, error)
 	EditMessageText(context.Context, string, string, string, [][]map[string]string) (*Message, error)
 	AnswerCallbackQuery(context.Context, string) error
@@ -39,20 +35,20 @@ type apiCaller interface {
 	GetUpdatesChannel(context.Context) UpdatesChannel
 }
 
-type sendMessageOption func(q url.Values) error
+type SendMessageOption func(q url.Values) error
 
-func WithParseMode(parseMode string) sendMessageOption {
+func WithParseMode(parseMode string) SendMessageOption {
 	return func(q url.Values) error {
 		q.Add("parse_mode", parseMode)
 		return nil
 	}
 }
 
-func WithMarkDown() sendMessageOption {
+func WithMarkDown() SendMessageOption {
 	return WithParseMode("MarkDown")
 }
 
-func WithReplyMurkup(replyMarkup [][]map[string]string) sendMessageOption {
+func WithReplyMurkup(replyMarkup [][]map[string]string) SendMessageOption {
 	return func(q url.Values) error {
 		mrakup_ := map[string][][]map[string]string{}
 		mrakup_["inline_keyboard"] = replyMarkup
@@ -85,21 +81,6 @@ func NewClient(token string, logger *slog.Logger) ApiCaller {
 	httpClient := &http.Client{Timeout: 25 * time.Second}
 	host := "api.telegram.org"
 
-	return &telegramClient{
-		token:      token,
-		host:       host,
-		basePath:   "bot" + token,
-		httpClient: httpClient,
-
-		// do we need turn off logger from outside?
-		logger: setupLogger(logger),
-	}
-}
-
-func newClient(token string, logger *slog.Logger) apiCaller {
-	// http client timeout > telegram getUpdates timeout
-	httpClient := &http.Client{Timeout: 20 * time.Second}
-	host := "api.telegram.org"
 	return &telegramClient{
 		token:      token,
 		host:       host,
@@ -149,7 +130,7 @@ func (tc *telegramClient) sendRequest(ctx context.Context, method string, query 
 
 // --------------------------------------------------------------- API methods implementation ---------------------------------------------------------------
 
-func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string, opts ...sendMessageOption) (*Message, error) {
+func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string, opts ...SendMessageOption) (*Message, error) {
 	q := url.Values{}
 	q.Add("chat_id", chatId)
 	q.Add("text", text)

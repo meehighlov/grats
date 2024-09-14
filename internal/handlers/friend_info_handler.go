@@ -6,19 +6,18 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	"github.com/meehighlov/grats/internal/models"
-	"github.com/meehighlov/grats/telegram"
 )
 
-func FriendInfoCallbackQueryHandler(event telegram.Event) error {
+func FriendInfoCallbackQueryHandler(event common.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
 	callbackQuery := event.GetCallbackQuery()
 
-	params := models.CallbackFromString(callbackQuery.Data)
+	params := common.CallbackFromString(callbackQuery.Data)
 
 	baseFields := db.BaseFields{ID: params.Id}
 	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx)
@@ -58,13 +57,13 @@ func FriendInfoCallbackQueryHandler(event telegram.Event) error {
 		{
 			{
 				"text": "👈к списку",
-				"callback_data": models.CallList(offset, "<").String(),
+				"callback_data": common.CallList(offset, "<").String(),
 			},
 		},
 		{
 			{
 				"text": "удалить👋",
-				"callback_data": models.CallDelete(params.Id).String(),
+				"callback_data": common.CallDelete(params.Id).String(),
 			},
 		},
 	}

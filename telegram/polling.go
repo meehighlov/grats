@@ -1,40 +1,23 @@
 package telegram
 
-import "context"
+import (
+	"context"
+)
 
-func (bot *bot) StartPolling() error {
+
+type UpdateHandler func(Update, ApiCaller) error
+
+
+func StartPolling(token string, handler UpdateHandler) error {
 	withCancel, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	updates := bot.client.GetUpdatesChannel(withCancel)
+	client := NewClient(token, nil)
+
+	updates := client.GetUpdatesChannel(withCancel)
 
 	for update := range updates {
-		chatContext := bot.getOrCreateChatContext(update.Message.GetChatIdStr())
-
-		command_ := update.Message.GetCommand()
-		command := ""
-
-		if command_ != "" {
-			command = command_
-			chatContext.reset()
-		} else {
-			if update.CallbackQuery.Id != "" {
-				command = CALLBACK_QUERY_COMMAND
-			} else {
-				command_ = chatContext.getCommandInProgress()
-				if command_ != "" {
-					command = command_
-				}
-			}
-		}
-
-		event := newEvent(bot, update, chatContext, command)
-
-		commandHandler, found := bot.commandHandlers[command]
-
-		if found {
-			go commandHandler(event)
-		}
+		go handler(update, client)
 	}
 
 	return nil

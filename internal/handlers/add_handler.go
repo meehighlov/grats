@@ -7,19 +7,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	"github.com/meehighlov/grats/telegram"
 )
 
 const (
-	ENTER_FRIEND_NAME_STEP     = 1
-	ENTER_FRIEND_BIRTHDAY_STEP = 2
-	SAVE_FRIEND_STEP           = 3
-	DONE                       = -1
+	ENTER_FRIEND_NAME_STEP     = "1"
+	ENTER_FRIEND_BIRTHDAY_STEP = "2"
+	SAVE_FRIEND_STEP           = "3"
+	DONE                       = "done"
 )
 
-func enterFriendName(event telegram.Event) (int, error) {
+func enterFriendName(event common.Event) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
@@ -30,7 +30,7 @@ func enterFriendName(event telegram.Event) (int, error) {
 	return ENTER_FRIEND_BIRTHDAY_STEP, nil
 }
 
-func enterBirthday(event telegram.Event) (int, error) {
+func enterBirthday(event common.Event) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
@@ -57,7 +57,7 @@ func enterBirthday(event telegram.Event) (int, error) {
 	return SAVE_FRIEND_STEP, nil
 }
 
-func saveFriend(event telegram.Event) (int, error) {
+func saveFriend(event common.Event) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
@@ -115,8 +115,8 @@ func validateBirthdaty(birtday string) error {
 	return nil
 }
 
-func AddBirthdayChatHandler() map[int]telegram.CommandStepHandler {
-	handlers := make(map[int]telegram.CommandStepHandler)
+func AddBirthdayChatHandler() map[string]common.CommandStepHandler {
+	handlers := make(map[string]common.CommandStepHandler)
 
 	handlers[ENTER_FRIEND_NAME_STEP] = enterFriendName
 	handlers[ENTER_FRIEND_BIRTHDAY_STEP] = enterBirthday
