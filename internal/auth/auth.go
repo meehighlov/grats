@@ -33,7 +33,7 @@ func Auth(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
 		}
 
 		msg := fmt.Sprintf("Unauthorized access attempt by user: id=%d usernmae=%s", message.From.Id, message.From.Username)
-		slog.Info(msg)
+		logger.Info(msg)
 
 		return nil
 	}
