@@ -15,6 +15,8 @@ func DeleteFriendCallbackQueryHandler(event common.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
 
+	event.AnswerCallbackQuery(ctx)
+
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	friendId := params.Id

@@ -1,7 +1,6 @@
 package common
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/meehighlov/grats/telegram"
@@ -25,8 +24,6 @@ func CreateRootHandler(logger *slog.Logger, chatCahe *ChatCache, handlers map[st
 
 				logger.Debug("CallbackQueryHandler", "command", params.Command, "entity", params.Entity)
 				command = params.Command
-
-				client.AnswerCallbackQuery(context.Background(), update.CallbackQuery.Id)
 			} else {
 				command_ = chatContext.GetCommandInProgress()
 				if command_ != "" {

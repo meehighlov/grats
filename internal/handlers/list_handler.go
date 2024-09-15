@@ -103,6 +103,9 @@ func buildPagiButtons(total, limit, offset int) [][]map[string]string {
 func ListBirthdaysCallbackQueryHandler(event common.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 	defer cancel()
+
+	event.AnswerCallbackQuery(ctx)
+
 	callbackQuery := event.GetCallbackQuery()
 
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
