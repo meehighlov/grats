@@ -17,6 +17,8 @@ const (
 	ENTER_FRIEND_BIRTHDAY_STEP = "2"
 	SAVE_FRIEND_STEP           = "3"
 	DONE                       = "done"
+
+	FRIEND_NAME_MAX_LEN = 50
 )
 
 func enterFriendName(event common.Event) (string, error) {
@@ -35,6 +37,11 @@ func enterBirthday(event common.Event) (string, error) {
 	defer cancel()
 
 	friendName := strings.TrimSpace(event.GetMessage().Text)
+
+	if len(friendName) > FRIEND_NAME_MAX_LEN {
+		event.Reply(ctx, fmt.Sprintf("Имя не должно превышать %d символов", FRIEND_NAME_MAX_LEN))
+		return ENTER_FRIEND_BIRTHDAY_STEP, nil
+	}
 
 	entities, err := (&db.Friend{Name: friendName}).Filter(ctx)
 	if err != nil {
