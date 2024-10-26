@@ -2,31 +2,27 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"strconv"
 
 	"github.com/meehighlov/grats/internal/common"
-	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 )
 
-func DeleteFriendCallbackQueryHandler(event common.Event) error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
-	event.AnswerCallbackQuery(ctx)
-
+func DeleteFriendCallbackQueryHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	friendId := params.Id
 
 	baseFields := db.BaseFields{ID: friendId}
-	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx)
+	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
 
 	if err != nil {
 		event.ReplyCallbackQuery(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		slog.Error("error serching friend when deleting: " + err.Error())
+		return err
 	}
 
 	if len(friends) == 0 {
@@ -36,18 +32,19 @@ func DeleteFriendCallbackQueryHandler(event common.Event) error {
 
 	friend := friends[0]
 
-	err = friend.Delete(ctx)
+	err = friend.Delete(ctx, tx)
 
 	if err != nil {
 		event.ReplyCallbackQuery(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		slog.Error("error delteting friend: " + err.Error())
+		return err
 	}
 
 	markup := [][]map[string]string{
 		{
 			{
-				"text": "👈к списку",
-				"callback_data": common.CallList(strconv.Itoa(LIST_START_OFFSET), "<").String(),
+				"text":          "👈к списку",
+				"callback_data": common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", params.BoundChat).String(),
 			},
 		},
 	}

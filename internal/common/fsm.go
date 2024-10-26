@@ -1,14 +1,16 @@
 package common
 
 import (
+	"context"
+	"database/sql"
 	"log/slog"
 )
 
 func FSM(logger *slog.Logger, handlers map[string]CommandStepHandler) HandlerType {
-	return func(event Event) error {
-		ctx := event.GetContext()
-		stepTODO := ctx.GetStepTODO()
-		ctx.SetCommandInProgress(event.GetCommand())
+	return func(ctx context.Context, event Event, tx *sql.Tx) error {
+		chatContext := event.GetContext()
+		stepTODO := chatContext.GetStepTODO()
+		chatContext.SetCommandInProgress(event.GetCommand())
 
 		nextStep := STEPS_DONE
 
@@ -16,18 +18,23 @@ func FSM(logger *slog.Logger, handlers map[string]CommandStepHandler) HandlerTyp
 
 		if !found {
 			logger.Error("FSM: handler not found, resetting context", "step", stepTODO, "command", event.GetCommand())
-			ctx.Reset()
+			chatContext.Reset()
 			return nil
 		}
 
-		nextStep, _ = stepHandler(event)
+		nextStep, err := stepHandler(ctx, event, tx)
+		if err != nil {
+			logger.Error("FSM got error from step handler, resseting chat context", "step", stepTODO, "command", event.GetCommand())
+			chatContext.Reset()
+			return err
+		}
 
 		if nextStep == STEPS_DONE {
-			ctx.Reset()
+			chatContext.Reset()
 			return nil
 		}
 
-		ctx.SetStepTODO(nextStep)
+		chatContext.SetStepTODO(nextStep)
 
 		return nil
 	}

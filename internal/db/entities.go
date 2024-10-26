@@ -88,6 +88,19 @@ type Friend struct {
 	FilterNotifyAt string // this param is only for filtering
 }
 
+type Chat struct {
+	BaseFields
+
+	// more: https://core.telegram.org/bots/api#chat
+	// may be one of: private, group, supergroup, channel
+	// lowercase!
+	// todo enum
+	ChatType string
+
+	BotInvitedBy int
+	ChatId       string
+}
+
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {
 	parts := strings.Split(friend.BirthDay, ".")
 	birtday_wo_year := strings.Join(parts[:2], ".")
@@ -110,7 +123,7 @@ func (friend *Friend) GetZodiacSign() (emoji, text string) {
 		return "🌙", "это луна"
 	}
 
-	border := func (month time.Month, day int) time.Time {
+	border := func(month time.Month, day int) time.Time {
 		return time.Date(0, month, day, 0, 0, 0, 0, location)
 	}
 
