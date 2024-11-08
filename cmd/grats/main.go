@@ -17,27 +17,36 @@ func main() {
 
 	logger := lib.MustSetupLogging("grats.log", true, cfg.ENV)
 
-	// todo use db migrations
 	db.MustSetup("grats.db", logger)
 
 	go handlers.BirthdayNotifer(context.Background(), lib.MustSetupLogging("grats_job.log", false, cfg.ENV), cfg)
 
-	updateHandlers := map[string]common.HandlerType {
+	updateHandlers := map[string]common.HandlerType{
 		// user
 		"/start": auth.Auth(logger, handlers.StartHandler),
-		"/help": auth.Auth(logger, handlers.HelpHandler),
-		"/list": auth.Auth(logger, handlers.ListBirthdaysHandler),
-		"/add": auth.Auth(logger, common.FSM(logger, handlers.AddBirthdayChatHandler())),
+		"/list":  auth.Auth(logger, handlers.ListBirthdaysHandler),
+		"/add":   auth.Auth(logger, common.FSM(logger, handlers.AddBirthdayChatHandler())),
+		"/chats": auth.Auth(logger, handlers.GroupHandler),
 
 		// admin
-		"/access_list": auth.Admin(logger, handlers.AccessListHandler),
-		"/access_grant": auth.Admin(logger, common.FSM(logger, handlers.GrantAccessChatHandler())),
+		"/admin":  auth.Admin(logger, handlers.AdminCommandListHandler),
+		"/access_list":   auth.Admin(logger, handlers.AccessListHandler),
+		"/access_grant":  auth.Admin(logger, common.FSM(logger, handlers.GrantAccessChatHandler())),
 		"/access_revoke": auth.Admin(logger, common.FSM(logger, handlers.RevokeAccessChatHandler())),
 
 		// callback query handlers
-		"list": handlers.ListBirthdaysCallbackQueryHandler,
-		"info": handlers.FriendInfoCallbackQueryHandler,
+		"list":   handlers.ListPaginationCallbackQueryHandler,
+		"info":   handlers.FriendInfoCallbackQueryHandler,
 		"delete": handlers.DeleteFriendCallbackQueryHandler,
+		"chat_info": handlers.GroupInfoHandler,
+		"chat_howto": handlers.GroupHowtoHandler,
+		"add_to_chat": common.FSM(logger, handlers.AddBirthdayChatHandler()),
+		"chat_list": handlers.GroupHandler,
+		"chat_birthdays": handlers.ListBirthdaysHandler,
+		"chat_delete": handlers.GroupChatRegisterHandler,
+
+		// group chat handler
+		"chat_register": handlers.GroupChatRegisterHandler,
 	}
 
 	rootHandler := common.CreateRootHandler(

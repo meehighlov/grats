@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 
@@ -20,16 +21,16 @@ func isAdmin(tgusername string) bool {
 	return false
 }
 
-func inAccessList(tgusername string) bool {
-	hasAccess := (&db.Access{TGusername: tgusername}).IsExist(context.Background())
+func inAccessList(tgusername string, tx *sql.Tx) bool {
+	hasAccess := (&db.Access{TGusername: tgusername}).IsExist(context.Background(), tx)
 	return hasAccess
 }
 
 func Auth(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
-	return func(event common.Event) error {
+	return func(ctx context.Context, event common.Event, tx *sql.Tx) error {
 		message := event.GetMessage()
-		if isAdmin(message.From.Username) || inAccessList(message.From.Username) {
-			return handler(event)
+		if isAdmin(message.From.Username) || inAccessList(message.From.Username, tx) {
+			return handler(ctx, event, tx)
 		}
 
 		msg := fmt.Sprintf("Unauthorized access attempt by user: id=%d usernmae=%s", message.From.Id, message.From.Username)
@@ -40,10 +41,10 @@ func Auth(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
 }
 
 func Admin(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
-	return func(event common.Event) error {
+	return func(ctx context.Context, event common.Event, tx *sql.Tx) error {
 		message := event.GetMessage()
 		if isAdmin(message.From.Username) {
-			return handler(event)
+			return handler(ctx, event, tx)
 		}
 
 		return nil

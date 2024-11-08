@@ -62,14 +62,14 @@ type ReplyToMessage struct {
 }
 
 type Message struct {
-	MessageId      int            `json:"message_id"`
-	From           User           `json:"from"`
-	SenderChat     Chat           `json:"sender_chat"`
-	Chat           Chat           `json:"chat"`
-	Text           string         `json:"text"`
-	ReplyToMessage ReplyToMessage `json:"reply_to_message"`
-	NewChatMembers []User         `json:"new_chat_members"`
-	LeftChatMember User           `json:"left_chat_member"`
+	MessageId      int                  `json:"message_id"`
+	From           User                 `json:"from"`
+	SenderChat     Chat                 `json:"sender_chat"`
+	Chat           Chat                 `json:"chat"`
+	Text           string               `json:"text"`
+	ReplyToMessage ReplyToMessage       `json:"reply_to_message"`
+	NewChatMembers []User               `json:"new_chat_members"`
+	LeftChatMember User                 `json:"left_chat_member"`
 	ReplyMarkup    InlineKeyboardMarkup `json:"reply_markup"`
 }
 
@@ -82,23 +82,23 @@ func (m *Message) HasLeftChatMember() bool {
 }
 
 type Update struct {
-	UpdateId int     `json:"update_id"`
-	Message  Message `json:"message"`
-	InlineQuery InlineQuery `json:"inline_query"`
+	UpdateId      int           `json:"update_id"`
+	Message       Message       `json:"message"`
+	InlineQuery   InlineQuery   `json:"inline_query"`
 	CallbackQuery CallbackQuery `json:"callback_query"`
 }
 
 type InlineQuery struct {
-	Id string `json:"id"`
-	From User `json:"from"`
+	Id    string `json:"id"`
+	From  User   `json:"from"`
 	Query string `json:"query"`
 }
 
 type CallbackQuery struct {
-	Id string `json:"id"`
-	From User `json:"from"`
+	Id      string  `json:"id"`
+	From    User    `json:"from"`
 	Message Message `json:"message"`
-	Data string `json:"data"`
+	Data    string  `json:"data"`
 }
 
 type GetMeReponse struct {
@@ -109,6 +109,11 @@ type GetMeReponse struct {
 type UpdateResponse struct {
 	Ok     bool     `json:"ok"`
 	Result []Update `json:"result"`
+}
+
+type GetChatResponse struct {
+	Ok     bool     `json:"ok"`
+	Result Chat   `json:"result"`
 }
 
 type InlineKeyboardButton struct {
@@ -144,5 +149,17 @@ func (message *Message) GetCommand() string {
 		}
 		return ""
 	}
+	return ""
+}
+
+func (u *Update) GetChatIdStr() string {
+	if u.Message.Chat.Id != 0 {
+		return strconv.Itoa(u.Message.Chat.Id)
+	} 
+
+	if u.CallbackQuery.Message.Chat.Id != 0 {
+		return strconv.Itoa(u.CallbackQuery.Message.Chat.Id)
+	}
+
 	return ""
 }

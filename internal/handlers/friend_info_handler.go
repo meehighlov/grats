@@ -2,31 +2,26 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
-	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 )
 
-func FriendInfoCallbackQueryHandler(event common.Event) error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
-	event.AnswerCallbackQuery(ctx)
-
+func FriendInfoCallbackQueryHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 	callbackQuery := event.GetCallbackQuery()
 
 	params := common.CallbackFromString(callbackQuery.Data)
 
 	baseFields := db.BaseFields{ID: params.Id}
-	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx)
+	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
 
 	if err != nil {
 		slog.Error("error during fetching event info: " + err.Error())
-		return nil
+		return err
 	}
 
 	friend := friends[0]
@@ -40,6 +35,7 @@ func FriendInfoCallbackQueryHandler(event common.Event) error {
 		fmt.Sprintf("✨ %s", friend.Name),
 		fmt.Sprintf("🗓 %s", friend.BirthDay),
 		fmt.Sprintf("%s %s", emoji, zodiacName),
+		// todo add info abount bound chat
 		fmt.Sprintf("🔔 Напомню %s в полночь (по %s)", *friend.GetNotifyAt(), friendTimezone),
 	}
 
@@ -58,14 +54,14 @@ func FriendInfoCallbackQueryHandler(event common.Event) error {
 	markup := [][]map[string]string{
 		{
 			{
-				"text": "👈к списку",
-				"callback_data": common.CallList(offset, "<").String(),
+				"text":          "👈 к списку др",
+				"callback_data": common.CallList(offset, "<", params.BoundChat).String(),
 			},
 		},
 		{
 			{
-				"text": "удалить👋",
-				"callback_data": common.CallDelete(params.Id).String(),
+				"text":          "удалить 👋",
+				"callback_data": common.CallDelete(params.Id, params.BoundChat).String(),
 			},
 		},
 	}

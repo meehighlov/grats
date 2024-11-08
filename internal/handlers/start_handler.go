@@ -2,17 +2,14 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/meehighlov/grats/internal/common"
-	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 )
 
-func StartHandler(event common.Event) error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func StartHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 	message := event.GetMessage()
 
 	isAdmin := 0
@@ -30,10 +27,25 @@ func StartHandler(event common.Event) error {
 		IsAdmin:    isAdmin,
 	}
 
-	user.Save(ctx)
+	err := user.Save(ctx, tx)
+	if err != nil {
+		return err
+	}
+
+	chat := db.Chat{
+		BaseFields:   db.NewBaseFields(),
+		ChatType:     "private",
+		ChatId:       event.GetMessage().GetChatIdStr(),
+		BotInvitedBy: event.GetMessage().From.Id,
+	}
+
+	err = chat.Save(ctx, tx)
+	if err != nil {
+		return err
+	}
 
 	hello := fmt.Sprintf(
-		"Привет, %s 👋 Я сохраняю дни рождения и напоминаю о них🥳 \n\n /help - покажет все команды🙌",
+		"Привет, %s 👋 Я напоминаю о днях рождения🥳",
 		message.From.Username,
 	)
 

@@ -8,7 +8,7 @@ import (
 
 const (
 	ENTRYPOINT_STEP = "1"
-	STEPS_DONE = "done"
+	STEPS_DONE      = "done"
 )
 
 type ChatContext struct {
@@ -19,7 +19,7 @@ type ChatContext struct {
 }
 
 type ChatCache struct {
-	cache *cache.Cache
+	cache           *cache.Cache
 	cacheExparation time.Duration
 }
 

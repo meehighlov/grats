@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/meehighlov/grats/internal/common"
-	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 )
 
@@ -19,23 +20,25 @@ const (
 	DONE                       = "done"
 
 	FRIEND_NAME_MAX_LEN = 50
+
+	EMPTY_CHAT_ID = "empty"
 )
 
-func enterFriendName(event common.Event) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func enterFriendName(ctx context.Context, event common.Event, _ *sql.Tx) (string, error) {
 	msg := "Введи имя именинника✨\n\nнапример 👉 Райан Гослинг"
 
-	event.Reply(ctx, msg)
+	if event.GetCallbackQuery().Id != "" {
+		event.ReplyCallbackQuery(ctx, msg)
+		event.GetContext().AppendText(common.CallbackFromString(event.GetCallbackQuery().Data).Id)
+	} else {
+		event.GetContext().AppendText(event.GetMessage().GetChatIdStr())
+		event.Reply(ctx, msg)
+	}
 
 	return ENTER_FRIEND_BIRTHDAY_STEP, nil
 }
 
-func enterBirthday(event common.Event) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func enterBirthday(ctx context.Context, event common.Event, tx *sql.Tx) (string, error) {
 	friendName := strings.TrimSpace(event.GetMessage().Text)
 
 	if len(friendName) > FRIEND_NAME_MAX_LEN {
@@ -43,7 +46,13 @@ func enterBirthday(event common.Event) (string, error) {
 		return ENTER_FRIEND_BIRTHDAY_STEP, nil
 	}
 
-	entities, err := (&db.Friend{Name: friendName}).Filter(ctx)
+	chatId := event.GetContext().GetTexts()[0]
+	chatIdInt, err := strconv.Atoi(chatId)
+	if err != nil {
+		return DONE, err
+	}
+
+	entities, err := (&db.Friend{Name: friendName, ChatId: chatIdInt}).Filter(ctx, tx)
 	if err != nil {
 		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		slog.Error("error filtering friends while accepting name to save: " + err.Error())
@@ -51,7 +60,7 @@ func enterBirthday(event common.Event) (string, error) {
 	}
 
 	if len(entities) != 0 {
-		event.Reply(ctx,"Такое имя уже есть😅 попробуй снова, учитывай верхний и нижний регистр букв")
+		event.Reply(ctx, "Такое имя уже есть😅 попробуй снова, учитывай верхний и нижний регистр букв")
 		return ENTER_FRIEND_BIRTHDAY_STEP, nil
 	}
 
@@ -64,36 +73,58 @@ func enterBirthday(event common.Event) (string, error) {
 	return SAVE_FRIEND_STEP, nil
 }
 
-func saveFriend(event common.Event) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func saveFriend(ctx context.Context, event common.Event, tx *sql.Tx) (string, error) {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 
 	if err := validateBirthdaty(message.Text); err != nil {
 		errMsg := "Дата не попадает под формат🤔\n\nвведи дату снова🙌"
 		event.Reply(ctx, errMsg)
-		return SAVE_FRIEND_STEP, err
+		return SAVE_FRIEND_STEP, nil
 	}
 
 	chatContext.AppendText(message.Text)
 	data := chatContext.GetTexts()
+	chatid, name, bd := data[0], data[1], data[2]
+
+	chatId, err := strconv.Atoi(chatid)
+	if err != nil {
+		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
+		return DONE, err
+	}
 
 	friend := db.Friend{
 		BaseFields: db.NewBaseFields(),
-		Name:       data[0],
-		BirthDay:   data[1],
+		Name:       name,
+		BirthDay:   bd,
 		UserId:     message.From.Id,
-		ChatId:     message.Chat.Id,
+		ChatId:     chatId,
 	}
 
 	friend.RenewNotifayAt()
 
-	friend.Save(context.Background())
+	err = friend.Save(ctx, tx)
+	if err != nil {
+		return "", err
+	}
 
-	msg := fmt.Sprintf("День рождения для %s добавлен 💾\n\nНапомню тебе о нем %s🔔", data[0], *friend.GetNotifyAt())
-	event.Reply(ctx, msg)
+	msg := fmt.Sprintf("День рождения для %s добавлен 💾\n\nНапомню тебе о нем %s🔔", name, *friend.GetNotifyAt())
+
+	if strings.Contains(chatid, "-") {
+		chatTitle := "чат"
+		chatFullInfo := event.GetChat(ctx, chatid)
+		if chatFullInfo.Id != 0 {
+			chatTitle = fmt.Sprintf("чат %s", chatFullInfo.Title)
+		}
+
+		msg = fmt.Sprintf("День рождения для %s добавлен в %s 💾\n\nПришлю напоминание в чат %s🔔", name, chatTitle, *friend.GetNotifyAt())
+	}
+
+	event.ReplyWithKeyboard(
+		ctx,
+		msg,
+		buildNavigationMarkup(chatid),
+	)
 
 	return DONE, nil
 }
@@ -120,6 +151,25 @@ func validateBirthdaty(birtday string) error {
 	}
 
 	return nil
+}
+
+func buildNavigationMarkup(chatId string) [][]map[string]string {
+	markup := [][]map[string]string{}
+
+	backButton := map[string]string{
+		"text": "добавить еще",
+		"callback_data": common.CallAddToChat(chatId).String(),
+	}
+
+	listButton := map[string]string{
+		"text": "список др",
+		"callback_data": common.CallChatBirthdays(chatId).String(),
+	}
+
+	markup = append(markup, []map[string]string{backButton})
+	markup = append(markup, []map[string]string{listButton})
+
+	return markup
 }
 
 func AddBirthdayChatHandler() map[string]common.CommandStepHandler {

@@ -3,11 +3,11 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
-	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 )
 
@@ -18,20 +18,17 @@ const (
 	UPDATE_ACCESS_INFO       = "2"
 )
 
-func AccessListHandler(event common.Event) error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
-	accessList, err := (&db.Access{}).All(ctx)
+func AccessListHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
+	accessList, err := (&db.Access{}).All(ctx, tx)
 
 	if err != nil {
 		event.Reply(ctx, err.Error())
-		return nil
+		return err
 	}
 
 	if len(*accessList) == 0 {
 		event.Reply(ctx, "В таблице доступов нет записей✨")
-		return nil
+		return err
 	}
 
 	var msg bytes.Buffer
@@ -45,10 +42,7 @@ func AccessListHandler(event common.Event) error {
 	return nil
 }
 
-func grantAccess(event common.Event) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func grantAccess(ctx context.Context, event common.Event, _ *sql.Tx) (string, error) {
 	msg := "Кому предоставить доступ? Введи имя пользователя тг😘"
 
 	event.Reply(ctx, msg)
@@ -56,18 +50,15 @@ func grantAccess(event common.Event) (string, error) {
 	return SAVE_TG_USERNAME, nil
 }
 
-func saveAccess(event common.Event) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func saveAccess(ctx context.Context, event common.Event, tx *sql.Tx) (string, error) {
 	tgusername := event.GetMessage().Text
 	tgusername = strings.Replace(tgusername, "@", "", 1)
 
-	err := (&db.Access{BaseFields: db.NewBaseFields(), TGusername: tgusername}).Save(ctx)
+	err := (&db.Access{BaseFields: db.NewBaseFields(), TGusername: tgusername}).Save(ctx, tx)
 
 	if err != nil {
 		event.Reply(ctx, err.Error())
-		return SAVE_TG_USERNAME, nil
+		return SAVE_TG_USERNAME, err
 	}
 
 	msg := fmt.Sprintf("Доступ для %s предоставлен, пусть пробует зайти💋", tgusername)
@@ -77,10 +68,7 @@ func saveAccess(event common.Event) (string, error) {
 	return common.STEPS_DONE, nil
 }
 
-func revokeAccess(event common.Event) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func revokeAccess(ctx context.Context, event common.Event, _ *sql.Tx) (string, error) {
 	msg := "У кого отбираем доступ?😡"
 
 	event.Reply(ctx, msg)
@@ -88,16 +76,13 @@ func revokeAccess(event common.Event) (string, error) {
 	return UPDATE_ACCESS_INFO, nil
 }
 
-func updateAccessInfo(event common.Event) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
-	defer cancel()
-
+func updateAccessInfo(ctx context.Context, event common.Event, tx *sql.Tx) (string, error) {
 	tgusername := strings.Replace(event.GetMessage().Text, "@", "", 1)
-	err := (&db.Access{TGusername: tgusername}).Delete(ctx)
+	err := (&db.Access{TGusername: tgusername}).Delete(ctx, tx)
 
 	if err != nil {
 		event.Reply(ctx, err.Error())
-		return UPDATE_ACCESS_INFO, nil
+		return UPDATE_ACCESS_INFO, err
 	}
 
 	msg := fmt.Sprintf("Доступ для %s закрыт🖐", event.GetMessage().Text)

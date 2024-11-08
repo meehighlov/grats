@@ -13,6 +13,7 @@ import (
 type Config struct {
 	ENV                   string `env:"ENV" env-default:"local"`
 	BotToken              string `env:"BOT_TOKEN" env-required:"true"`
+	BotName               string `env:"BOT_NAME" env-required:"true"`
 	Admins                string `env:"ADMINS" env-required:"true"`
 	ReportChatId          string `env:"REPORT_CHAT_ID" env-required:"true"`
 	HandlerExecTimeoutSec int    `env:"HANDLER_EXEC_TIMEOUT_SEC" env-default:"2"`
@@ -32,7 +33,6 @@ func (cfg *Config) HandlerTmeout() time.Duration {
 var cfg Config
 
 // loads config from .env
-// panics on any read error
 // also sets TZ env variable from according .env value
 func MustLoad() *Config {
 	if _, err := os.Stat("env/grats/.env"); os.IsNotExist(err) {
@@ -53,7 +53,7 @@ func MustLoad() *Config {
 
 func Cfg() *Config {
 	if !cfg.loaded {
-		panic("Accessing not loaded config. Exiting.")
+		log.Fatal("Accessing not loaded config. Exiting.")
 	}
 
 	return &cfg

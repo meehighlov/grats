@@ -3,11 +3,12 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"time"
 
-	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/internal/config"
+	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/telegram"
 )
 
@@ -19,11 +20,23 @@ func notify(ctx context.Context, client telegram.ApiCaller, friends []db.Friend,
 		msg := fmt.Sprintf(msgTemplate, friend.Name)
 		_, err := client.SendMessage(ctx, friend.GetChatIdStr(), msg)
 		if err != nil {
-			logger.Error("Notification not sent:" + err.Error())
+			logger.Error("Notify job", "Notification not sent", err.Error())
+		}
+
+		tx, err := db.GetDBConnection().Begin()
+		if err != nil {
+			logger.Error("Notify job", "getting transaction error", err.Error())
+			continue
 		}
 
 		friend.UpdateNotifyAt()
-		friend.Save(ctx)
+		err = friend.Save(ctx, tx)
+		if err != nil {
+			logger.Error("Notify job", "error updating notify date", err.Error())
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
 	}
 
 	return nil
@@ -34,13 +47,26 @@ func run(ctx context.Context, client telegram.ApiCaller, logger *slog.Logger, cf
 
 	location, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	for {
 		date := time.Now().In(location).Format("02.01.2006")
 
-		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter(ctx)
+		tx, err := db.GetDBConnection().Begin()
+		if err != nil {
+			logger.Error("Notify job", "getting transaction error", err.Error())
+			continue
+		}
+
+		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter(ctx, tx)
+		logger.Info("Notify job", "found rows", len(friends))
+		if err != nil {
+			logger.Debug("Notify job", "error filtering friends", err.Error())
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
 
 		if err != nil {
 			logger.Error("Error getting birthdays: " + err.Error())
@@ -71,7 +97,7 @@ func BirthdayNotifer(
 			reportChatId := cfg.ReportChatId
 			_, err := client.SendMessage(context.Background(), reportChatId, errMsg)
 			if err != nil {
-				logger.Error("panic report error:" + err.Error())
+				logger.Error("report fatal error:" + err.Error())
 			}
 		}
 	}()

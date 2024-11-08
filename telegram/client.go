@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -33,6 +32,7 @@ type ApiCaller interface {
 	AnswerCallbackQuery(context.Context, string) error
 	GetUpdates(context.Context, int) (*UpdateResponse, error)
 	GetUpdatesChannel(context.Context) UpdatesChannel
+	GetChat(context.Context, string) (*GetChatResponse, error)
 }
 
 type SendMessageOption func(q url.Values) error
@@ -122,7 +122,13 @@ func (tc *telegramClient) sendRequest(ctx context.Context, method string, query 
 	}
 
 	if resp.StatusCode == http.StatusBadRequest {
-		tc.logger.Info(fmt.Sprintf("Bad request: %s", string(body)))
+		tc.logger.Error(
+			"Telegram client",
+			"sendRequest", "Bad request",
+			"method", method,
+			"Query params was", query,
+			"Response body", string(body),
+		)
 	}
 
 	return body, nil
@@ -229,6 +235,26 @@ func (tc *telegramClient) AnswerCallbackQuery(ctx context.Context, queryId strin
 	}
 
 	return nil
+}
+
+func (tc *telegramClient) GetChat(ctx context.Context, chatId string) (*GetChatResponse, error) {
+	q := url.Values{}
+	q.Add("chat_id", chatId)
+
+	tc.logger.Debug("Telegram client", "chat id", chatId)
+
+	data, err := tc.sendRequest(ctx, "getChat", q)
+	if err != nil {
+		tc.logger.Error("Telegram client error", "getChat", err.Error())
+		return nil, err
+	}
+
+	model := GetChatResponse{}
+	if err := json.Unmarshal(data, &model); err != nil {
+		return nil, err
+	}
+
+	return &model, err
 }
 
 func (tc *telegramClient) GetUpdates(ctx context.Context, offset int) (*UpdateResponse, error) {

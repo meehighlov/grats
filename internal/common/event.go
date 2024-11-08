@@ -2,10 +2,12 @@ package common
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/meehighlov/grats/telegram"
 )
 
+// todo return error in all methods
 type Event interface {
 	GetContext() *ChatContext
 	GetMessage() *telegram.Message
@@ -14,15 +16,15 @@ type Event interface {
 	ReplyCallbackQuery(context.Context, string, ...telegram.SendMessageOption) *telegram.Message
 	ReplyWithKeyboard(context.Context, string, [][]map[string]string) *telegram.Message
 	EditCalbackMessage(context.Context, string, [][]map[string]string) *telegram.Message
-	AnswerCallbackQuery(context.Context) bool
+	GetChat(context.Context, string) *telegram.Chat
 	GetCommand() string
 }
 
-type CommandHandler func(Event) error
-type CommandStepHandler func(Event) (string, error)
+type CommandHandler func(context.Context, Event, *sql.Tx) error
+type CommandStepHandler func(context.Context, Event, *sql.Tx) (string, error)
 
 type event struct {
-	client telegram.ApiCaller
+	client  telegram.ApiCaller
 	update  telegram.Update
 	context *ChatContext
 	command string
@@ -76,13 +78,12 @@ func (e *event) EditCalbackMessage(ctx context.Context, text string, keyboard []
 	return msg
 }
 
-func (e *event) AnswerCallbackQuery(ctx context.Context) bool {
-	err := e.client.AnswerCallbackQuery(ctx, e.update.CallbackQuery.Id)
-	if err != nil {
-		return false
-	} else {
-		return false
+func (e *event) GetChat(ctx context.Context, chatId string) *telegram.Chat {
+	chat, _ := e.client.GetChat(ctx, chatId)
+	if chat != nil {
+		return &chat.Result
 	}
+	return nil
 }
 
 func (e *event) GetCommand() string {

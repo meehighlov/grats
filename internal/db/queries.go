@@ -9,10 +9,10 @@ import (
 
 // idempotent save
 // accepts ALL fields of entity and save as is
-func (user *User) Save(ctx context.Context) error {
+func (user *User) Save(ctx context.Context, tx *sql.Tx) error {
 	_, _, _ = user.RefresTimestamps()
 
-	_, err := sqliteConn.ExecContext(
+	_, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO user(id, tgid, name, tgusername, chatid, birthday, isadmin, createdat, updatedat)
         VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -37,7 +37,7 @@ func (user *User) Save(ctx context.Context) error {
 	return nil
 }
 
-func (user *User) Filter(ctx context.Context) ([]User, error) {
+func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
 	where := []string{}
 	if user.TGId != 0 {
 		where = append(where, "tgid=$tgid")
@@ -49,7 +49,7 @@ func (user *User) Filter(ctx context.Context) ([]User, error) {
 	where_ := strings.Join(where, " AND ")
 	query := `SELECT id, tgid, name, tgusername, chatid, birthday, isadmin, createdat, updatedat FROM user WHERE ` + where_ + `;`
 
-	rows, err := sqliteConn.QueryContext(
+	rows, err := tx.QueryContext(
 		ctx,
 		query,
 		sql.Named("tgid", user.TGId),
@@ -59,7 +59,6 @@ func (user *User) Filter(ctx context.Context) ([]User, error) {
 		slog.Error("Error when filtering users " + err.Error())
 		return nil, err
 	}
-	defer rows.Close()
 
 	users := []User{}
 
@@ -86,7 +85,7 @@ func (user *User) Filter(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-func (friend *Friend) Filter(ctx context.Context) ([]Friend, error) {
+func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) {
 	where := []string{}
 	if friend.FilterNotifyAt != "" {
 		where = append(where, "notifyat=$notifyat")
@@ -100,23 +99,26 @@ func (friend *Friend) Filter(ctx context.Context) ([]Friend, error) {
 	if friend.ID != "" {
 		where = append(where, "id=$id")
 	}
+	if friend.ChatId != 0 {
+		where = append(where, "chatid=$chatid")
+	}
 
 	where_ := strings.Join(where, " AND ")
 	query := `SELECT id, name, birthday, userid, chatid, notifyat, createdat, updatedat FROM friend WHERE ` + where_ + `;`
 
-	rows, err := sqliteConn.QueryContext(
+	rows, err := tx.QueryContext(
 		ctx,
 		query,
 		sql.Named("userid", friend.UserId),
 		sql.Named("notifyat", friend.FilterNotifyAt),
 		sql.Named("name", friend.Name),
 		sql.Named("id", friend.ID),
+		sql.Named("chatid", friend.ChatId),
 	)
 	if err != nil {
 		slog.Error("Error when filtering friends " + err.Error())
 		return nil, err
 	}
-	defer rows.Close()
 
 	friends := []Friend{}
 
@@ -144,10 +146,10 @@ func (friend *Friend) Filter(ctx context.Context) ([]Friend, error) {
 
 // idempotent save
 // accepts ALL fields of entity and save as is
-func (friend *Friend) Save(ctx context.Context) error {
+func (friend *Friend) Save(ctx context.Context, tx *sql.Tx) error {
 	_, _, _ = friend.RefresTimestamps()
 
-	_, err := sqliteConn.ExecContext(
+	_, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO friend(id, name, birthday, userid, chatid, notifyat, createdat, updatedat)
         VALUES($1, $2, $3, $4, $5, $6, $7, $8)
@@ -171,14 +173,26 @@ func (friend *Friend) Save(ctx context.Context) error {
 	return nil
 }
 
-func (friend *Friend) Delete(ctx context.Context) error {
-	_, err := sqliteConn.ExecContext(
+func (friend *Friend) Delete(ctx context.Context, tx *sql.Tx) error {
+	where := []string{}
+	if friend.ID != "" {
+		where = append(where, "id=$id")
+	}
+	if friend.ChatId != 0 {
+		where = append(where, "chatid=$chatid")
+	}
+
+	where_ := strings.Join(where, " AND ")
+	query := `DELETE FROM friend WHERE ` + where_ + `;`
+
+	_, err := tx.ExecContext(
 		ctx,
-		`DELETE FROM friend WHERE id = $1;`,
-		&friend.ID,
+		query,
+		sql.Named("id", friend.ID),
+		sql.Named("chatid", friend.ChatId),
 	)
 	if err != nil {
-		slog.Error("Error when trying to delete friend row: " + err.Error())
+		slog.Error("Error when trying to delete friend rows: " + err.Error())
 		return err
 	}
 
@@ -187,13 +201,109 @@ func (friend *Friend) Delete(ctx context.Context) error {
 	return nil
 }
 
-func (access *Access) All(ctx context.Context) (*map[string]Access, error) {
-	rows, err := sqliteConn.QueryContext(ctx, `SELECT id, tgusername FROM access;`)
+func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
+	where := []string{}
+	if c.ID != "" {
+		where = append(where, "id=$id")
+	}
+	if c.ChatId != "" {
+		where = append(where, "chatid=$chatid")
+	}
+	if c.ChatType != "" {
+		where = append(where, "chattype=$chattype")
+	}
+	if c.BotInvitedBy != 0 {
+		where = append(where, "botinvitedbyid=$botinvitedbyid")
+	}
+
+	where_ := strings.Join(where, " AND ")
+	query := `SELECT id, chatid, chattype, botinvitedbyid, createdat, updatedat FROM chat WHERE ` + where_ + `;`
+
+	rows, err := tx.QueryContext(
+		ctx,
+		query,
+		sql.Named("id", c.ID),
+		sql.Named("chatid", c.ChatId),
+		sql.Named("chattype", c.ChatType),
+		sql.Named("botinvitedbyid", c.BotInvitedBy),
+	)
+	if err != nil {
+		slog.Error("Error when filtering chats " + err.Error())
+		return nil, err
+	}
+
+	chats := []Chat{}
+
+	for rows.Next() {
+		chat := Chat{}
+		err := rows.Scan(
+			&chat.ID,
+			&chat.ChatId,
+			&chat.ChatType,
+			&chat.BotInvitedBy,
+			&chat.CreatedAt,
+			&chat.UpdatedAt,
+		)
+		if err != nil {
+			slog.Error("Error fetching chats by filter params: " + err.Error())
+			continue
+		}
+		chats = append(chats, chat)
+	}
+
+	return chats, nil
+}
+
+// idempotent save
+// accepts ALL fields of entity and save as is
+func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
+	_, _, _ = c.RefresTimestamps()
+
+	_, err := tx.ExecContext(
+		ctx,
+		`INSERT INTO chat(id, chatid, chattype, botinvitedbyid, createdat, updatedat)
+        VALUES($1, $2, $3, $4, $5, $6)
+        ON CONFLICT(chatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, updatedat=$6
+        RETURNING id;`,
+		&c.ID,
+		&c.ChatId,
+		&c.ChatType,
+		&c.BotInvitedBy,
+		&c.CreatedAt,
+		&c.UpdatedAt,
+	)
+	if err != nil {
+		slog.Error("Error when trying to save chat: " + err.Error())
+		return err
+	}
+	slog.Debug("Chat created/updated")
+
+	return nil
+}
+
+func (c *Chat) Delete(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(
+		ctx,
+		`DELETE FROM chat WHERE chatid = $1;`,
+		&c.ChatId,
+	)
+	if err != nil {
+		slog.Error("Error when trying to delete chat row: " + err.Error())
+		return err
+	}
+
+	slog.Debug("Chat row deleted")
+
+	return nil
+}
+
+func (access *Access) All(ctx context.Context, tx *sql.Tx) (*map[string]Access, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT id, tgusername FROM access;`)
 	if err != nil {
 		slog.Error("Error when fetching access list, error: " + err.Error())
 		return nil, err
 	}
-	defer rows.Close()
+	// defer rows.Close()
 
 	accessList := make(map[string]Access)
 
@@ -212,10 +322,10 @@ func (access *Access) All(ctx context.Context) (*map[string]Access, error) {
 
 // idempotent save
 // accepts ALL fields of entity and save as is
-func (access *Access) Save(ctx context.Context) error {
+func (access *Access) Save(ctx context.Context, tx *sql.Tx) error {
 	_, _, _ = access.RefresTimestamps()
 
-	_, err := sqliteConn.ExecContext(
+	_, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO access(id, tgusername, createdat, updatedat)
         VALUES($1, $2, $3, $4)
@@ -235,8 +345,8 @@ func (access *Access) Save(ctx context.Context) error {
 	return nil
 }
 
-func (access *Access) IsExist(ctx context.Context) bool {
-	result := sqliteConn.QueryRowContext(
+func (access *Access) IsExist(ctx context.Context, tx *sql.Tx) bool {
+	result := tx.QueryRowContext(
 		ctx,
 		`SELECT COUNT(id) FROM access WHERE tgusername=$1;`,
 		&access.TGusername,
@@ -250,8 +360,8 @@ func (access *Access) IsExist(ctx context.Context) bool {
 	return *count == 1
 }
 
-func (access *Access) Delete(ctx context.Context) error {
-	_, err := sqliteConn.ExecContext(
+func (access *Access) Delete(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(
 		ctx,
 		`DELETE FROM access WHERE tgusername = $1;`,
 		&access.TGusername,
