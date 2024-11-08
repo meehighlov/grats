@@ -61,7 +61,9 @@ func GroupHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 		}
 	}
 
-	markup = append(markup, buttons)
+	for _, button := range buttons {
+		markup = append(markup, []map[string]string{button})
+	}
 
 	header := "Это чаты, в которые я добавлен✨"
 
