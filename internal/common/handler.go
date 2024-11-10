@@ -10,10 +10,10 @@ import (
 	"github.com/meehighlov/grats/telegram"
 )
 
-type HandlerType func(context.Context, Event, *sql.Tx) error
+type HandlerType func(context.Context, *Event, *sql.Tx) error
 
 func CreateRootHandler(logger *slog.Logger, chatCahe *ChatCache, handlers map[string]HandlerType) telegram.UpdateHandler {
-	return func(update telegram.Update, client telegram.ApiCaller) error {
+	return func(update telegram.Update, client *telegram.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 		defer cancel()
 
@@ -45,7 +45,7 @@ func CreateRootHandler(logger *slog.Logger, chatCahe *ChatCache, handlers map[st
 			command = "chat_register"
 		}
 
-		event := newEvent(client, update, chatContext, command)
+		event := newEvent(client, update, chatContext, command, logger)
 
 		logger.Debug("root handler", "update", update)
 

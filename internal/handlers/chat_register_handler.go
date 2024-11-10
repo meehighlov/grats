@@ -3,17 +3,18 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"strconv"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 )
 
-func GroupChatRegisterHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
+func GroupChatRegisterHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	chat := db.Chat{
 		BaseFields:   db.NewBaseFields(),
 		ChatType:     "group",
-		BotInvitedBy: event.GetMessage().From.Id,
+		BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id),
 		ChatId:       event.GetMessage().GetChatIdStr(),
 	}
 
@@ -25,7 +26,7 @@ func GroupChatRegisterHandler(ctx context.Context, event common.Event, tx *sql.T
 		if err != nil {
 			return err
 		}
-		err = (&db.Friend{ChatId: message.Chat.Id}).Delete(ctx, tx)
+		err = (&db.Friend{ChatId: strconv.Itoa(message.Chat.Id)}).Delete(ctx, tx)
 		if err != nil {
 			return err
 		}

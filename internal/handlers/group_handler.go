@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
@@ -20,13 +21,13 @@ const HOWTO = `
 и не буду слать уведомления в чат 🙌
 `
 
-func GroupHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
+func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	invitedBy := event.GetMessage().From.Id
 	if event.GetCallbackQuery().Id != "" {
 		invitedBy = event.GetCallbackQuery().From.Id
 	}
 
-	chats, err := (&db.Chat{BotInvitedBy: invitedBy, ChatType: "group"}).Filter(ctx, tx)
+	chats, err := (&db.Chat{BotInvitedBy: strconv.Itoa(invitedBy), ChatType: "group"}).Filter(ctx, tx)
 	if err != nil {
 		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		return err
@@ -40,18 +41,23 @@ func GroupHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 	markup = append(markup, []map[string]string{howtoButton})
 
 	if len(chats) == 0 {
-		event.ReplyWithKeyboard(
+		if _, err := event.ReplyWithKeyboard(
 			ctx,
 			"Чатов пока нет🙌",
 			markup,
-		)
+		); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	buttons := []map[string]string{}
 
 	for _, chat := range chats {
-		fullInfo := event.GetChat(ctx, chat.ChatId)
+		fullInfo, err := event.GetChat(ctx, chat.ChatId)
+		if err != nil {
+			return err
+		}
 		if fullInfo != nil {
 			button := map[string]string{
 				"text":          fullInfo.Title,
@@ -68,32 +74,43 @@ func GroupHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 	header := "Это чаты, в которые я добавлен✨"
 
 	if event.GetCallbackQuery().Id != "" {
-		event.EditCalbackMessage(
+		if _, err := event.EditCalbackMessage(
 			ctx,
 			header,
 			markup,
-		)
+		); err != nil {
+			return err
+		}
 	} else {
-		event.ReplyWithKeyboard(ctx, header, markup)
+		if _, err := event.ReplyWithKeyboard(ctx, header, markup); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func GroupInfoHandler(ctx context.Context, event common.Event, _ *sql.Tx) error {
+func GroupInfoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
-	chatInfo := event.GetChat(ctx, params.Id)
+	chatInfo, err := event.GetChat(ctx, params.Id)
+	if err != nil {
+		return err
+	}
 
 	msg := fmt.Sprintf("Настройка чата `%s`", chatInfo.Title)
 
-	event.EditCalbackMessage(ctx, msg, buildChatInfoMarkup(params.Id))
+	if _, err := event.EditCalbackMessage(ctx, msg, buildChatInfoMarkup(params.Id)); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func GroupHowtoHandler(ctx context.Context, event common.Event, _ *sql.Tx) error {
-	event.ReplyCallbackQuery(ctx, HOWTO)
+func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+	if _, err := event.ReplyCallbackQuery(ctx, HOWTO); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -14,11 +14,11 @@ import (
 
 const CHECK_TIMEOUT_SEC = 10
 
-func notify(ctx context.Context, client telegram.ApiCaller, friends []db.Friend, logger *slog.Logger) error {
+func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger) error {
 	msgTemplate := "🔔Сегодня день рождения у %s🥳"
 	for _, friend := range friends {
 		msg := fmt.Sprintf(msgTemplate, friend.Name)
-		_, err := client.SendMessage(ctx, friend.GetChatIdStr(), msg)
+		_, err := client.SendMessage(ctx, friend.ChatId, msg)
 		if err != nil {
 			logger.Error("Notify job", "Notification not sent", err.Error())
 		}
@@ -42,7 +42,7 @@ func notify(ctx context.Context, client telegram.ApiCaller, friends []db.Friend,
 	return nil
 }
 
-func run(ctx context.Context, client telegram.ApiCaller, logger *slog.Logger, cfg *config.Config) {
+func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg *config.Config) {
 	logger.Info("Starting job for checking birthdays")
 
 	location, err := time.LoadLocation(cfg.Timezone)

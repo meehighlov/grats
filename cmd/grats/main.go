@@ -8,6 +8,7 @@ import (
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/internal/handlers"
+	"github.com/meehighlov/grats/internal/handlers/admin"
 	"github.com/meehighlov/grats/internal/lib"
 	"github.com/meehighlov/grats/telegram"
 )
@@ -29,10 +30,10 @@ func main() {
 		"/chats": auth.Auth(logger, handlers.GroupHandler),
 
 		// admin
-		"/admin":  auth.Admin(logger, handlers.AdminCommandListHandler),
-		"/access_list":   auth.Admin(logger, handlers.AccessListHandler),
-		"/access_grant":  auth.Admin(logger, common.FSM(logger, handlers.GrantAccessChatHandler())),
-		"/access_revoke": auth.Admin(logger, common.FSM(logger, handlers.RevokeAccessChatHandler())),
+		"/admin":  auth.Admin(logger, admin.AdminCommandListHandler),
+		"/access_list":   auth.Admin(logger, admin.AccessListHandler),
+		"/access_grant":  auth.Admin(logger, common.FSM(logger, admin.GrantAccessChatHandler())),
+		"/access_revoke": auth.Admin(logger, common.FSM(logger, admin.RevokeAccessChatHandler())),
 
 		// callback query handlers
 		"list":   handlers.ListPaginationCallbackQueryHandler,

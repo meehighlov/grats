@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
 )
 
-func StartHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
+func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	message := event.GetMessage()
 
 	isAdmin := 0
@@ -21,8 +22,8 @@ func StartHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 		BaseFields: db.NewBaseFields(),
 		Name:       message.From.FirstName,
 		TGusername: message.From.Username,
-		TGId:       message.From.Id,
-		ChatId:     message.Chat.Id,
+		TGId:       strconv.Itoa(message.From.Id),
+		ChatId:     strconv.Itoa(message.Chat.Id),
 		Birthday:   "",
 		IsAdmin:    isAdmin,
 	}
@@ -36,7 +37,7 @@ func StartHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 		BaseFields:   db.NewBaseFields(),
 		ChatType:     "private",
 		ChatId:       event.GetMessage().GetChatIdStr(),
-		BotInvitedBy: event.GetMessage().From.Id,
+		BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id),
 	}
 
 	err = chat.Save(ctx, tx)
@@ -49,7 +50,9 @@ func StartHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
 		message.From.Username,
 	)
 
-	event.Reply(ctx, hello)
+	if _, err := event.Reply(ctx, hello); err != nil {
+		return err
+	}
 
 	return nil
 }

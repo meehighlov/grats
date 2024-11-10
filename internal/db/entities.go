@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 	"time"
 
@@ -46,10 +45,10 @@ type User struct {
 
 	BaseFields
 
-	TGId       int // id will be taken from telegram
+	TGId       string // id will be taken from telegram
 	Name       string
 	TGusername string
-	ChatId     int // chatId - id of chat with user, bot uses it to send notification
+	ChatId     string // chatId - id of chat with user, bot uses it to send notification
 	Birthday   string
 	IsAdmin    int
 
@@ -81,9 +80,9 @@ type Friend struct {
 	// todo store timezone in friend table or somewere in db - for user's specific timezone
 
 	Name           string
-	UserId         int
+	UserId         string
 	BirthDay       string
-	ChatId         int
+	ChatId         string
 	notifyAt       string
 	FilterNotifyAt string // this param is only for filtering
 }
@@ -97,7 +96,7 @@ type Chat struct {
 	// todo enum
 	ChatType string
 
-	BotInvitedBy int
+	BotInvitedBy string
 	ChatId       string
 }
 
@@ -273,10 +272,6 @@ func (friend *Friend) UpdateNotifyAt() (string, error) {
 
 	*friend.GetNotifyAt() = notifyAt.AddDate(1, 0, 0).Format(format)
 	return *friend.GetNotifyAt(), nil
-}
-
-func (friend *Friend) GetChatIdStr() string {
-	return strconv.Itoa(friend.ChatId)
 }
 
 type Access struct {

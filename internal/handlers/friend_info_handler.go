@@ -4,14 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
 )
 
-func FriendInfoCallbackQueryHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
+func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	callbackQuery := event.GetCallbackQuery()
 
 	params := common.CallbackFromString(callbackQuery.Data)
@@ -20,7 +19,7 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event common.Event, tx 
 	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
 
 	if err != nil {
-		slog.Error("error during fetching event info: " + err.Error())
+		event.Logger.Error("error during fetching event info: " + err.Error())
 		return err
 	}
 
@@ -66,7 +65,9 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event common.Event, tx 
 		},
 	}
 
-	event.EditCalbackMessage(ctx, msg, markup)
+	if _, err := event.EditCalbackMessage(ctx, msg, markup); err != nil {
+		return err
+	}
 
 	return nil
 }

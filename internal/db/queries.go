@@ -39,7 +39,7 @@ func (user *User) Save(ctx context.Context, tx *sql.Tx) error {
 
 func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
 	where := []string{}
-	if user.TGId != 0 {
+	if user.TGId != "" {
 		where = append(where, "tgid=$tgid")
 	}
 	if user.TGusername != "" {
@@ -90,7 +90,7 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 	if friend.FilterNotifyAt != "" {
 		where = append(where, "notifyat=$notifyat")
 	}
-	if friend.UserId != 0 {
+	if friend.UserId != "" {
 		where = append(where, "userid=$userid")
 	}
 	if friend.Name != "" {
@@ -99,7 +99,7 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 	if friend.ID != "" {
 		where = append(where, "id=$id")
 	}
-	if friend.ChatId != 0 {
+	if friend.ChatId != "" {
 		where = append(where, "chatid=$chatid")
 	}
 
@@ -178,7 +178,7 @@ func (friend *Friend) Delete(ctx context.Context, tx *sql.Tx) error {
 	if friend.ID != "" {
 		where = append(where, "id=$id")
 	}
-	if friend.ChatId != 0 {
+	if friend.ChatId != "" {
 		where = append(where, "chatid=$chatid")
 	}
 
@@ -212,7 +212,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 	if c.ChatType != "" {
 		where = append(where, "chattype=$chattype")
 	}
-	if c.BotInvitedBy != 0 {
+	if c.BotInvitedBy != "" {
 		where = append(where, "botinvitedbyid=$botinvitedbyid")
 	}
 

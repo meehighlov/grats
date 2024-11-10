@@ -3,89 +3,84 @@ package common
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 
 	"github.com/meehighlov/grats/telegram"
 )
 
-// todo return error in all methods
-type Event interface {
-	GetContext() *ChatContext
-	GetMessage() *telegram.Message
-	GetCallbackQuery() *telegram.CallbackQuery
-	Reply(context.Context, string, ...telegram.SendMessageOption) *telegram.Message
-	ReplyCallbackQuery(context.Context, string, ...telegram.SendMessageOption) *telegram.Message
-	ReplyWithKeyboard(context.Context, string, [][]map[string]string) *telegram.Message
-	EditCalbackMessage(context.Context, string, [][]map[string]string) *telegram.Message
-	GetChat(context.Context, string) *telegram.Chat
-	GetCommand() string
-}
+// use this type when there is no dialog, "one shot" handler
+// for example "/start" bot command with one action
+type CommandHandler func(context.Context, *Event, *sql.Tx) error
 
-type CommandHandler func(context.Context, Event, *sql.Tx) error
-type CommandStepHandler func(context.Context, Event, *sql.Tx) (string, error)
+// use this type when need to build dialog with user
+// FSM will invoke handlers of this type step by step
+type CommandStepHandler func(context.Context, *Event, *sql.Tx) (string, error)
 
-type event struct {
-	client  telegram.ApiCaller
+
+type Event struct {
+	client  *telegram.Client
 	update  telegram.Update
 	context *ChatContext
 	command string
+	Logger  *slog.Logger
 }
 
-func newEvent(client telegram.ApiCaller, update telegram.Update, context *ChatContext, command string) Event {
-	return &event{client, update, context, command}
+func newEvent(client *telegram.Client, update telegram.Update, context *ChatContext, command string, logger *slog.Logger) *Event {
+	return &Event{client, update, context, command, logger}
 }
 
-func (e *event) GetContext() *ChatContext {
+func (e *Event) GetContext() *ChatContext {
 	return e.context
 }
 
-func (e *event) GetMessage() *telegram.Message {
+func (e *Event) GetMessage() *telegram.Message {
 	return &e.update.Message
 }
 
-func (e *event) GetCallbackQuery() *telegram.CallbackQuery {
+func (e *Event) GetCallbackQuery() *telegram.CallbackQuery {
 	return &e.update.CallbackQuery
 }
 
-func (e *event) Reply(ctx context.Context, text string, opts ...telegram.SendMessageOption) *telegram.Message {
-	msg, _ := e.client.SendMessage(ctx, e.GetMessage().GetChatIdStr(), text, opts...)
-	return msg
+func (e *Event) Reply(ctx context.Context, text string, opts ...telegram.SendMessageOption) (*telegram.Message, error) {
+	msg, err := e.client.SendMessage(ctx, e.GetMessage().GetChatIdStr(), text, opts...)
+	return msg, err
 }
 
-func (e *event) ReplyCallbackQuery(ctx context.Context, text string, opts ...telegram.SendMessageOption) *telegram.Message {
-	msg, _ := e.client.SendMessage(ctx, e.GetCallbackQuery().Message.GetChatIdStr(), text, opts...)
-	return msg
+func (e *Event) ReplyCallbackQuery(ctx context.Context, text string, opts ...telegram.SendMessageOption) (*telegram.Message, error) {
+	msg, err := e.client.SendMessage(ctx, e.GetCallbackQuery().Message.GetChatIdStr(), text, opts...)
+	return msg, err
 }
 
-func (e *event) ReplyWithKeyboard(ctx context.Context, text string, keyboard [][]map[string]string) *telegram.Message {
-	msg, _ := e.client.SendMessage(
+func (e *Event) ReplyWithKeyboard(ctx context.Context, text string, keyboard [][]map[string]string) (*telegram.Message, error) {
+	msg, err := e.client.SendMessage(
 		ctx,
 		e.GetMessage().GetChatIdStr(),
 		text,
 		telegram.WithReplyMurkup(keyboard),
 	)
 
-	return msg
+	return msg, err
 }
 
-func (e *event) EditCalbackMessage(ctx context.Context, text string, keyboard [][]map[string]string) *telegram.Message {
-	msg, _ := e.client.EditMessageText(
+func (e *Event) EditCalbackMessage(ctx context.Context, text string, keyboard [][]map[string]string) (*telegram.Message, error) {
+	msg, err := e.client.EditMessageText(
 		ctx,
 		e.update.CallbackQuery.Message.GetChatIdStr(),
 		e.update.CallbackQuery.Message.GetMessageIdStr(),
 		text,
 		keyboard,
 	)
-	return msg
+	return msg, err
 }
 
-func (e *event) GetChat(ctx context.Context, chatId string) *telegram.Chat {
-	chat, _ := e.client.GetChat(ctx, chatId)
+func (e *Event) GetChat(ctx context.Context, chatId string) (*telegram.Chat, error) {
+	chat, err := e.client.GetChat(ctx, chatId)
 	if chat != nil {
-		return &chat.Result
+		return &chat.Result, err
 	}
-	return nil
+	return nil, err
 }
 
-func (e *event) GetCommand() string {
+func (e *Event) GetCommand() string {
 	return e.command
 }
