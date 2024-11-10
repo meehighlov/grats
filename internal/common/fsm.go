@@ -7,7 +7,7 @@ import (
 )
 
 func FSM(logger *slog.Logger, handlers map[string]CommandStepHandler) HandlerType {
-	return func(ctx context.Context, event Event, tx *sql.Tx) error {
+	return func(ctx context.Context, event *Event, tx *sql.Tx) error {
 		chatContext := event.GetContext()
 		stepTODO := chatContext.GetStepTODO()
 		chatContext.SetCommandInProgress(event.GetCommand())

@@ -27,7 +27,7 @@ func inAccessList(tgusername string, tx *sql.Tx) bool {
 }
 
 func Auth(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
-	return func(ctx context.Context, event common.Event, tx *sql.Tx) error {
+	return func(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		message := event.GetMessage()
 		if isAdmin(message.From.Username) || inAccessList(message.From.Username, tx) {
 			return handler(ctx, event, tx)
@@ -41,7 +41,7 @@ func Auth(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
 }
 
 func Admin(logger *slog.Logger, handler common.HandlerType) common.HandlerType {
-	return func(ctx context.Context, event common.Event, tx *sql.Tx) error {
+	return func(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		message := event.GetMessage()
 		if isAdmin(message.From.Username) {
 			return handler(ctx, event, tx)

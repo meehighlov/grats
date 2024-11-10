@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type UpdateHandler func(Update, ApiCaller) error
+type UpdateHandler func(Update, *Client) error
 
 func StartPolling(token string, handler UpdateHandler) error {
 	withCancel, cancel := context.WithCancel(context.Background())

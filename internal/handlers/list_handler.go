@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,42 +22,42 @@ const (
 	HEADER_MESSAGE_LIST_IS_EMPTY  = "Записей пока нет✨"
 )
 
-func ListBirthdaysHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
+func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	message := event.GetMessage()
 
-	chatId := message.Chat.Id
+	chatId := message.GetChatIdStr()
+	userId := strconv.Itoa(message.From.Id)
 	if event.GetCallbackQuery().Id != "" {
-		chatIdStr := common.CallbackFromString(event.GetCallbackQuery().Data).Id
-		if chatId_, err_ := strconv.Atoi(chatIdStr); err_ != nil {
-			event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
-			return err_
-		} else {
-			chatId = chatId_
-		}	
+		chatId = common.CallbackFromString(event.GetCallbackQuery().Data).Id
+		userId = strconv.Itoa(event.GetCallbackQuery().From.Id)
 	}
 
-	friends, err := (&db.Friend{UserId: message.From.Id, ChatId: chatId}).Filter(ctx, tx)
+	friends, err := (&db.Friend{UserId: userId, ChatId: chatId}).Filter(ctx, tx)
 
 	if err != nil {
-		slog.Error("Error fetching friends" + err.Error())
+		event.Logger.Error("Error fetching friends" + err.Error())
 		return err
 	}
 
 	if event.GetCallbackQuery().Id != "" {
-		event.EditCalbackMessage(
+		if _, err := event.EditCalbackMessage(
 			ctx,
 			buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-			buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, strconv.Itoa(chatId)),
-		)
+			buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId),
+		); err != nil {
+			return err
+		}
 
 		return nil
 	}
 
-	event.ReplyWithKeyboard(
+	if _, err := event.ReplyWithKeyboard(
 		ctx,
 		buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-		buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, strconv.Itoa(chatId)),
-	)
+		buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId),
+	); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -116,7 +115,7 @@ func buildPagiButtons(total, limit, offset int, chatId string) [][]map[string]st
 	return markup
 }
 
-func ListPaginationCallbackQueryHandler(ctx context.Context, event common.Event, tx *sql.Tx) error {
+func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	callbackQuery := event.GetCallbackQuery()
 
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
@@ -126,28 +125,25 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event common.Event,
 	limit_ := LIST_LIMIT
 	offset_, err := strconv.Atoi(offset)
 	if err != nil {
-		slog.Error("error parsing offset in list pagination callback query: " + err.Error())
+		event.Logger.Error("error parsing offset in list pagination callback query: " + err.Error())
 		return err
 	}
 
-	chatId, err := strconv.Atoi(params.BoundChat)
-	if err != nil {
-		return err
-	}
+	chatId := params.BoundChat
 
-	friends, err := (&db.Friend{UserId: callbackQuery.From.Id, ChatId: chatId}).Filter(ctx, tx)
+	friends, err := (&db.Friend{UserId: strconv.Itoa(callbackQuery.From.Id), ChatId: chatId}).Filter(ctx, tx)
 
 	if err != nil {
-		slog.Error("Error fetching friends" + err.Error())
+		event.Logger.Error("Error fetching friends" + err.Error())
 		return err
 	}
 
 	direction := params.Pagination.Direction
 
-	slog.Debug(fmt.Sprintf("direction: %s limit: %d offset: %s", direction, limit_, offset))
+	event.Logger.Debug(fmt.Sprintf("direction: %s limit: %d offset: %s", direction, limit_, offset))
 
 	if direction == "<" {
-		slog.Debug("back to previous screen, offset not changed")
+		event.Logger.Debug("back to previous screen, offset not changed")
 	}
 	if direction == "<<<" {
 		offset_ = 0
@@ -164,7 +160,9 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event common.Event,
 
 	msg := buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0))
 
-	event.EditCalbackMessage(ctx, msg, buildFriendsListMarkup(friends, limit_, offset_, params.BoundChat))
+	if _, err := event.EditCalbackMessage(ctx, msg, buildFriendsListMarkup(friends, limit_, offset_, params.BoundChat)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -228,11 +226,14 @@ func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId strin
 	return markup
 }
 
-func buildChatHeaderMessage(ctx context.Context, chatId int, event common.Event, emptyList bool) string {
+func buildChatHeaderMessage(ctx context.Context, chatId string, event *common.Event, emptyList bool) string {
 	if emptyList {
 		return HEADER_MESSAGE_LIST_IS_EMPTY
 	}
-	chatFullInfo := event.GetChat(ctx, strconv.Itoa(chatId))
+	chatFullInfo, err := event.GetChat(ctx, chatId)
+	if err != nil {
+		return HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT
+	}
 	if chatFullInfo.Id < 0 {
 		return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT, chatFullInfo.Title)
 	} else {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -24,43 +23,49 @@ const (
 	EMPTY_CHAT_ID = "empty"
 )
 
-func enterFriendName(ctx context.Context, event common.Event, _ *sql.Tx) (string, error) {
+func enterFriendName(ctx context.Context, event *common.Event, _ *sql.Tx) (string, error) {
 	msg := "Введи имя именинника✨\n\nнапример 👉 Райан Гослинг"
 
 	if event.GetCallbackQuery().Id != "" {
-		event.ReplyCallbackQuery(ctx, msg)
+		if _, err := event.ReplyCallbackQuery(ctx, msg); err != nil {
+			return DONE, err
+		}
 		event.GetContext().AppendText(common.CallbackFromString(event.GetCallbackQuery().Data).Id)
 	} else {
 		event.GetContext().AppendText(event.GetMessage().GetChatIdStr())
-		event.Reply(ctx, msg)
+		if _, err := event.Reply(ctx, msg); err != nil {
+			return DONE, err
+		}
 	}
 
 	return ENTER_FRIEND_BIRTHDAY_STEP, nil
 }
 
-func enterBirthday(ctx context.Context, event common.Event, tx *sql.Tx) (string, error) {
+func enterBirthday(ctx context.Context, event *common.Event, tx *sql.Tx) (string, error) {
 	friendName := strings.TrimSpace(event.GetMessage().Text)
 
 	if len(friendName) > FRIEND_NAME_MAX_LEN {
-		event.Reply(ctx, fmt.Sprintf("Имя не должно превышать %d символов", FRIEND_NAME_MAX_LEN))
+		if _, err := event.Reply(ctx, fmt.Sprintf("Имя не должно превышать %d символов", FRIEND_NAME_MAX_LEN)); err != nil {
+			return DONE, err
+		}
 		return ENTER_FRIEND_BIRTHDAY_STEP, nil
 	}
 
 	chatId := event.GetContext().GetTexts()[0]
-	chatIdInt, err := strconv.Atoi(chatId)
-	if err != nil {
-		return DONE, err
-	}
 
-	entities, err := (&db.Friend{Name: friendName, ChatId: chatIdInt}).Filter(ctx, tx)
+	entities, err := (&db.Friend{Name: friendName, ChatId: chatId}).Filter(ctx, tx)
 	if err != nil {
-		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
-		slog.Error("error filtering friends while accepting name to save: " + err.Error())
+		if _, err := event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔"); err != nil {
+			return DONE, err
+		}
+		event.Logger.Error("error filtering friends while accepting name to save: " + err.Error())
 		return DONE, err
 	}
 
 	if len(entities) != 0 {
-		event.Reply(ctx, "Такое имя уже есть😅 попробуй снова, учитывай верхний и нижний регистр букв")
+		if _, err := event.Reply(ctx, "Такое имя уже есть😅 попробуй снова, учитывай верхний и нижний регистр букв"); err != nil {
+			return DONE, err
+		}
 		return ENTER_FRIEND_BIRTHDAY_STEP, nil
 	}
 
@@ -68,18 +73,22 @@ func enterBirthday(ctx context.Context, event common.Event, tx *sql.Tx) (string,
 
 	msg := "Введи дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 12.11.1980 или 12.11"
 
-	event.Reply(ctx, msg)
+	if _, err := event.Reply(ctx, msg); err != nil {
+		return DONE, err
+	}
 
 	return SAVE_FRIEND_STEP, nil
 }
 
-func saveFriend(ctx context.Context, event common.Event, tx *sql.Tx) (string, error) {
+func saveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) (string, error) {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 
 	if err := validateBirthdaty(message.Text); err != nil {
 		errMsg := "Дата не попадает под формат🤔\n\nвведи дату снова🙌"
-		event.Reply(ctx, errMsg)
+		if _, err := event.Reply(ctx, errMsg); err != nil {
+			return DONE, err
+		}
 		return SAVE_FRIEND_STEP, nil
 	}
 
@@ -87,23 +96,17 @@ func saveFriend(ctx context.Context, event common.Event, tx *sql.Tx) (string, er
 	data := chatContext.GetTexts()
 	chatid, name, bd := data[0], data[1], data[2]
 
-	chatId, err := strconv.Atoi(chatid)
-	if err != nil {
-		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
-		return DONE, err
-	}
-
 	friend := db.Friend{
 		BaseFields: db.NewBaseFields(),
 		Name:       name,
 		BirthDay:   bd,
-		UserId:     message.From.Id,
-		ChatId:     chatId,
+		UserId:     strconv.Itoa(message.From.Id),
+		ChatId:     chatid,
 	}
 
 	friend.RenewNotifayAt()
 
-	err = friend.Save(ctx, tx)
+	err := friend.Save(ctx, tx)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +115,10 @@ func saveFriend(ctx context.Context, event common.Event, tx *sql.Tx) (string, er
 
 	if strings.Contains(chatid, "-") {
 		chatTitle := "чат"
-		chatFullInfo := event.GetChat(ctx, chatid)
+		chatFullInfo, err := event.GetChat(ctx, chatid)
+		if err != nil {
+			return DONE, err
+		}
 		if chatFullInfo.Id != 0 {
 			chatTitle = fmt.Sprintf("чат %s", chatFullInfo.Title)
 		}
@@ -120,11 +126,13 @@ func saveFriend(ctx context.Context, event common.Event, tx *sql.Tx) (string, er
 		msg = fmt.Sprintf("День рождения для %s добавлен в %s 💾\n\nПришлю напоминание в чат %s🔔", name, chatTitle, *friend.GetNotifyAt())
 	}
 
-	event.ReplyWithKeyboard(
+	if _, err := event.ReplyWithKeyboard(
 		ctx,
 		msg,
 		buildNavigationMarkup(chatid),
-	)
+	); err != nil {
+		return DONE, err
+	}
 
 	return DONE, nil
 }

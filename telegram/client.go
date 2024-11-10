@@ -17,22 +17,12 @@ import (
 // --------------------------------------------------------------- Types ---------------------------------------------------------------
 type UpdatesChannel chan Update
 
-type telegramClient struct {
+type Client struct {
 	host       string
 	token      string
 	basePath   string
 	httpClient *http.Client
 	logger     *slog.Logger
-}
-
-type ApiCaller interface {
-	SendMessage(context.Context, string, string, ...SendMessageOption) (*Message, error)
-	EditMessageReplyMarkup(context.Context, string, string, [][]map[string]string) (*Message, error)
-	EditMessageText(context.Context, string, string, string, [][]map[string]string) (*Message, error)
-	AnswerCallbackQuery(context.Context, string) error
-	GetUpdates(context.Context, int) (*UpdateResponse, error)
-	GetUpdatesChannel(context.Context) UpdatesChannel
-	GetChat(context.Context, string) (*GetChatResponse, error)
 }
 
 type SendMessageOption func(q url.Values) error
@@ -76,12 +66,12 @@ func setupLogger(logger *slog.Logger) *slog.Logger {
 	}
 }
 
-func NewClient(token string, logger *slog.Logger) ApiCaller {
+func NewClient(token string, logger *slog.Logger) *Client {
 	// http client timeout > telegram getUpdates timeout
 	httpClient := &http.Client{Timeout: 25 * time.Second}
 	host := "api.telegram.org"
 
-	return &telegramClient{
+	return &Client{
 		token:      token,
 		host:       host,
 		basePath:   "bot" + token,
@@ -92,7 +82,7 @@ func NewClient(token string, logger *slog.Logger) ApiCaller {
 	}
 }
 
-func (tc *telegramClient) sendRequest(ctx context.Context, method string, query url.Values) (data []byte, err error) {
+func (tc *Client) sendRequest(ctx context.Context, method string, query url.Values) (data []byte, err error) {
 	defer func() { err = wrapIfErr("can't do request", err) }()
 
 	u := url.URL{
@@ -136,7 +126,7 @@ func (tc *telegramClient) sendRequest(ctx context.Context, method string, query 
 
 // --------------------------------------------------------------- API methods implementation ---------------------------------------------------------------
 
-func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string, opts ...SendMessageOption) (*Message, error) {
+func (tc *Client) SendMessage(ctx context.Context, chatId, text string, opts ...SendMessageOption) (*Message, error) {
 	q := url.Values{}
 	q.Add("chat_id", chatId)
 	q.Add("text", text)
@@ -164,7 +154,7 @@ func (tc *telegramClient) SendMessage(ctx context.Context, chatId, text string, 
 	return &model, err
 }
 
-func (tc *telegramClient) EditMessageReplyMarkup(
+func (tc *Client) EditMessageReplyMarkup(
 	ctx context.Context,
 	chatId string,
 	messageId string,
@@ -194,7 +184,7 @@ func (tc *telegramClient) EditMessageReplyMarkup(
 	return &model, err
 }
 
-func (tc *telegramClient) EditMessageText(ctx context.Context, chatId, messageId, text string, replyMarkup [][]map[string]string) (*Message, error) {
+func (tc *Client) EditMessageText(ctx context.Context, chatId, messageId, text string, replyMarkup [][]map[string]string) (*Message, error) {
 	q := url.Values{}
 	q.Add("chat_id", chatId)
 	q.Add("message_id", messageId)
@@ -224,7 +214,7 @@ func (tc *telegramClient) EditMessageText(ctx context.Context, chatId, messageId
 	return &model, err
 }
 
-func (tc *telegramClient) AnswerCallbackQuery(ctx context.Context, queryId string) error {
+func (tc *Client) AnswerCallbackQuery(ctx context.Context, queryId string) error {
 	q := url.Values{}
 	q.Add("callback_query_id", queryId)
 
@@ -237,7 +227,7 @@ func (tc *telegramClient) AnswerCallbackQuery(ctx context.Context, queryId strin
 	return nil
 }
 
-func (tc *telegramClient) GetChat(ctx context.Context, chatId string) (*GetChatResponse, error) {
+func (tc *Client) GetChat(ctx context.Context, chatId string) (*GetChatResponse, error) {
 	q := url.Values{}
 	q.Add("chat_id", chatId)
 
@@ -257,7 +247,7 @@ func (tc *telegramClient) GetChat(ctx context.Context, chatId string) (*GetChatR
 	return &model, err
 }
 
-func (tc *telegramClient) GetUpdates(ctx context.Context, offset int) (*UpdateResponse, error) {
+func (tc *Client) GetUpdates(ctx context.Context, offset int) (*UpdateResponse, error) {
 	q := url.Values{}
 	q.Add("offset", strconv.Itoa(offset))
 	q.Add("limit", strconv.Itoa(100))
@@ -278,7 +268,7 @@ func (tc *telegramClient) GetUpdates(ctx context.Context, offset int) (*UpdateRe
 
 // --------------------------------------------------------------- polling ---------------------------------------------------------------
 
-func (tc *telegramClient) GetUpdatesChannel(ctx context.Context) UpdatesChannel {
+func (tc *Client) GetUpdatesChannel(ctx context.Context) UpdatesChannel {
 	updatesChannelSize := 100
 	offset := -1
 
