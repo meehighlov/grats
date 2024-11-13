@@ -43,16 +43,11 @@ func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, 
 		return err
 	}
 
-	markup := [][]map[string]string{
-		{
-			{
-				"text":          "👈к списку",
-				"callback_data": common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", params.BoundChat).String(),
-			},
-		},
-	}
+	keyboard := common.NewInlineKeyboard()
 
-	if _, err := event.EditCalbackMessage(ctx, "Напоминание удалено👋", markup); err != nil {
+	keyboard.AppendAsStack(*common.NewButton("⬅️", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", params.BoundChat).String()))
+
+	if _, err := event.EditCalbackMessage(ctx, "Напоминание удалено👋", *keyboard.Murkup()); err != nil {
 		return err
 	}
 

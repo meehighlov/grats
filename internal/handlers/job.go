@@ -23,7 +23,7 @@ func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, l
 			logger.Error("Notify job", "Notification not sent", err.Error())
 		}
 
-		tx, err := db.GetDBConnection().Begin()
+		tx, err := db.GetDBConnection().BeginTx(ctx, nil)
 		if err != nil {
 			logger.Error("Notify job", "getting transaction error", err.Error())
 			continue
@@ -53,7 +53,7 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 	for {
 		date := time.Now().In(location).Format("02.01.2006")
 
-		tx, err := db.GetDBConnection().Begin()
+		tx, err := db.GetDBConnection().BeginTx(ctx, nil)
 		if err != nil {
 			logger.Error("Notify job", "getting transaction error", err.Error())
 			continue

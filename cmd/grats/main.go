@@ -26,25 +26,31 @@ func main() {
 		// user
 		"/start": auth.Auth(logger, handlers.StartHandler),
 		"/list":  auth.Auth(logger, handlers.ListBirthdaysHandler),
-		"/add":   auth.Auth(logger, common.FSM(logger, handlers.AddBirthdayChatHandler())),
+
+		"/add":            auth.Auth(logger, handlers.AddToPrivateListHandler),
+		"add_to_chat":     handlers.AddToChatHandler,
+		"add_enter_bd":    handlers.EnterBirthday,
+		"add_save_friend": handlers.SaveFriend,
+
 		"/chats": auth.Auth(logger, handlers.GroupHandler),
 
 		// admin
-		"/admin":  auth.Admin(logger, admin.AdminCommandListHandler),
-		"/access_list":   auth.Admin(logger, admin.AccessListHandler),
-		"/access_grant":  auth.Admin(logger, common.FSM(logger, admin.GrantAccessChatHandler())),
-		"/access_revoke": auth.Admin(logger, common.FSM(logger, admin.RevokeAccessChatHandler())),
+		"/admin":                  auth.Admin(logger, admin.AdminCommandListHandler),
+		"/access_list":            auth.Admin(logger, admin.AccessListHandler),
+		"/access_grant":           auth.Admin(logger, admin.GrantAccess),
+		"access_save_tg_username": admin.SaveAccess,
+		"/access_revoke":          auth.Admin(logger, admin.RevokeAccess),
+		"access_update":           admin.UpdateAccessInfo,
 
 		// callback query handlers
-		"list":   handlers.ListPaginationCallbackQueryHandler,
-		"info":   handlers.FriendInfoCallbackQueryHandler,
-		"delete": handlers.DeleteFriendCallbackQueryHandler,
-		"chat_info": handlers.GroupInfoHandler,
-		"chat_howto": handlers.GroupHowtoHandler,
-		"add_to_chat": common.FSM(logger, handlers.AddBirthdayChatHandler()),
-		"chat_list": handlers.GroupHandler,
+		"list":           handlers.ListPaginationCallbackQueryHandler,
+		"info":           handlers.FriendInfoCallbackQueryHandler,
+		"delete":         handlers.DeleteFriendCallbackQueryHandler,
+		"chat_info":      handlers.GroupInfoHandler,
+		"chat_howto":     handlers.GroupHowtoHandler,
+		"chat_list":      handlers.GroupHandler,
 		"chat_birthdays": handlers.ListBirthdaysHandler,
-		"chat_delete": handlers.GroupChatRegisterHandler,
+		"chat_delete":    handlers.GroupChatRegisterHandler,
 
 		// group chat handler
 		"chat_register": handlers.GroupChatRegisterHandler,
@@ -52,7 +58,6 @@ func main() {
 
 	rootHandler := common.CreateRootHandler(
 		logger,
-		common.NewChatCache(),
 		updateHandlers,
 	)
 

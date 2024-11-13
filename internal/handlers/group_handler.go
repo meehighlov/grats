@@ -33,25 +33,21 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		return err
 	}
 
-	markup := [][]map[string]string{}
-	howtoButton := map[string]string{
-		"text":          "💫Как это работает?💫",
-		"callback_data": common.CallChatHowto(event.GetMessage().GetChatIdStr()).String(),
-	}
-	markup = append(markup, []map[string]string{howtoButton})
+	keyboard := common.NewInlineKeyboard()
+	keyboard.AppendAsStack(*common.NewButton("💫Как это работает?💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
 
 	if len(chats) == 0 {
 		if _, err := event.ReplyWithKeyboard(
 			ctx,
 			"Чатов пока нет🙌",
-			markup,
+			*keyboard.Murkup(),
 		); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	buttons := []map[string]string{}
+	buttons := []common.Button{}
 
 	for _, chat := range chats {
 		fullInfo, err := event.GetChat(ctx, chat.ChatId)
@@ -59,17 +55,11 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 			return err
 		}
 		if fullInfo != nil {
-			button := map[string]string{
-				"text":          fullInfo.Title,
-				"callback_data": common.CallChatInfo(chat.ChatId).String(),
-			}
-			buttons = append(buttons, button)
+			buttons = append(buttons, *common.NewButton(fullInfo.Title, common.CallChatInfo(chat.ChatId).String()))
 		}
 	}
 
-	for _, button := range buttons {
-		markup = append(markup, []map[string]string{button})
-	}
+	keyboard.AppendAsStack(buttons...)
 
 	header := "Это чаты, в которые я добавлен✨"
 
@@ -77,12 +67,12 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		if _, err := event.EditCalbackMessage(
 			ctx,
 			header,
-			markup,
+			*keyboard.Murkup(),
 		); err != nil {
 			return err
 		}
 	} else {
-		if _, err := event.ReplyWithKeyboard(ctx, header, markup); err != nil {
+		if _, err := event.ReplyWithKeyboard(ctx, header, *keyboard.Murkup()); err != nil {
 			return err
 		}
 	}
@@ -100,7 +90,7 @@ func GroupInfoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error
 
 	msg := fmt.Sprintf("Настройка чата `%s`", chatInfo.Title)
 
-	if _, err := event.EditCalbackMessage(ctx, msg, buildChatInfoMarkup(params.Id)); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildChatInfoMarkup(params.Id).Murkup()); err != nil {
 		return err
 	}
 
@@ -115,24 +105,13 @@ func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) erro
 	return nil
 }
 
-func buildChatInfoMarkup(chatId string) [][]map[string]string {
-	addBirthDayButton := map[string]string{
-		"text":          "добавить др в чат",
-		"callback_data": common.CallAddToChat(chatId).String(),
-	}
-	listButton := map[string]string{
-		"text":          "список всех др в чате",
-		"callback_data": common.CallChatBirthdays(chatId).String(),
-	}
-	backButton := map[string]string{
-		"text":          "к списку чатов",
-		"callback_data": common.CallChatList().String(),
-	}
+func buildChatInfoMarkup(chatId string) *common.InlineKeyboard {
+	keyboard := common.NewInlineKeyboard()
+	keyboard.AppendAsStack(
+		*common.NewButton("добавить др в чат", common.CallAddToChat(chatId).String()),
+		*common.NewButton("список всех др в чате", common.CallChatBirthdays(chatId).String()),
+		*common.NewButton("⬅️к списку чатов", common.CallChatList().String()),
+	)
 
-	markup := [][]map[string]string{}
-	markup = append(markup, []map[string]string{addBirthDayButton})
-	markup = append(markup, []map[string]string{listButton})
-	markup = append(markup, []map[string]string{backButton})
-
-	return markup
+	return keyboard
 }
