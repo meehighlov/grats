@@ -57,7 +57,7 @@ func newCallback(command, id, offset, direction, entity, chatid string) *Callbac
 			Offset:    offset,
 			Direction: direction,
 		},
-		Entity: entity,
+		Entity:    entity,
 		BoundChat: chatid,
 	}
 }
@@ -75,7 +75,7 @@ func CallbackFromString(raw string) *CallbackDataModel {
 			Offset:    params[2],
 			Direction: params[3],
 		},
-		Entity: params[4],
+		Entity:    params[4],
 		BoundChat: boundChat,
 	}
 }

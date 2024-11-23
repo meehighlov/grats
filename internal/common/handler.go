@@ -12,10 +12,13 @@ import (
 
 type HandlerType func(context.Context, *Event, *sql.Tx) error
 
-func CreateRootHandler(logger *slog.Logger, chatCahe *ChatCache, handlers map[string]HandlerType) telegram.UpdateHandler {
+func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) telegram.UpdateHandler {
+	chatCahe := NewChatCache()
 	return func(update telegram.Update, client *telegram.Client) error {
 		ctx, cancel := context.WithTimeout(context.Background(), config.Cfg().HandlerTmeout())
 		defer cancel()
+
+		logger.Debug("Root handler", "got update from chat", update.GetChatIdStr())
 
 		chatContext := chatCahe.GetOrCreateChatContext(update.GetChatIdStr())
 		command_ := update.Message.GetCommand()
@@ -34,7 +37,7 @@ func CreateRootHandler(logger *slog.Logger, chatCahe *ChatCache, handlers map[st
 				logger.Info("CallbackQueryHandler", "command", params.Command, "chat id", update.GetChatIdStr())
 				command = params.Command
 			} else {
-				command_ = chatContext.GetCommandInProgress()
+				command_ = chatContext.GetNextHandler()
 				if command_ != "" {
 					command = command_
 				}
@@ -45,13 +48,13 @@ func CreateRootHandler(logger *slog.Logger, chatCahe *ChatCache, handlers map[st
 			command = "chat_register"
 		}
 
-		event := newEvent(client, update, chatContext, command, logger)
+		event := newEvent(client, update, chatContext, logger)
 
 		logger.Debug("root handler", "update", update)
 
 		handler, found := handlers[command]
 		if found {
-			tx, err := db.GetDBConnection().Begin()
+			tx, err := db.GetDBConnection().BeginTx(ctx, nil)
 			if err != nil {
 				logger.Error("Root handler", "getting transaction error", err.Error())
 			} else {
@@ -59,6 +62,7 @@ func CreateRootHandler(logger *slog.Logger, chatCahe *ChatCache, handlers map[st
 				err := handler(ctx, event, tx)
 				if err != nil {
 					tx.Rollback()
+					chatContext.Reset()
 					logger.Error("Root handler", "handler error", err.Error(), "chat id", update.GetChatIdStr())
 				} else {
 					tx.Commit()

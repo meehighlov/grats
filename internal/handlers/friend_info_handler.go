@@ -50,22 +50,14 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx
 
 	offset := params.Pagination.Offset
 
-	markup := [][]map[string]string{
-		{
-			{
-				"text":          "👈 к списку др",
-				"callback_data": common.CallList(offset, "<", params.BoundChat).String(),
-			},
-		},
-		{
-			{
-				"text":          "удалить 👋",
-				"callback_data": common.CallDelete(params.Id, params.BoundChat).String(),
-			},
-		},
-	}
+	keyboard := common.NewInlineKeyboard()
 
-	if _, err := event.EditCalbackMessage(ctx, msg, markup); err != nil {
+	keyboard.AppendAsStack(
+		*common.NewButton("⬅️", common.CallList(offset, "<", params.BoundChat).String()),
+		*common.NewButton("🗑", common.CallDelete(params.Id, params.BoundChat).String()),
+	)
+
+	if _, err := event.EditCalbackMessage(ctx, msg, *keyboard.Murkup()); err != nil {
 		return err
 	}
 

@@ -6,16 +6,12 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-const (
-	ENTRYPOINT_STEP = "1"
-	STEPS_DONE      = "done"
-)
-
 type ChatContext struct {
-	chatId            string
-	userResponses     []string
-	commandInProgress string
-	stepTODO          string
+	chatId        string
+	userResponses []string
+
+	// next handler to call in conversation with bot
+	nextHandler string
 }
 
 type ChatCache struct {
@@ -30,7 +26,7 @@ func NewChatCache() *ChatCache {
 }
 
 func newChatContext(chatId string) *ChatContext {
-	return &ChatContext{chatId, []string{}, "", ENTRYPOINT_STEP}
+	return &ChatContext{chatId, []string{}, ""}
 }
 
 func (ctx *ChatContext) AppendText(userResponse string) error {
@@ -42,33 +38,21 @@ func (ctx *ChatContext) GetTexts() []string {
 	return ctx.userResponses
 }
 
-func (ctx *ChatContext) GetCommandInProgress() string {
-	return ctx.commandInProgress
+func (ctx *ChatContext) GetNextHandler() string {
+	return ctx.nextHandler
 }
 
-func (ctx *ChatContext) GetStepTODO() string {
-	return ctx.stepTODO
-}
-
-func (ctx *ChatContext) SetStepTODO(step string) error {
-	ctx.stepTODO = step
-	return nil
-}
-
-func (ctx *ChatContext) SetCommandInProgress(command string) error {
-	if ctx.commandInProgress != "" {
-		if ctx.commandInProgress != command {
-			ctx.Reset()
-		}
+func (ctx *ChatContext) SetNextHandler(nextHandler string) string {
+	if nextHandler == "" {
+		ctx.Reset()
 	}
-	ctx.commandInProgress = command
-	return nil
+	ctx.nextHandler = nextHandler
+	return ctx.nextHandler
 }
 
 func (ctx *ChatContext) Reset() error {
-	ctx.commandInProgress = ""
+	ctx.nextHandler = ""
 	ctx.userResponses = []string{}
-	ctx.stepTODO = ENTRYPOINT_STEP
 	return nil
 }
 

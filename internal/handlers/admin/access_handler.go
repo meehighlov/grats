@@ -11,13 +11,6 @@ import (
 	"github.com/meehighlov/grats/internal/db"
 )
 
-const (
-	GRANT_ACCESS_ENTRYPOINT  = "1"
-	SAVE_TG_USERNAME         = "2"
-	REVOKE_ACCESS_ENTRYPOINT = "1"
-	UPDATE_ACCESS_INFO       = "2"
-)
-
 func AdminCommandListHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	commands := []string{
 		"/access_list - список пользователей с доступом😏",
@@ -64,17 +57,19 @@ func AccessListHandler(ctx context.Context, event *common.Event, tx *sql.Tx) err
 	return nil
 }
 
-func grantAccess(ctx context.Context, event *common.Event, _ *sql.Tx) (string, error) {
+func GrantAccess(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 	msg := "Кому предоставить доступ? Введи имя пользователя тг😘"
 
 	if _, err := event.Reply(ctx, msg); err != nil {
-		return common.STEPS_DONE, err
+		return err
 	}
 
-	return SAVE_TG_USERNAME, nil
+	event.SetNextHandler("access_save_tg_username")
+
+	return nil
 }
 
-func saveAccess(ctx context.Context, event *common.Event, tx *sql.Tx) (string, error) {
+func SaveAccess(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	tgusername := event.GetMessage().Text
 	tgusername = strings.Replace(tgusername, "@", "", 1)
 
@@ -82,64 +77,53 @@ func saveAccess(ctx context.Context, event *common.Event, tx *sql.Tx) (string, e
 
 	if err != nil {
 		if _, err := event.Reply(ctx, err.Error()); err != nil {
-			return common.STEPS_DONE, err
+			return err
 		}
-		return SAVE_TG_USERNAME, err
+		return err
 	}
 
 	msg := fmt.Sprintf("Доступ для %s предоставлен, пусть пробует зайти💋", tgusername)
 
 	if _, err := event.Reply(ctx, msg); err != nil {
-		return common.STEPS_DONE, err
+		return err
 	}
 
-	return common.STEPS_DONE, nil
+	event.SetNextHandler("")
+
+	return nil
 }
 
-func revokeAccess(ctx context.Context, event *common.Event, _ *sql.Tx) (string, error) {
+func RevokeAccess(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 	msg := "У кого отбираем доступ?😡"
 
 	if _, err := event.Reply(ctx, msg); err != nil {
-		return common.STEPS_DONE, err
+		return err
 	}
 
-	return UPDATE_ACCESS_INFO, nil
+	event.SetNextHandler("access_update")
+
+	return nil
 }
 
-func updateAccessInfo(ctx context.Context, event *common.Event, tx *sql.Tx) (string, error) {
+func UpdateAccessInfo(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	tgusername := strings.Replace(event.GetMessage().Text, "@", "", 1)
 	err := (&db.Access{TGusername: tgusername}).Delete(ctx, tx)
 
 	if err != nil {
 		if _, err := event.Reply(ctx, err.Error()); err != nil {
-			return common.STEPS_DONE, err
+			return err
 		}
-		return UPDATE_ACCESS_INFO, err
+		event.SetNextHandler("access_update")
+		return err
 	}
 
 	msg := fmt.Sprintf("Доступ для %s закрыт🖐", event.GetMessage().Text)
 
 	if _, err := event.Reply(ctx, msg); err != nil {
-		return common.STEPS_DONE, err
+		return err
 	}
 
-	return common.STEPS_DONE, nil
-}
+	event.SetNextHandler("")
 
-func GrantAccessChatHandler() map[string]common.CommandStepHandler {
-	handlers := make(map[string]common.CommandStepHandler)
-
-	handlers[GRANT_ACCESS_ENTRYPOINT] = grantAccess
-	handlers[SAVE_TG_USERNAME] = saveAccess
-
-	return handlers
-}
-
-func RevokeAccessChatHandler() map[string]common.CommandStepHandler {
-	handlers := make(map[string]common.CommandStepHandler)
-
-	handlers[REVOKE_ACCESS_ENTRYPOINT] = revokeAccess
-	handlers[UPDATE_ACCESS_INFO] = updateAccessInfo
-
-	return handlers
+	return nil
 }

@@ -2,31 +2,20 @@ package common
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 
 	"github.com/meehighlov/grats/telegram"
 )
 
-// use this type when there is no dialog, "one shot" handler
-// for example "/start" bot command with one action
-type CommandHandler func(context.Context, *Event, *sql.Tx) error
-
-// use this type when need to build dialog with user
-// FSM will invoke handlers of this type step by step
-type CommandStepHandler func(context.Context, *Event, *sql.Tx) (string, error)
-
-
 type Event struct {
 	client  *telegram.Client
 	update  telegram.Update
 	context *ChatContext
-	command string
 	Logger  *slog.Logger
 }
 
-func newEvent(client *telegram.Client, update telegram.Update, context *ChatContext, command string, logger *slog.Logger) *Event {
-	return &Event{client, update, context, command, logger}
+func newEvent(client *telegram.Client, update telegram.Update, context *ChatContext, logger *slog.Logger) *Event {
+	return &Event{client, update, context, logger}
 }
 
 func (e *Event) GetContext() *ChatContext {
@@ -81,6 +70,10 @@ func (e *Event) GetChat(ctx context.Context, chatId string) (*telegram.Chat, err
 	return nil, err
 }
 
-func (e *Event) GetCommand() string {
-	return e.command
+func (e *Event) GetNextHandler() string {
+	return e.GetContext().GetNextHandler()
+}
+
+func (e *Event) SetNextHandler(nextHandler string) string {
+	return e.GetContext().SetNextHandler(nextHandler)
 }

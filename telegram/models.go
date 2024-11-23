@@ -112,8 +112,8 @@ type UpdateResponse struct {
 }
 
 type GetChatResponse struct {
-	Ok     bool     `json:"ok"`
-	Result Chat   `json:"result"`
+	Ok     bool `json:"ok"`
+	Result Chat `json:"result"`
 }
 
 type InlineKeyboardButton struct {
@@ -155,7 +155,7 @@ func (message *Message) GetCommand() string {
 func (u *Update) GetChatIdStr() string {
 	if u.Message.Chat.Id != 0 {
 		return strconv.Itoa(u.Message.Chat.Id)
-	} 
+	}
 
 	if u.CallbackQuery.Message.Chat.Id != 0 {
 		return strconv.Itoa(u.CallbackQuery.Message.Chat.Id)

@@ -17,9 +17,9 @@ const (
 	LIST_LIMIT            = 5
 	LIST_START_OFFSET     = 0
 
-	HEADER_MESSAGE_LIST_NOT_EMPTY = "Добавленные дни рождения✨"
+	HEADER_MESSAGE_LIST_NOT_EMPTY      = "Личные напоминания о др✨"
 	HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT = "Список др в чате %s✨"
-	HEADER_MESSAGE_LIST_IS_EMPTY  = "Записей пока нет✨"
+	HEADER_MESSAGE_LIST_IS_EMPTY       = "Записей пока нет✨"
 )
 
 func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
@@ -43,7 +43,7 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 		if _, err := event.EditCalbackMessage(
 			ctx,
 			buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-			buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId),
+			*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
 		); err != nil {
 			return err
 		}
@@ -54,7 +54,7 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
 		buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-		buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId),
+		*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
 	); err != nil {
 		return err
 	}
@@ -74,45 +74,31 @@ func birthdayComparator(friends []db.Friend, i, j int) bool {
 	return countI > countJ
 }
 
-func buildPagiButtons(total, limit, offset int, chatId string) [][]map[string]string {
-	if total == 0 {
-		return [][]map[string]string{}
+func appendControlButtons(keyboard *common.InlineKeyboard, total, limit, offset int, chatId string) error {
+	buttons := []common.Button{}
+	if total <= limit || total == 0 {
+		return nil
 	}
 	if offset == total {
-		return [][]map[string]string{{
-			{
-				"text":          "свернуть👆",
-				"callback_data": common.CallList(strconv.Itoa(LIST_START_OFFSET), "<<<", chatId).String(),
-			},
-		}}
+		buttons = append(buttons, *common.NewButton("⬆️", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<<<", chatId).String()))
+		keyboard.AppendAsLine(buttons...)
+		return nil
 	}
-	var keyBoard []map[string]string
 	if offset+limit >= total {
-		previousButton := map[string]string{"text": "👈назад", "callback_data": common.CallList(strconv.Itoa(offset), "<<", chatId).String()}
-		keyBoard = []map[string]string{previousButton}
+		buttons = append(buttons, *common.NewButton("⬅️", common.CallList(strconv.Itoa(offset), "<<", chatId).String()))
 	} else {
 		if offset == 0 {
-			nextButton := map[string]string{"text": "вперед👉", "callback_data": common.CallList(strconv.Itoa(offset), ">>", chatId).String()}
-			keyBoard = []map[string]string{nextButton}
+			buttons = append(buttons, *common.NewButton("➡️", common.CallList(strconv.Itoa(offset), ">>", chatId).String()))
 		} else {
-			nextButton := map[string]string{"text": "вперед👉", "callback_data": common.CallList(strconv.Itoa(offset), ">>", chatId).String()}
-			previousButton := map[string]string{"text": "👈назад", "callback_data": common.CallList(strconv.Itoa(offset), "<<", chatId).String()}
-			keyBoard = []map[string]string{previousButton, nextButton}
+			buttons = append(buttons, *common.NewButton("⬅️", common.CallList(strconv.Itoa(offset), "<<", chatId).String()))
+			buttons = append(buttons, *common.NewButton("➡️", common.CallList(strconv.Itoa(offset), ">>", chatId).String()))
 		}
 	}
 
-	allButton := map[string]string{"text": fmt.Sprintf("показать все (%d)👇", total), "callback_data": common.CallList(strconv.Itoa(offset), "<>", chatId).String()}
-	allButtonBar := []map[string]string{allButton}
+	keyboard.AppendAsLine(buttons...)
+	keyboard.AppendAsStack(*common.NewButton(fmt.Sprintf("(%d)⬇️", total), common.CallList(strconv.Itoa(offset), "<>", chatId).String()))
 
-	markup := [][]map[string]string{}
-	if total <= limit {
-		return markup
-	}
-
-	markup = append(markup, keyBoard)
-	markup = append(markup, allButtonBar)
-
-	return markup
+	return nil
 }
 
 func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
@@ -160,16 +146,16 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 
 	msg := buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0))
 
-	if _, err := event.EditCalbackMessage(ctx, msg, buildFriendsListMarkup(friends, limit_, offset_, params.BoundChat)); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, params.BoundChat).Murkup()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func buildFriendsButtons(friends []db.Friend, limit, offset int, callbackDataBuilder func(id string, offset int) string) []map[string]string {
+func buildFriendsButtons(friends []db.Friend, limit, offset int, callbackDataBuilder func(id string, offset int) string) *[]common.Button {
 	sort.Slice(friends, func(i, j int) bool { return birthdayComparator(friends, i, j) })
-	var buttons []map[string]string
+	buttons := []common.Button{}
 	for i, friend := range friends {
 		if offset != len(friends) {
 			if i == limit+offset {
@@ -190,40 +176,28 @@ func buildFriendsButtons(friends []db.Friend, limit, offset int, callbackDataBui
 			}
 		}
 
-		button := map[string]string{
-			"text":          buttonText,
-			"callback_data": callbackDataBuilder(friend.ID, offset),
-		}
-		buttons = append(buttons, button)
+		buttons = append(buttons, *common.NewButton(buttonText, callbackDataBuilder(friend.ID, offset)))
 	}
 
-	return buttons
+	return &buttons
 }
 
-func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId string) [][]map[string]string {
+func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId string) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
 		return common.CallInfo(id, strconv.Itoa(offset), chatId).String()
 	}
 	friendsListAsButtons := buildFriendsButtons(friends, limit, offset, callbackDataBuilder)
-	pagiButtons := buildPagiButtons(len(friends), limit, offset, chatId)
+	keyboard := common.NewInlineKeyboard()
 
-	markup := [][]map[string]string{}
+	keyboard.AppendAsStack(*friendsListAsButtons...)
 
-	for _, button := range friendsListAsButtons {
-		markup = append(markup, []map[string]string{button})
-	}
-
-	markup = append(markup, pagiButtons...)
+	appendControlButtons(keyboard, len(friends), limit, offset, chatId)
 
 	if strings.Contains(chatId, "-") {
-		backToGroupButton := map[string]string{
-			"text":          "👈 к чату",
-			"callback_data": common.CallChatInfo(chatId).String(),
-		}
-		markup = append(markup, []map[string]string{backToGroupButton})
+		keyboard.AppendAsLine(*common.NewButton("⬅️к чату", common.CallChatInfo(chatId).String()))
 	}
 
-	return markup
+	return keyboard
 }
 
 func buildChatHeaderMessage(ctx context.Context, chatId string, event *common.Event, emptyList bool) string {
