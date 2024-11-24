@@ -104,11 +104,12 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	chatid, name, bd := data[0], data[1], data[2]
 
 	friend := db.Friend{
-		BaseFields: db.NewBaseFields(),
-		Name:       name,
-		BirthDay:   bd,
-		UserId:     strconv.Itoa(message.From.Id),
-		ChatId:     chatid,
+		BaseFields:  db.NewBaseFields(),
+		Name:        name,
+		BirthDay:    bd,
+		UserId:      strconv.Itoa(message.From.Id),
+		ChatId:      chatid,
+		Delta:       "0",
 	}
 
 	friend.RenewNotifayAt()

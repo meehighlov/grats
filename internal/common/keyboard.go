@@ -1,8 +1,7 @@
 package common
 
-
 type Button struct {
-	text string
+	text          string
 	callback_data string
 }
 

@@ -104,7 +104,7 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, name, birthday, userid, chatid, notifyat, createdat, updatedat FROM friend WHERE ` + where_ + `;`
+	query := `SELECT id, name, birthday, userid, chatid, notifyat, delta, createdat, updatedat FROM friend WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
@@ -131,6 +131,7 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 			&friend.UserId,
 			&friend.ChatId,
 			friend.GetNotifyAt(),
+			&friend.Delta,
 			&friend.CreatedAt,
 			&friend.UpdatedAt,
 		)

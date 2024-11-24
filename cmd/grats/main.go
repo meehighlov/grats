@@ -51,6 +51,7 @@ func main() {
 		"chat_list":      handlers.GroupHandler,
 		"chat_birthdays": handlers.ListBirthdaysHandler,
 		"chat_delete":    handlers.GroupChatRegisterHandler,
+		"apply_delta":    handlers.ApplyDeltaHandler,
 
 		// group chat handler
 		"chat_register": handlers.GroupChatRegisterHandler,

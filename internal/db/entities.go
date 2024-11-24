@@ -85,6 +85,7 @@ type Friend struct {
 	ChatId         string
 	notifyAt       string
 	FilterNotifyAt string // this param is only for filtering
+	Delta          string
 }
 
 type Chat struct {
@@ -98,6 +99,60 @@ type Chat struct {
 
 	BotInvitedBy string
 	ChatId       string
+}
+
+func (friend *Friend) GetMessageTemplate() string {
+	if friend.IsTodayBirthday() {
+		return "Сегодня день рождения у %s🥳"
+	}
+	return "Через %s день рождения у %s🔔"
+}
+
+func (friend *Friend) GetMessage() string {
+	template := friend.GetMessageTemplate()
+	return fmt.Sprintf(template, )
+}
+
+func deltaReadable(delta string) string {
+	switch delta {
+	case "0":
+		return "напомнить только в день рождения"
+	case "d":
+		return "напомнить за день"
+	case "w":
+		return "напомнить за неделю"
+	case "m":
+		return "напомнить за месяц"
+	default:
+		slog.Info("delta of value is not supported, notify date is not changed. Delta value:" + delta)
+		return "неизвестный интервал"
+	}
+}
+
+func (friend *Friend) DeltaReadable() string {
+	return deltaReadable(friend.Delta)
+}
+
+func (friend *Friend) NextDelta(asReadable bool) string {
+	default_ := "0"
+	currentToNext := map[string]string{
+		"0": "d",
+		"d": "w",
+		"w": "m",
+	}
+	next, found := currentToNext[friend.Delta]
+	if !found {
+		slog.Error("not next delta by current: " + friend.Delta + " returning " + default_)
+		if asReadable {
+			return deltaReadable(default_)
+		}
+		return default_
+	}
+
+	if asReadable {
+		return deltaReadable(next)
+	}
+	return next
 }
 
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {
