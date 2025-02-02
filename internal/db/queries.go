@@ -102,9 +102,12 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 	if friend.ChatId != "" {
 		where = append(where, "chatid=$chatid")
 	}
+	if friend.City != "" {
+		where = append(where, "city=$city")
+	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, name, birthday, userid, chatid, notifyat, createdat, updatedat FROM friend WHERE ` + where_ + `;`
+	query := `SELECT id, name, birthday, userid, chatid, COALESCE(city, '') as city, notifyat, createdat, updatedat FROM friend WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
@@ -114,14 +117,14 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 		sql.Named("name", friend.Name),
 		sql.Named("id", friend.ID),
 		sql.Named("chatid", friend.ChatId),
+		sql.Named("city", friend.City),
 	)
 	if err != nil {
-		slog.Error("Error when filtering friends " + err.Error())
+		slog.Error("Error while executing query: " + err.Error())
 		return nil, err
 	}
 
 	friends := []Friend{}
-
 	for rows.Next() {
 		friend := Friend{}
 		err := rows.Scan(
@@ -130,6 +133,7 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 			&friend.BirthDay,
 			&friend.UserId,
 			&friend.ChatId,
+			&friend.City,
 			friend.GetNotifyAt(),
 			&friend.CreatedAt,
 			&friend.UpdatedAt,
@@ -151,15 +155,16 @@ func (friend *Friend) Save(ctx context.Context, tx *sql.Tx) error {
 
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO friend(id, name, birthday, userid, chatid, notifyat, createdat, updatedat)
-        VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT(id) DO UPDATE SET name=$2, birthday=$3, userid=$4, chatid=$5, notifyat=$6, createdat=$7, updatedat=$8
-        RETURNING id;`,
+		`INSERT INTO friend(id, name, birthday, userid, chatid, city, notifyat, createdat, updatedat)
+         VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT(id) DO UPDATE SET name=$2, birthday=$3, userid=$4, chatid=$5, city=$6, notifyat=$7, createdat=$8, updatedat=$9
+         RETURNING id;`,
 		friend.ID,
 		friend.Name,
 		friend.BirthDay,
 		friend.UserId,
 		friend.ChatId,
+		friend.City,
 		*friend.GetNotifyAt(),
 		friend.CreatedAt,
 		friend.UpdatedAt,

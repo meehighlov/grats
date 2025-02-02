@@ -32,9 +32,9 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx
 
 	msgLines := []string{
 		fmt.Sprintf("✨ %s", friend.Name),
+		fmt.Sprintf("🏙 %s", friend.City),
 		fmt.Sprintf("🗓 %s", friend.BirthDay),
 		fmt.Sprintf("%s %s", emoji, zodiacName),
-		// todo add info abount bound chat
 		fmt.Sprintf("🔔 Напомню %s в полночь (по %s)", *friend.GetNotifyAt(), friendTimezone),
 	}
 

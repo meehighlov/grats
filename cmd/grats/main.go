@@ -30,6 +30,7 @@ func main() {
 		"/add":            auth.Auth(logger, handlers.AddToPrivateListHandler),
 		"add_to_chat":     handlers.AddToChatHandler,
 		"add_enter_bd":    handlers.EnterBirthday,
+		"add_enter_city":  handlers.EnterCity,
 		"add_save_friend": handlers.SaveFriend,
 
 		"/chats": auth.Auth(logger, handlers.GroupHandler),

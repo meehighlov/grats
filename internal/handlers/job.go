@@ -15,9 +15,9 @@ import (
 const CHECK_TIMEOUT_SEC = 10
 
 func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger) error {
-	msgTemplate := "🔔Сегодня день рождения у %s🥳"
+	msgTemplate := "🔔Сегодня день рождения у %s (%s)🥳"
 	for _, friend := range friends {
-		msg := fmt.Sprintf(msgTemplate, friend.Name)
+		msg := fmt.Sprintf(msgTemplate, friend.Name, friend.City)
 		_, err := client.SendMessage(ctx, friend.ChatId, msg)
 		if err != nil {
 			logger.Error("Notify job", "Notification not sent", err.Error())

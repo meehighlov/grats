@@ -76,13 +76,36 @@ func EnterBirthday(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	event.GetContext().AppendText(friendName)
 
 	msg := "Введи дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 12.11.1980 или 12.11"
-
 	if _, err := event.Reply(ctx, msg); err != nil {
 		return err
 	}
 
-	event.SetNextHandler("add_save_friend")
+	// Переходим к следующему шагу, где проверим формат введенной даты и запросим город
+	event.SetNextHandler("add_enter_city")
 
+	return nil
+}
+
+func EnterCity(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	birthdayInput := strings.TrimSpace(event.GetMessage().Text)
+
+	// Валидация формата даты с использованием validateBirthdaty
+	if err := validateBirthdaty(birthdayInput); err != nil {
+		errMsg := "Дата не попадает под формат🤔\n\nВведи дату снова🙌"
+		if _, err := event.Reply(ctx, errMsg); err != nil {
+			return err
+		}
+		event.SetNextHandler("add_enter_city")
+		return nil
+	}
+
+	event.GetContext().AppendText(birthdayInput)
+
+	msg := "Введи город, в котором живет друг✨\n\nнапример 👉 Москва"
+	if _, err := event.Reply(ctx, msg); err != nil {
+		return err
+	}
+	event.SetNextHandler("add_save_friend")
 	return nil
 }
 
@@ -90,18 +113,13 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 
-	if err := validateBirthdaty(message.Text); err != nil {
-		errMsg := "Дата не попадает под формат🤔\n\nвведи дату снова🙌"
-		if _, err := event.Reply(ctx, errMsg); err != nil {
-			return err
-		}
-		event.SetNextHandler("add_save_friend")
-		return nil
-	}
-
+	// Сохраняем полученный город
 	chatContext.AppendText(message.Text)
 	data := chatContext.GetTexts()
-	chatid, name, bd := data[0], data[1], data[2]
+	if len(data) < 4 {
+		return fmt.Errorf("неполные данные для сохранения друга")
+	}
+	chatid, name, bd, city := data[0], data[1], data[2], data[3]
 
 	friend := db.Friend{
 		BaseFields: db.NewBaseFields(),
@@ -109,6 +127,7 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		BirthDay:   bd,
 		UserId:     strconv.Itoa(message.From.Id),
 		ChatId:     chatid,
+		City:       city,
 	}
 
 	friend.RenewNotifayAt()
@@ -118,8 +137,7 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		return err
 	}
 
-	msg := fmt.Sprintf("День рождения для %s добавлен 💾\n\nНапомню тебе о нем %s🔔", name, *friend.GetNotifyAt())
-
+	msg := fmt.Sprintf("День рождения для %s (%s) добавлен 💾\n\nНапомню тебе о нем %s🔔", name, city, *friend.GetNotifyAt())
 	if strings.Contains(chatid, "-") {
 		chatTitle := "чат"
 		chatFullInfo, err := event.GetChat(ctx, chatid)
@@ -130,14 +148,10 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 			chatTitle = fmt.Sprintf("чат %s", chatFullInfo.Title)
 		}
 
-		msg = fmt.Sprintf("День рождения для %s добавлен в %s 💾\n\nПришлю напоминание в чат %s🔔", name, chatTitle, *friend.GetNotifyAt())
+		msg = fmt.Sprintf("День рождения для %s (%s) добавлен в %s 💾\n\nПришлю напоминание в чат %s🔔", name, city, chatTitle, *friend.GetNotifyAt())
 	}
 
-	if _, err := event.ReplyWithKeyboard(
-		ctx,
-		msg,
-		*buildNavigationMarkup(chatid).Murkup(),
-	); err != nil {
+	if _, err := event.ReplyWithKeyboard(ctx, msg, *buildNavigationMarkup(chatid).Murkup()); err != nil {
 		return err
 	}
 

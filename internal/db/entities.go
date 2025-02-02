@@ -83,6 +83,7 @@ type Friend struct {
 	UserId         string
 	BirthDay       string
 	ChatId         string
+	City           string
 	notifyAt       string
 	FilterNotifyAt string // this param is only for filtering
 }
