@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
@@ -110,8 +111,100 @@ func buildChatInfoMarkup(chatId string) *common.InlineKeyboard {
 	keyboard.AppendAsStack(
 		*common.NewButton("добавить др в чат", common.CallAddToChat(chatId).String()),
 		*common.NewButton("список всех др в чате", common.CallChatBirthdays(chatId).String()),
+		*common.NewButton("изменить шаблон поздравления", common.CallEditGreetingTemplate(chatId).String()),
 		*common.NewButton("⬅️к списку чатов", common.CallChatList().String()),
 	)
 
 	return keyboard
+}
+
+func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
+
+	chatInfo, err := event.GetChat(ctx, params.BoundChat)
+	if err != nil {
+		return err
+	}
+
+	chats, err := (&db.Chat{ChatId: params.BoundChat}).Filter(ctx, tx)
+	if err != nil {
+		return err
+	}
+
+	currentTemplate := "🔔Сегодня день рождения у %s🥳"
+	if len(chats) > 0 && chats[0].GreetingTemplate != "" {
+		currentTemplate = chats[0].GreetingTemplate
+	}
+
+	msg := fmt.Sprintf("Текущий шаблон поздравления для чата `%s`:\n\n%s\n\nОтправьте новый шаблон в ответ на это сообщение. Используйте %s для подстановки имени именинника.",
+		chatInfo.Title,
+		currentTemplate,
+		"%s")
+
+	keyboard := common.NewInlineKeyboard()
+	keyboard.AppendAsStack(
+		*common.NewButton("⬅️назад", common.CallChatInfo(params.BoundChat).String()),
+	)
+
+	if _, err := event.EditCalbackMessage(ctx, msg, *keyboard.Murkup()); err != nil {
+		return err
+	}
+
+	event.SetNextHandler("save_greeting_template")
+
+	return nil
+}
+
+func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
+
+	chatId := params.BoundChat
+
+	newTemplate := event.GetMessage().Text
+
+	if !strings.Contains(newTemplate, "%s") {
+		event.Reply(ctx, "Шаблон должен содержать %s для подстановки имени именинника. Попробуйте еще раз.")
+		return nil
+	}
+
+	chats, err := (&db.Chat{ChatId: chatId}).Filter(ctx, tx)
+	if err != nil {
+		return err
+	}
+
+	if len(chats) == 0 {
+		event.Reply(ctx, "Чат не найден. Попробуйте еще раз.")
+		return nil
+	}
+
+	chat := chats[0]
+	chat.GreetingTemplate = newTemplate
+
+	err = chat.Save(ctx, tx)
+	if err != nil {
+		event.Reply(ctx, "Ошибка при сохранении шаблона. Попробуйте еще раз.")
+		return err
+	}
+
+	chatInfo, err := event.GetChat(ctx, chatId)
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("Шаблон поздравления для чата `%s` успешно обновлен!\n\nНовый шаблон:\n%s",
+		chatInfo.Title,
+		newTemplate)
+
+	keyboard := common.NewInlineKeyboard()
+	keyboard.AppendAsStack(
+		*common.NewButton("⬅️назад к настройкам чата", common.CallChatInfo(chatId).String()),
+	)
+
+	if _, err := event.ReplyWithKeyboard(ctx, msg, *keyboard.Murkup()); err != nil {
+		return err
+	}
+
+	event.SetNextHandler("")
+
+	return nil
 }

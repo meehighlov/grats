@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,28 +15,29 @@ import (
 
 const CHECK_TIMEOUT_SEC = 10
 
-func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger) error {
-	msgTemplate := "🔔Сегодня день рождения у %s🥳"
+func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger, tx *sql.Tx) error {
 	for _, friend := range friends {
-		msg := fmt.Sprintf(msgTemplate, friend.Name)
-		_, err := client.SendMessage(ctx, friend.ChatId, msg)
+		template := "🔔Сегодня день рождения у %s🥳"
+		chats, err := (&db.Chat{ChatId: friend.ChatId}).Filter(ctx, tx)
 		if err != nil {
-			logger.Error("Notify job", "Notification not sent", err.Error())
+			logger.Error("Notify job", "error getting chat, default template will be used", err.Error())
 		}
 
-		tx, err := db.GetDBConnection().BeginTx(ctx, nil)
+		if len(chats) > 0 && chats[0].GreetingTemplate != "" {
+			template = chats[0].GreetingTemplate
+		}
+
+		msg := fmt.Sprintf(template, friend.Name)
+		_, err = client.SendMessage(ctx, friend.ChatId, msg)
 		if err != nil {
-			logger.Error("Notify job", "getting transaction error", err.Error())
+			logger.Error("Notify job", "Notification not sent", err.Error())
 			continue
 		}
 
 		friend.UpdateNotifyAt()
 		err = friend.Save(ctx, tx)
 		if err != nil {
-			logger.Error("Notify job", "error updating notify date", err.Error())
-			tx.Rollback()
-		} else {
-			tx.Commit()
+			logger.Error("Notify job", "error updating notify date", err.Error(), "chatid", friend.ChatId)
 		}
 	}
 
@@ -62,17 +64,13 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter(ctx, tx)
 		logger.Info("Notify job", "found rows", len(friends))
 		if err != nil {
-			logger.Debug("Notify job", "error filtering friends", err.Error())
-			tx.Rollback()
-		} else {
-			tx.Commit()
+			logger.Debug("Notify job", "Error getting birthdays", err.Error())
+			continue
 		}
 
-		if err != nil {
-			logger.Error("Error getting birthdays: " + err.Error())
-		} else {
-			notify(ctx, client, friends, logger)
-		}
+		notify(ctx, client, friends, logger, tx)
+
+		tx.Commit()
 
 		time.Sleep(CHECK_TIMEOUT_SEC * time.Second)
 	}
