@@ -49,6 +49,10 @@ func CallChatHowto(id string) *CallbackDataModel {
 	return newCallback("chat_howto", id, "", "", "chat", id)
 }
 
+func CallEditGreetingTemplate(id string) *CallbackDataModel {
+	return newCallback("edit_greeting_template", id, "", "", "chat", id)
+}
+
 func newCallback(command, id, offset, direction, entity, chatid string) *CallbackDataModel {
 	return &CallbackDataModel{
 		Command: command,

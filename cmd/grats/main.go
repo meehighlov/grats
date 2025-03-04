@@ -43,14 +43,16 @@ func main() {
 		"access_update":           admin.UpdateAccessInfo,
 
 		// callback query handlers
-		"list":           handlers.ListPaginationCallbackQueryHandler,
-		"info":           handlers.FriendInfoCallbackQueryHandler,
-		"delete":         handlers.DeleteFriendCallbackQueryHandler,
-		"chat_info":      handlers.GroupInfoHandler,
-		"chat_howto":     handlers.GroupHowtoHandler,
-		"chat_list":      handlers.GroupHandler,
-		"chat_birthdays": handlers.ListBirthdaysHandler,
-		"chat_delete":    handlers.GroupChatRegisterHandler,
+		"list":                   handlers.ListPaginationCallbackQueryHandler,
+		"info":                   handlers.FriendInfoCallbackQueryHandler,
+		"delete":                 handlers.DeleteFriendCallbackQueryHandler,
+		"chat_info":              handlers.GroupInfoHandler,
+		"chat_howto":             handlers.GroupHowtoHandler,
+		"chat_list":              handlers.GroupHandler,
+		"chat_birthdays":         handlers.ListBirthdaysHandler,
+		"chat_delete":            handlers.GroupChatRegisterHandler,
+		"edit_greeting_template": handlers.EditGreetingTemplateHandler,
+		"save_greeting_template": handlers.SaveGreetingTemplateHandler,
 
 		// group chat handler
 		"chat_register": handlers.GroupChatRegisterHandler,

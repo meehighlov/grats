@@ -96,8 +96,9 @@ type Chat struct {
 	// todo enum
 	ChatType string
 
-	BotInvitedBy string
-	ChatId       string
+	BotInvitedBy     string
+	ChatId           string
+	GreetingTemplate string
 }
 
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {

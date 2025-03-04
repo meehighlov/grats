@@ -217,7 +217,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, chatid, chattype, botinvitedbyid, createdat, updatedat FROM chat WHERE ` + where_ + `;`
+	query := `SELECT id, chatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat FROM chat WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
@@ -241,6 +241,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 			&chat.ChatId,
 			&chat.ChatType,
 			&chat.BotInvitedBy,
+			&chat.GreetingTemplate,
 			&chat.CreatedAt,
 			&chat.UpdatedAt,
 		)
@@ -261,14 +262,15 @@ func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
 
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO chat(id, chatid, chattype, botinvitedbyid, createdat, updatedat)
-        VALUES($1, $2, $3, $4, $5, $6)
-        ON CONFLICT(chatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, updatedat=$6
+		`INSERT INTO chat(id, chatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat)
+        VALUES($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT(chatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, greeting_template=$5, updatedat=$7
         RETURNING id;`,
 		&c.ID,
 		&c.ChatId,
 		&c.ChatType,
 		&c.BotInvitedBy,
+		&c.GreetingTemplate,
 		&c.CreatedAt,
 		&c.UpdatedAt,
 	)
