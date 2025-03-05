@@ -136,17 +136,19 @@ func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		currentTemplate = chats[0].GreetingTemplate
 	}
 
-	msg := fmt.Sprintf("Текущий шаблон напоминания для чата `%s`:\n\n%s\n\nПришли новый шаблон, используй %s для подстановки имени именинника",
+	header := fmt.Sprintf("Текущий шаблон напоминания для чата `%s`:\n\n%s",
 		chatInfo.Title,
 		currentTemplate,
-		"%s")
+	)
+
+	event.ReplyCallbackQuery(ctx, "Пришли новый шаблон в ответ на это сообщение, используй %s для подстановки имени именинника")
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
 		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(params.BoundChat).String()),
 	)
 
-	if _, err := event.EditCalbackMessage(ctx, msg, *keyboard.Murkup()); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, header, *keyboard.Murkup()); err != nil {
 		return err
 	}
 
@@ -172,7 +174,12 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 	newTemplate := event.GetMessage().Text
 
 	if !strings.Contains(newTemplate, "%s") {
-		event.Reply(ctx, "Шаблон должен содержать %s для подстановки имени именинника. Попробуйте еще раз.")
+		event.Reply(ctx, "Шаблон должен содержать %s для подстановки имени именинника, попробуй еще раз")
+		return nil
+	}
+
+	if len(newTemplate) > 50 {
+		event.Reply(ctx, "Шаблон не должен превышать 50 символов, попробуй еще раз")
 		return nil
 	}
 
