@@ -111,7 +111,7 @@ func buildChatInfoMarkup(chatId string) *common.InlineKeyboard {
 	keyboard.AppendAsStack(
 		*common.NewButton("добавить др в чат", common.CallAddToChat(chatId).String()),
 		*common.NewButton("список всех др в чате", common.CallChatBirthdays(chatId).String()),
-		*common.NewButton("изменить шаблон поздравления", common.CallEditGreetingTemplate(chatId).String()),
+		*common.NewButton("изменить шаблон напоминания", common.CallEditGreetingTemplate(chatId).String()),
 		*common.NewButton("⬅️к списку чатов", common.CallChatList().String()),
 	)
 
@@ -136,29 +136,38 @@ func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		currentTemplate = chats[0].GreetingTemplate
 	}
 
-	msg := fmt.Sprintf("Текущий шаблон поздравления для чата `%s`:\n\n%s\n\nОтправьте новый шаблон в ответ на это сообщение. Используйте %s для подстановки имени именинника.",
+	msg := fmt.Sprintf("Текущий шаблон напоминания для чата `%s`:\n\n%s\n\nПришли новый шаблон, используй %s для подстановки имени именинника",
 		chatInfo.Title,
 		currentTemplate,
 		"%s")
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️назад", common.CallChatInfo(params.BoundChat).String()),
+		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(params.BoundChat).String()),
 	)
 
 	if _, err := event.EditCalbackMessage(ctx, msg, *keyboard.Murkup()); err != nil {
 		return err
 	}
 
+	event.GetContext().AppendText(params.BoundChat)
 	event.SetNextHandler("save_greeting_template")
 
 	return nil
 }
 
 func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
-	params := common.CallbackFromString(event.GetCallbackQuery().Data)
+	if len(event.GetContext().GetTexts()) == 0 {
+		event.Logger.Error(
+			"SaveGreetingTemplateHandler context error",
+			"chatId", "is not provided on previous step",
+			"userid", strconv.Itoa(event.GetMessage().From.Id),
+		)
+		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
+		return nil
+	}
 
-	chatId := params.BoundChat
+	chatId := event.GetContext().GetTexts()[0]
 
 	newTemplate := event.GetMessage().Text
 
@@ -167,13 +176,18 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return nil
 	}
 
-	chats, err := (&db.Chat{ChatId: chatId}).Filter(ctx, tx)
+	chats, err := (&db.Chat{ChatId: chatId, BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id)}).Filter(ctx, tx)
 	if err != nil {
 		return err
 	}
 
 	if len(chats) == 0 {
-		event.Reply(ctx, "Чат не найден. Попробуйте еще раз.")
+		event.Logger.Error(
+			"SaveGreetingTemplateHandler chats not found",
+			"chatId", chatId,
+			"userid", strconv.Itoa(event.GetMessage().From.Id),
+		)
+		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		return nil
 	}
 
@@ -182,7 +196,13 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 
 	err = chat.Save(ctx, tx)
 	if err != nil {
-		event.Reply(ctx, "Ошибка при сохранении шаблона. Попробуйте еще раз.")
+		event.Logger.Error(
+			"SaveGreetingTemplateHandler db error",
+			"chatId", chatId,
+			"userid", strconv.Itoa(event.GetMessage().From.Id),
+			"error", err,
+		)
+		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		return err
 	}
 
@@ -197,7 +217,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️назад к настройкам чата", common.CallChatInfo(chatId).String()),
+		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(chatId).String()),
 	)
 
 	if _, err := event.ReplyWithKeyboard(ctx, msg, *keyboard.Murkup()); err != nil {
