@@ -9,6 +9,7 @@ import (
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"github.com/meehighlov/grats/telegram"
 )
 
 const HOWTO = `
@@ -131,26 +132,22 @@ func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return err
 	}
 
-	currentTemplate := "🔔Сегодня день рождения у %s🥳"
+	currentTemplate := ""
 	if len(chats) > 0 && chats[0].GreetingTemplate != "" {
 		currentTemplate = chats[0].GreetingTemplate
 	}
 
-	header := fmt.Sprintf("Текущий шаблон напоминания для чата `%s`:\n\n%s",
+	header := fmt.Sprintf("Шаблон для чата `%s`:\n\n%s\n",
 		chatInfo.Title,
 		currentTemplate,
 	)
 
-	event.ReplyCallbackQuery(ctx, "Пришли новый шаблон в ответ на это сообщение, используй %s для подстановки имени именинника")
+	msg := strings.Join([]string{
+		header,
+		"Пришли новый шаблон в ответ на это сообщение, используй %s для подстановки имени именинника",
+	}, "\n")
 
-	keyboard := common.NewInlineKeyboard()
-	keyboard.AppendAsStack(
-		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(params.BoundChat).String()),
-	)
-
-	if _, err := event.EditCalbackMessage(ctx, header, *keyboard.Murkup()); err != nil {
-		return err
-	}
+	event.ReplyCallbackQuery(ctx, msg, telegram.WithMarkDown())
 
 	event.GetContext().AppendText(params.BoundChat)
 	event.SetNextHandler("save_greeting_template")
@@ -178,8 +175,8 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return nil
 	}
 
-	if len(newTemplate) > 50 {
-		event.Reply(ctx, "Шаблон не должен превышать 50 символов, попробуй еще раз")
+	if len(newTemplate) > 100 {
+		event.Reply(ctx, "Шаблон не должен превышать 100 символов, попробуй еще раз")
 		return nil
 	}
 
