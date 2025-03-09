@@ -34,6 +34,10 @@ func main() {
 
 		"/chats": auth.Auth(logger, handlers.GroupHandler),
 
+		// Новые хендлеры для добавления чата
+		"/add_chat":     auth.Auth(logger, handlers.AddChatHandler),
+		"add_chat_save": handlers.SaveChatHandler,
+
 		// admin
 		"/admin":                  auth.Admin(logger, admin.AdminCommandListHandler),
 		"/access_list":            auth.Admin(logger, admin.AccessListHandler),
