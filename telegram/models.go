@@ -142,12 +142,8 @@ func (message *Message) GetMessageIdStr() string {
 }
 
 func (message *Message) GetCommand() string {
-	parts := strings.Fields(message.Text)
-	if len(parts) > 0 {
-		if strings.HasPrefix(parts[0], "/") {
-			return parts[0]
-		}
-		return ""
+	if strings.HasPrefix(message.Text, "/") {
+		return message.Text
 	}
 	return ""
 }

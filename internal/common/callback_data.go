@@ -21,16 +21,20 @@ func CallList(offset, direction, chatid string) *CallbackDataModel {
 	return newCallback("list", "", offset, direction, "friend", chatid)
 }
 
-func CallDelete(id, chatid string) *CallbackDataModel {
-	return newCallback("delete", id, "", "", "friend", chatid)
+func CallNewList(chatid string) *CallbackDataModel {
+	return newCallback("new_list", chatid, "", "", "friend", "")
 }
 
-func CallInfo(id, offset, chatid string) *CallbackDataModel {
-	return newCallback("info", id, offset, "", "friend", chatid)
+func CallDelete(id, offset string) *CallbackDataModel {
+	return newCallback("delete", id, offset, "", "friend", "")
+}
+
+func CallInfo(id, offset string) *CallbackDataModel {
+	return newCallback("info", id, offset, "", "friend", "")
 }
 
 func CallChatInfo(id string) *CallbackDataModel {
-	return newCallback("chat_info", id, "", "", "chat", id)
+	return newCallback("chat_info", id, "", "", "chat", "")
 }
 
 func CallChatList() *CallbackDataModel {
@@ -38,19 +42,39 @@ func CallChatList() *CallbackDataModel {
 }
 
 func CallAddToChat(id string) *CallbackDataModel {
-	return newCallback("add_to_chat", id, "", "", "chat", id)
+	return newCallback("add_to_chat", id, "", "", "chat", "")
 }
 
 func CallChatBirthdays(id string) *CallbackDataModel {
-	return newCallback("chat_birthdays", id, "", "", "chat", id)
+	return newCallback("chat_birthdays", id, "", "", "chat", "")
 }
 
 func CallChatHowto(id string) *CallbackDataModel {
-	return newCallback("chat_howto", id, "", "", "chat", id)
+	return newCallback("chat_howto", id, "", "", "chat", "")
 }
 
 func CallEditGreetingTemplate(id string) *CallbackDataModel {
-	return newCallback("edit_greeting_template", id, "", "", "chat", id)
+	return newCallback("edit_greeting_template", id, "", "", "chat", "")
+}
+
+func CallDeleteChat(id string) *CallbackDataModel {
+	return newCallback("delete_chat", id, "", "", "chat", "")
+}
+
+func CallConfirmDeleteChat(id string) *CallbackDataModel {
+	return newCallback("confirm_delete_chat", id, "", "", "chat", "")
+}
+
+func CallAdd(chatId string) *CallbackDataModel {
+	return newCallback("add", chatId, "", "", "friend", "")
+}
+
+func CallSetup() *CallbackDataModel {
+	return newCallback("setup", "", "", "", "", "")
+}
+
+func CallConfirmDelete(id string) *CallbackDataModel {
+	return newCallback("confirm_delete", id, "", "", "friend", "")
 }
 
 func newCallback(command, id, offset, direction, entity, chatid string) *CallbackDataModel {

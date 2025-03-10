@@ -210,7 +210,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 		where = append(where, "chatid=$chatid")
 	}
 	if c.ChatType != "" {
-		where = append(where, "chattype=$chattype")
+		where = append(where, "chattype LIKE $chattype")
 	}
 	if c.BotInvitedBy != "" {
 		where = append(where, "botinvitedbyid=$botinvitedbyid")

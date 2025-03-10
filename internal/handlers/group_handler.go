@@ -14,13 +14,12 @@ import (
 
 const HOWTO = `
 1. Добавь меня в групповой чат
-2. Зайди в диалог со мной и вызови /chats
-3. Выбери нужный чат из списка
+2. Вызови /start в групповом чате
+3. Если в ответ в чат придет сообщение "Всем привет👋",
+   значит настройка прошла успешно
 
-Напоминания будут приходить в чат в 00:00 дня рождения
-
-Если убрать меня из чата - я безвозвратно удалю все напоминания
-и не буду слать уведомления в чат 🙌
+После шага 3 чат отобразится в меню "Групповые чаты"
+Уведомления будут приходить в групповой чат
 `
 
 func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
@@ -29,14 +28,16 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		invitedBy = event.GetCallbackQuery().From.Id
 	}
 
-	chats, err := (&db.Chat{BotInvitedBy: strconv.Itoa(invitedBy), ChatType: "group"}).Filter(ctx, tx)
+	// also selects supergroups
+	chats, err := (&db.Chat{BotInvitedBy: strconv.Itoa(invitedBy), ChatType: "%group"}).Filter(ctx, tx)
 	if err != nil {
 		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		return err
 	}
 
 	keyboard := common.NewInlineKeyboard()
-	keyboard.AppendAsStack(*common.NewButton("💫Как это работает?💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
+	keyboard.AppendAsStack(*common.NewButton("🏠 в начало", common.CallSetup().String()))
+	keyboard.AppendAsStack(*common.NewButton("💫Как настроить отправку напоминаний в чаты?💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
 
 	if len(chats) == 0 {
 		if _, err := event.ReplyWithKeyboard(
@@ -63,7 +64,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 
 	keyboard.AppendAsStack(buttons...)
 
-	header := "Это чаты, в которые я добавлен✨"
+	header := "✨Это чаты, в которые я добавлен"
 
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(
@@ -90,7 +91,7 @@ func GroupInfoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error
 		return err
 	}
 
-	msg := fmt.Sprintf("Настройка чата `%s`", chatInfo.Title)
+	msg := fmt.Sprintf("⚙️Настройка чата `%s`", chatInfo.Title)
 
 	if _, err := event.EditCalbackMessage(ctx, msg, *buildChatInfoMarkup(params.Id).Murkup()); err != nil {
 		return err
@@ -110,10 +111,10 @@ func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) erro
 func buildChatInfoMarkup(chatId string) *common.InlineKeyboard {
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		*common.NewButton("добавить др в чат", common.CallAddToChat(chatId).String()),
-		*common.NewButton("список всех др в чате", common.CallChatBirthdays(chatId).String()),
-		*common.NewButton("изменить шаблон напоминания", common.CallEditGreetingTemplate(chatId).String()),
-		*common.NewButton("⬅️к списку чатов", common.CallChatList().String()),
+		*common.NewButton("📋 список всех др в чате", common.CallChatBirthdays(chatId).String()),
+		*common.NewButton("🔔 изменить шаблон напоминания", common.CallEditGreetingTemplate(chatId).String()),
+		*common.NewButton("🗑 удалить чат", common.CallDeleteChat(chatId).String()),
+		*common.NewButton("⬅️ к списку чатов", common.CallChatList().String()),
 	)
 
 	return keyboard
@@ -122,12 +123,12 @@ func buildChatInfoMarkup(chatId string) *common.InlineKeyboard {
 func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
-	chatInfo, err := event.GetChat(ctx, params.BoundChat)
+	chatInfo, err := event.GetChat(ctx, params.Id)
 	if err != nil {
 		return err
 	}
 
-	chats, err := (&db.Chat{ChatId: params.BoundChat}).Filter(ctx, tx)
+	chats, err := (&db.Chat{ChatId: params.Id}).Filter(ctx, tx)
 	if err != nil {
 		return err
 	}
@@ -149,7 +150,7 @@ func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 
 	event.ReplyCallbackQuery(ctx, msg, telegram.WithMarkDown())
 
-	event.GetContext().AppendText(params.BoundChat)
+	event.GetContext().AppendText(params.Id)
 	event.SetNextHandler("save_greeting_template")
 
 	return nil
@@ -229,6 +230,76 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 	}
 
 	event.SetNextHandler("")
+
+	return nil
+}
+
+func DeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
+	chatId := params.Id
+
+	chatInfo, err := event.GetChat(ctx, chatId)
+	if err != nil {
+		event.Logger.Error("error getting chat info when deleting: " + err.Error())
+		return err
+	}
+
+	chatTitle := "чат"
+	if chatInfo != nil {
+		chatTitle = chatInfo.Title
+	}
+
+	keyboard := common.NewInlineKeyboard()
+	keyboard.AppendAsStack(
+		*common.NewButton("⬅️ к настройкам чата", common.CallChatInfo(chatId).String()),
+		*common.NewButton("🗑 удалить", common.CallConfirmDeleteChat(chatId).String()),
+	)
+
+	if _, err := event.EditCalbackMessage(ctx, fmt.Sprintf("Чат `%s` будет удален со всеми его напоминаниями, удаляем?", chatTitle), *keyboard.Murkup()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
+	chatId := params.Id
+
+	chat := db.Chat{
+		ChatId: chatId,
+	}
+	err := (&db.Friend{ChatId: chatId}).Delete(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error deleting friends: " + err.Error())
+		return err
+	}
+
+	chatInfo, err := event.GetChat(ctx, chatId)
+	if err != nil {
+		event.Logger.Error("error getting chat info when deleting: " + err.Error())
+	}
+
+	err = chat.Delete(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error deleting chat: " + err.Error())
+		if _, err := event.ReplyCallbackQuery(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔"); err != nil {
+			return err
+		}
+		return err
+	}
+
+	keyboard := common.NewInlineKeyboard()
+	keyboard.AppendAsStack(*common.NewButton("⬅️к списку чатов", common.CallChatList().String()))
+
+	chatTitle := "чат"
+	if chatInfo != nil {
+		chatTitle = chatInfo.Title
+	}
+
+	if _, err := event.EditCalbackMessage(ctx, fmt.Sprintf("Чат `%s` и напоминания удалены👋", chatTitle), *keyboard.Murkup()); err != nil {
+		return err
+	}
 
 	return nil
 }

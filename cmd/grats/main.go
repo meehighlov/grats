@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/meehighlov/grats/internal/auth"
 	"github.com/meehighlov/grats/internal/common"
@@ -24,15 +25,15 @@ func main() {
 
 	updateHandlers := map[string]common.HandlerType{
 		// user
-		"/start": auth.Auth(logger, handlers.StartHandler),
-		"/list":  auth.Auth(logger, handlers.ListBirthdaysHandler),
+		"/start":                              auth.Auth(logger, handlers.StartHandler),
+		fmt.Sprintf("/start@%s", cfg.BotName): auth.Auth(logger, handlers.StartFromGroupHandler),
 
-		"/add":            auth.Auth(logger, handlers.AddToPrivateListHandler),
+		"/setup":                              auth.Auth(logger, handlers.SetupHandler),
+		fmt.Sprintf("/setup@%s", cfg.BotName): auth.Auth(logger, handlers.SetupFromGroupHandler),
+
 		"add_to_chat":     handlers.AddToChatHandler,
 		"add_enter_bd":    handlers.EnterBirthday,
 		"add_save_friend": handlers.SaveFriend,
-
-		"/chats": auth.Auth(logger, handlers.GroupHandler),
 
 		// admin
 		"/admin":                  auth.Admin(logger, admin.AdminCommandListHandler),
@@ -43,19 +44,21 @@ func main() {
 		"access_update":           admin.UpdateAccessInfo,
 
 		// callback query handlers
+		"setup":                  handlers.SetupHandler,
 		"list":                   handlers.ListPaginationCallbackQueryHandler,
+		"new_list":               handlers.ListBirthdaysHandler,
 		"info":                   handlers.FriendInfoCallbackQueryHandler,
 		"delete":                 handlers.DeleteFriendCallbackQueryHandler,
+		"confirm_delete":         handlers.ConfirmDeleteFriendCallbackQueryHandler,
 		"chat_info":              handlers.GroupInfoHandler,
 		"chat_howto":             handlers.GroupHowtoHandler,
 		"chat_list":              handlers.GroupHandler,
 		"chat_birthdays":         handlers.ListBirthdaysHandler,
-		"chat_delete":            handlers.GroupChatRegisterHandler,
+		"delete_chat":            handlers.DeleteChatHandler,
+		"confirm_delete_chat":    handlers.ConfirmDeleteChatHandler,
 		"edit_greeting_template": handlers.EditGreetingTemplateHandler,
 		"save_greeting_template": handlers.SaveGreetingTemplateHandler,
-
-		// group chat handler
-		"chat_register": handlers.GroupChatRegisterHandler,
+		"add":                    handlers.AddToChatHandler,
 	}
 
 	rootHandler := common.CreateRootHandler(

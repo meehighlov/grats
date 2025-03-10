@@ -17,19 +17,6 @@ const (
 	EMPTY_CHAT_ID       = "empty"
 )
 
-func AddToPrivateListHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
-	msg := "Введи имя именинника✨\n\nнапример 👉 Райан Гослинг"
-
-	event.GetContext().AppendText(event.GetMessage().GetChatIdStr())
-	if _, err := event.Reply(ctx, msg); err != nil {
-		return err
-	}
-
-	event.SetNextHandler("add_enter_bd")
-
-	return nil
-}
-
 func AddToChatHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 	msg := "Введи имя именинника✨\n\nнапример 👉 Райан Гослинг"
 
