@@ -44,10 +44,6 @@ func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) tel
 			}
 		}
 
-		if update.Message.Chat.Id != 0 && update.Message.Chat.Type == "group" {
-			command = "chat_register"
-		}
-
 		event := newEvent(client, update, chatContext, logger)
 
 		logger.Debug("root handler", "update", update)

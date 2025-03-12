@@ -53,8 +53,8 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️", common.CallList(offset, "<", params.BoundChat).String()),
-		*common.NewButton("🗑", common.CallDelete(params.Id, params.BoundChat).String()),
+		*common.NewButton("⬅️ к списку др", common.CallList(offset, "<", friend.ChatId).String()),
+		*common.NewButton("🗑 удалить", common.CallDelete(params.Id, params.Pagination.Offset).String()),
 	)
 
 	if _, err := event.EditCalbackMessage(ctx, msg, *keyboard.Murkup()); err != nil {

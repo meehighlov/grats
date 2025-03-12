@@ -30,6 +30,16 @@ func (e *Event) GetCallbackQuery() *telegram.CallbackQuery {
 	return &e.update.CallbackQuery
 }
 
+func (e *Event) GetChatId() string {
+	if e.GetCallbackQuery() != nil && e.GetCallbackQuery().Id != "" {
+		return e.GetCallbackQuery().Message.GetChatIdStr()
+	}
+	if e.GetMessage() != nil && e.GetMessage().Chat.Id != 0 {
+		return e.GetMessage().GetChatIdStr()
+	}
+	return ""
+}
+
 func (e *Event) Reply(ctx context.Context, text string, opts ...telegram.SendMessageOption) (*telegram.Message, error) {
 	msg, err := e.client.SendMessage(ctx, e.GetMessage().GetChatIdStr(), text, opts...)
 	return msg, err

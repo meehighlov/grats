@@ -17,9 +17,9 @@ const (
 	LIST_LIMIT            = 5
 	LIST_START_OFFSET     = 0
 
-	HEADER_MESSAGE_LIST_NOT_EMPTY      = "Личные напоминания о др✨"
-	HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT = "Список др в чате %s✨"
-	HEADER_MESSAGE_LIST_IS_EMPTY       = "Записей пока нет✨"
+	HEADER_MESSAGE_LIST_NOT_EMPTY      = "✨Личные напоминания о др"
+	HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT = "✨Список др в чате %s"
+	HEADER_MESSAGE_LIST_IS_EMPTY       = "✨Записей пока нет"
 )
 
 func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
@@ -146,7 +146,7 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 
 	msg := buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0))
 
-	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, params.BoundChat).Murkup()); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, chatId).Murkup()); err != nil {
 		return err
 	}
 
@@ -184,10 +184,13 @@ func buildFriendsButtons(friends []db.Friend, limit, offset int, callbackDataBui
 
 func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId string) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
-		return common.CallInfo(id, strconv.Itoa(offset), chatId).String()
+		return common.CallInfo(id, strconv.Itoa(offset)).String()
 	}
 	friendsListAsButtons := buildFriendsButtons(friends, limit, offset, callbackDataBuilder)
 	keyboard := common.NewInlineKeyboard()
+
+	keyboard.AppendAsLine(*common.NewButton("🏠 в начало", common.CallSetup().String()))
+	keyboard.AppendAsLine(*common.NewButton("➕ Добавить напоминание", common.CallAdd(chatId).String()))
 
 	keyboard.AppendAsStack(*friendsListAsButtons...)
 

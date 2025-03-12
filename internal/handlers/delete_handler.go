@@ -33,6 +33,43 @@ func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, 
 
 	friend := friends[0]
 
+	keyboard := common.NewInlineKeyboard()
+
+	keyboard.AppendAsStack(
+		*common.NewButton("⬅️ назад", common.CallInfo(friendId, params.Pagination.Offset).String()),
+		*common.NewButton("🗑 удалить", common.CallConfirmDelete(friendId).String()),
+	)
+
+	if _, err := event.EditCalbackMessage(ctx, fmt.Sprintf("Удаляем напоминание для %s (%s)?", friend.Name, friend.BirthDay), *keyboard.Murkup()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
+
+	friendId := params.Id
+
+	baseFields := db.BaseFields{ID: friendId}
+	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
+
+	if err != nil {
+		if _, err := event.ReplyCallbackQuery(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔"); err != nil {
+			return err
+		}
+		event.Logger.Error("error serching friend when deleting: " + err.Error())
+		return err
+	}
+
+	if len(friends) == 0 {
+		event.Logger.Error("not found friend row by id: " + friendId)
+		return err
+	}
+
+	friend := friends[0]
+
 	err = friend.Delete(ctx, tx)
 
 	if err != nil {
@@ -45,7 +82,7 @@ func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, 
 
 	keyboard := common.NewInlineKeyboard()
 
-	keyboard.AppendAsStack(*common.NewButton("⬅️", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", params.BoundChat).String()))
+	keyboard.AppendAsStack(*common.NewButton("⬅️ к списку др", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", friend.ChatId).String()))
 
 	if _, err := event.EditCalbackMessage(ctx, "Напоминание удалено👋", *keyboard.Murkup()); err != nil {
 		return err
