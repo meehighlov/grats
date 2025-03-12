@@ -33,24 +33,23 @@ func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		return err
 	}
 
-	chat := db.Chat{
-		BaseFields:   db.NewBaseFields(),
-		ChatType:     "private",
-		ChatId:       event.GetMessage().GetChatIdStr(),
-		BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id),
-	}
-
-	err = chat.Save(ctx, tx)
+	_, err = db.GetOrCreateChatByTGChatId(
+		ctx,
+		tx,
+		event.GetMessage().GetChatIdStr(),
+		"private",
+		strconv.Itoa(event.GetMessage().From.Id),
+	)
 	if err != nil {
 		return err
 	}
 
 	hello := fmt.Sprintf(
-		("Привет, %s👋 Меня зовут grats"+
-		"\n"+
-		"Я напоминаю о днях рождения🥳"+
-		"\n\n"+
-		"Команда /setup покажет все мои команды"),
+		("Привет, %s👋 Меня зовут grats" +
+			"\n" +
+			"Я напоминаю о днях рождения🥳" +
+			"\n\n" +
+			"Команда /setup покажет все мои команды"),
 		message.From.Username,
 	)
 
@@ -63,38 +62,17 @@ func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 
 func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	chatType := event.GetMessage().Chat.Type
-	chat := db.Chat{
-		ChatId: event.GetMessage().GetChatIdStr(),
-	}
 
-	chats, err := chat.Filter(ctx, tx)
+	_, err := db.GetOrCreateChatByTGChatId(
+		ctx,
+		tx,
+		event.GetMessage().GetChatIdStr(),
+		chatType,
+		strconv.Itoa(event.GetMessage().From.Id),
+	)
 	if err != nil {
-		event.Logger.Error(
-			"StartFromGroupHandler",
-			"chat", chat.ChatId,
-			"userId", event.GetMessage().From.Id,
-			"error", err.Error(),
-		)
+		event.Reply(ctx, "Что-то пошло не так🙃 Попробуй еще раз позже👉👈")
 		return err
-	}
-
-	if len(chats) == 0 {
-		chat.BaseFields = db.NewBaseFields()
-		chat.BotInvitedBy = strconv.Itoa(event.GetMessage().From.Id)
-		chat.GreetingTemplate = "🔔Сегодня день рождения у %s🥳"
-		chat.ChatType = chatType
-
-		err := chat.Save(ctx, tx)
-		if err != nil {
-			event.Logger.Error(
-				"StartFromGroupHandler",
-				"chat", chat.ChatId,
-				"userId", event.GetMessage().From.Id,
-				"error", err.Error(),
-			)
-			event.Reply(ctx, "Что-то пошло не так🙃 Попробуй еще раз👉👈")
-			return nil
-		}
 	}
 
 	event.Reply(ctx, "Всем привет👋")

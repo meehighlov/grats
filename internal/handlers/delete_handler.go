@@ -70,6 +70,12 @@ func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.
 
 	friend := friends[0]
 
+	tgChatId, err := friend.GetTGChatId(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error getting TGChatId for friend: " + err.Error())
+		return err
+	}
+
 	err = friend.Delete(ctx, tx)
 
 	if err != nil {
@@ -82,7 +88,7 @@ func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.
 
 	keyboard := common.NewInlineKeyboard()
 
-	keyboard.AppendAsStack(*common.NewButton("⬅️ к списку др", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", friend.ChatId).String()))
+	keyboard.AppendAsStack(*common.NewButton("⬅️ к списку др", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", tgChatId).String()))
 
 	if _, err := event.EditCalbackMessage(ctx, "Напоминание удалено👋", *keyboard.Murkup()); err != nil {
 		return err

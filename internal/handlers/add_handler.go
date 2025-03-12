@@ -41,25 +41,6 @@ func EnterBirthday(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 		return nil
 	}
 
-	chatId := event.GetContext().GetTexts()[0]
-
-	entities, err := (&db.Friend{Name: friendName, ChatId: chatId}).Filter(ctx, tx)
-	if err != nil {
-		if _, err := event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔"); err != nil {
-			return err
-		}
-		event.Logger.Error("error filtering friends while accepting name to save: " + err.Error())
-		return err
-	}
-
-	if len(entities) != 0 {
-		if _, err := event.Reply(ctx, "Такое имя уже есть😅 попробуй снова, учитывай верхний и нижний регистр букв"); err != nil {
-			return err
-		}
-		event.SetNextHandler("add_enter_bd")
-		return nil
-	}
-
 	event.GetContext().AppendText(friendName)
 
 	msg := "Введи дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 12.11.1980 или 12.11"
@@ -88,28 +69,20 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 
 	chatContext.AppendText(message.Text)
 	data := chatContext.GetTexts()
-	chatid, name, bd := data[0], data[1], data[2]
+	tgChatId, name, bd := data[0], data[1], data[2]
 
-	friend := db.Friend{
-		BaseFields: db.NewBaseFields(),
-		Name:       name,
-		BirthDay:   bd,
-		UserId:     strconv.Itoa(message.From.Id),
-		ChatId:     chatid,
-	}
-
-	friend.RenewNotifayAt()
-
-	err := friend.Save(ctx, tx)
+	friend, err := db.CreateFriendWithChat(ctx, tx, name, bd, strconv.Itoa(message.From.Id), tgChatId)
 	if err != nil {
+		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
+		event.Logger.Error("error creating friend: " + err.Error())
 		return err
 	}
 
 	msg := fmt.Sprintf("День рождения для %s добавлен 💾\n\nНапомню тебе о нем %s🔔", name, *friend.GetNotifyAt())
 
-	if strings.Contains(chatid, "-") {
+	if strings.Contains(tgChatId, "-") {
 		chatTitle := "чат"
-		chatFullInfo, err := event.GetChat(ctx, chatid)
+		chatFullInfo, err := event.GetChat(ctx, tgChatId)
 		if err != nil {
 			return err
 		}
@@ -123,7 +96,7 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
 		msg,
-		*buildNavigationMarkup(chatid).Murkup(),
+		*buildNavigationMarkup(tgChatId).Murkup(),
 	); err != nil {
 		return err
 	}

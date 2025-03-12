@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
@@ -25,25 +24,37 @@ const (
 func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	message := event.GetMessage()
 
-	chatId := message.GetChatIdStr()
-	userId := strconv.Itoa(message.From.Id)
+	tgChatId := message.GetChatIdStr()
 	if event.GetCallbackQuery().Id != "" {
-		chatId = common.CallbackFromString(event.GetCallbackQuery().Data).Id
-		userId = strconv.Itoa(event.GetCallbackQuery().From.Id)
+		tgChatId = common.CallbackFromString(event.GetCallbackQuery().Data).Id
 	}
 
-	friends, err := (&db.Friend{UserId: userId, ChatId: chatId}).Filter(ctx, tx)
-
+	chat := db.Chat{
+		TGChatId: tgChatId,
+	}
+	chats, err := chat.Filter(ctx, tx)
 	if err != nil {
-		event.Logger.Error("Error fetching friends" + err.Error())
+		event.Logger.Error("Error fetching chats: " + err.Error())
 		return err
+	}
+
+	var friends []db.Friend
+
+	if len(chats) > 0 {
+		friends, err = (&db.Friend{ChatId: chats[0].ID}).Filter(ctx, tx)
+		if err != nil {
+			event.Logger.Error("Error fetching friends: " + err.Error())
+			return err
+		}
+	} else {
+		friends = []db.Friend{}
 	}
 
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(
 			ctx,
-			buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-			*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+			buildChatHeaderMessage(ctx, tgChatId, event, (len(friends) == 0)),
+			*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, tgChatId, chats[0].IsGroupOrSuperGroup()).Murkup(),
 		); err != nil {
 			return err
 		}
@@ -53,8 +64,8 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
-		buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-		*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+		buildChatHeaderMessage(ctx, tgChatId, event, (len(friends) == 0)),
+		*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, tgChatId, chats[0].IsGroupOrSuperGroup()).Murkup(),
 	); err != nil {
 		return err
 	}
@@ -102,8 +113,6 @@ func appendControlButtons(keyboard *common.InlineKeyboard, total, limit, offset 
 }
 
 func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
-	callbackQuery := event.GetCallbackQuery()
-
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	offset := params.Pagination.Offset
@@ -115,13 +124,27 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 		return err
 	}
 
-	chatId := params.BoundChat
+	tgChatId := params.BoundChat
 
-	friends, err := (&db.Friend{UserId: strconv.Itoa(callbackQuery.From.Id), ChatId: chatId}).Filter(ctx, tx)
-
+	chat := db.Chat{
+		TGChatId: tgChatId,
+	}
+	chats, err := chat.Filter(ctx, tx)
 	if err != nil {
-		event.Logger.Error("Error fetching friends" + err.Error())
+		event.Logger.Error("Error fetching chats: " + err.Error())
 		return err
+	}
+
+	var friends []db.Friend
+
+	if len(chats) > 0 {
+		friends, err = (&db.Friend{ChatId: chats[0].ID}).Filter(ctx, tx)
+		if err != nil {
+			event.Logger.Error("Error fetching friends: " + err.Error())
+			return err
+		}
+	} else {
+		friends = []db.Friend{}
 	}
 
 	direction := params.Pagination.Direction
@@ -144,9 +167,9 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 		offset_ = len(friends)
 	}
 
-	msg := buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0))
+	msg := buildChatHeaderMessage(ctx, tgChatId, event, (len(friends) == 0))
 
-	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, chatId).Murkup()); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, tgChatId, chats[0].IsGroupOrSuperGroup()).Murkup()); err != nil {
 		return err
 	}
 
@@ -182,7 +205,7 @@ func buildFriendsButtons(friends []db.Friend, limit, offset int, callbackDataBui
 	return &buttons
 }
 
-func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId string) *common.InlineKeyboard {
+func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId string, isGroup bool) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
 		return common.CallInfo(id, strconv.Itoa(offset)).String()
 	}
@@ -196,7 +219,7 @@ func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId strin
 
 	appendControlButtons(keyboard, len(friends), limit, offset, chatId)
 
-	if strings.Contains(chatId, "-") {
+	if isGroup {
 		keyboard.AppendAsLine(*common.NewButton("⬅️к чату", common.CallChatInfo(chatId).String()))
 	}
 

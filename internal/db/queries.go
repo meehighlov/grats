@@ -104,7 +104,9 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, name, birthday, userid, chatid, notifyat, createdat, updatedat FROM friend WHERE ` + where_ + `;`
+	query := `SELECT f.id, f.name, f.birthday, f.userid, f.chatid, f.notifyat, f.createdat, f.updatedat 
+              FROM friend f 
+              WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
@@ -201,13 +203,58 @@ func (friend *Friend) Delete(ctx context.Context, tx *sql.Tx) error {
 	return nil
 }
 
+func (friend *Friend) GetTGChatId(ctx context.Context, tx *sql.Tx) (string, error) {
+	var tgChatId string
+	err := tx.QueryRowContext(
+		ctx,
+		`SELECT c.tgchatid FROM chat c WHERE c.id = $1`,
+		friend.ChatId,
+	).Scan(&tgChatId)
+
+	if err != nil {
+		slog.Error("Error getting TGChatId for friend: " + err.Error())
+		return "", err
+	}
+
+	return tgChatId, nil
+}
+
+func GetOrCreateChatByTGChatId(ctx context.Context, tx *sql.Tx, tgChatId string, chatType string, botInvitedBy string) (*Chat, error) {
+	chat := &Chat{
+		TGChatId: tgChatId,
+	}
+
+	chats, err := chat.Filter(ctx, tx)
+	if err != nil {
+		slog.Error("Error getting chat by TGChatId: " + err.Error())
+		return nil, err
+	}
+
+	if len(chats) > 0 {
+		return &chats[0], nil
+	}
+
+	chat.BaseFields = NewBaseFields()
+	chat.ChatType = chatType
+	chat.BotInvitedBy = botInvitedBy
+	chat.GreetingTemplate = "🔔Сегодня день рождения у %s🥳"
+
+	err = chat.Save(ctx, tx)
+	if err != nil {
+		slog.Error("Error creating new chat: " + err.Error())
+		return nil, err
+	}
+
+	return chat, nil
+}
+
 func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 	where := []string{}
 	if c.ID != "" {
 		where = append(where, "id=$id")
 	}
-	if c.ChatId != "" {
-		where = append(where, "chatid=$chatid")
+	if c.TGChatId != "" {
+		where = append(where, "tgchatid=$tgchatid")
 	}
 	if c.ChatType != "" {
 		where = append(where, "chattype LIKE $chattype")
@@ -217,13 +264,13 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, chatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat FROM chat WHERE ` + where_ + `;`
+	query := `SELECT id, tgchatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat FROM chat WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
 		query,
 		sql.Named("id", c.ID),
-		sql.Named("chatid", c.ChatId),
+		sql.Named("tgchatid", c.TGChatId),
 		sql.Named("chattype", c.ChatType),
 		sql.Named("botinvitedbyid", c.BotInvitedBy),
 	)
@@ -238,7 +285,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 		chat := Chat{}
 		err := rows.Scan(
 			&chat.ID,
-			&chat.ChatId,
+			&chat.TGChatId,
 			&chat.ChatType,
 			&chat.BotInvitedBy,
 			&chat.GreetingTemplate,
@@ -262,17 +309,17 @@ func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
 
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO chat(id, chatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat)
+		`INSERT INTO chat(id, tgchatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat)
         VALUES($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT(chatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, greeting_template=$5, updatedat=$7
+        ON CONFLICT(tgchatid) DO UPDATE SET tgchatid=$2, chattype=$3, botinvitedbyid=$4, greeting_template=$5, updatedat=$7
         RETURNING id;`,
-		&c.ID,
-		&c.ChatId,
-		&c.ChatType,
-		&c.BotInvitedBy,
-		&c.GreetingTemplate,
-		&c.CreatedAt,
-		&c.UpdatedAt,
+		c.ID,
+		c.TGChatId,
+		c.ChatType,
+		c.BotInvitedBy,
+		c.GreetingTemplate,
+		c.CreatedAt,
+		c.UpdatedAt,
 	)
 	if err != nil {
 		slog.Error("Error when trying to save chat: " + err.Error())
@@ -286,15 +333,15 @@ func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
 func (c *Chat) Delete(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(
 		ctx,
-		`DELETE FROM chat WHERE chatid = $1;`,
-		&c.ChatId,
+		`DELETE FROM chat WHERE tgchatid = $1;`,
+		c.TGChatId,
 	)
 	if err != nil {
-		slog.Error("Error when trying to delete chat row: " + err.Error())
+		slog.Error("Error when trying to delete chat: " + err.Error())
 		return err
 	}
 
-	slog.Debug("Chat row deleted")
+	slog.Debug("Chat deleted")
 
 	return nil
 }
@@ -376,4 +423,36 @@ func (access *Access) Delete(ctx context.Context, tx *sql.Tx) error {
 	slog.Debug("Access row deleted")
 
 	return nil
+}
+
+// Метод для создания друга с привязкой к чату
+func CreateFriendWithChat(ctx context.Context, tx *sql.Tx, name string, birthday string, userId string, tgChatId string) (*Friend, error) {
+	// Получаем или создаем чат
+	chat, err := GetOrCreateChatByTGChatId(ctx, tx, tgChatId, "private", userId)
+	if err != nil {
+		slog.Error("Error getting or creating chat: " + err.Error())
+		return nil, err
+	}
+
+	friend := &Friend{
+		BaseFields: NewBaseFields(),
+		Name:       name,
+		BirthDay:   birthday,
+		UserId:     userId,
+		ChatId:     chat.ID,
+	}
+
+	_, err = friend.RenewNotifayAt()
+	if err != nil {
+		slog.Error("Error setting notify date: " + err.Error())
+		return nil, err
+	}
+
+	err = friend.Save(ctx, tx)
+	if err != nil {
+		slog.Error("Error saving friend: " + err.Error())
+		return nil, err
+	}
+
+	return friend, nil
 }

@@ -97,8 +97,12 @@ type Chat struct {
 	ChatType string
 
 	BotInvitedBy     string
-	ChatId           string
+	TGChatId         string
 	GreetingTemplate string
+}
+
+func (chat *Chat) IsGroupOrSuperGroup() bool {
+	return chat.ChatType == "group" || chat.ChatType == "supergroup"
 }
 
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {

@@ -25,6 +25,12 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx
 
 	friend := friends[0]
 
+	tgChatId, err := friend.GetTGChatId(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error getting TGChatId for friend: " + err.Error())
+		return err
+	}
+
 	// todo take from db
 	friendTimezone := "мск"
 
@@ -53,7 +59,7 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️ к списку др", common.CallList(offset, "<", friend.ChatId).String()),
+		*common.NewButton("⬅️ к списку др", common.CallList(offset, "<", tgChatId).String()),
 		*common.NewButton("🗑 удалить", common.CallDelete(params.Id, params.Pagination.Offset).String()),
 	)
 
