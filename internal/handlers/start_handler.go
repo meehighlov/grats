@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	MAX_CHATS_FOR_USER = 3
+	MAX_CHATS_FOR_USER = 10
 )
 
 func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {

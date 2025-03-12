@@ -16,7 +16,7 @@ const (
 	FRIEND_NAME_MAX_LEN = 50
 	EMPTY_CHAT_ID       = "empty"
 
-	FRIEND_LIMIT_FOR_CHAT = 1
+	FRIEND_LIMIT_FOR_CHAT = 50
 )
 
 func AddToChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
