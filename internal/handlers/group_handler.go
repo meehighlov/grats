@@ -216,16 +216,11 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return err
 	}
 
-	msg := fmt.Sprintf("Шаблон поздравления для чата `%s` успешно обновлен!\n\nНовый шаблон:\n%s",
+	msg := fmt.Sprintf("Шаблон поздравления для чата `%s` обновлен!\n\nНовый шаблон:\n%s",
 		chatInfo.Title,
 		newTemplate)
 
-	keyboard := common.NewInlineKeyboard()
-	keyboard.AppendAsStack(
-		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(chatId).String()),
-	)
-
-	if _, err := event.ReplyWithKeyboard(ctx, msg, *keyboard.Murkup()); err != nil {
+	if _, err := event.Reply(ctx, msg, telegram.WithMarkDown()); err != nil {
 		return err
 	}
 
