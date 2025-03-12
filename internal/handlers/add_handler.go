@@ -71,22 +71,39 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	data := chatContext.GetTexts()
 	tgChatId, name, bd := data[0], data[1], data[2]
 
-	friend, err := db.CreateFriendWithChat(ctx, tx, name, bd, strconv.Itoa(message.From.Id), tgChatId)
+	chat, err := db.GetOrCreateChatByTGChatId(ctx, tx, tgChatId, "private", strconv.Itoa(message.From.Id))
 	if err != nil {
+		event.Logger.Error("Error getting or creating chat: " + err.Error())
+		return err
+	}
+
+	friend := &db.Friend{
+		BaseFields: db.NewBaseFields(),
+		Name:       name,
+		BirthDay:   bd,
+		UserId:     strconv.Itoa(message.From.Id),
+		ChatId:     chat.ID,
+	}
+
+	_, err = friend.RenewNotifayAt()
+	if err != nil {
+		event.Logger.Error("Error setting notify date: " + err.Error())
+		return err
+	}
+
+	err = friend.Save(ctx, tx)
+	if err != nil {
+		event.Logger.Error("Error saving friend: " + err.Error())
 		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
-		event.Logger.Error("error creating friend: " + err.Error())
 		return err
 	}
 
 	msg := fmt.Sprintf("День рождения для %s добавлен 💾\n\nНапомню тебе о нем %s🔔", name, *friend.GetNotifyAt())
 
-	if strings.Contains(tgChatId, "-") {
+	if chat.IsGroupOrSuperGroup() {
 		chatTitle := "чат"
 		chatFullInfo, err := event.GetChat(ctx, tgChatId)
 		if err != nil {
-			return err
-		}
-		if chatFullInfo.Id != 0 {
 			chatTitle = fmt.Sprintf("чат %s", chatFullInfo.Title)
 		}
 

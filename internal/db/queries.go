@@ -424,35 +424,3 @@ func (access *Access) Delete(ctx context.Context, tx *sql.Tx) error {
 
 	return nil
 }
-
-// Метод для создания друга с привязкой к чату
-func CreateFriendWithChat(ctx context.Context, tx *sql.Tx, name string, birthday string, userId string, tgChatId string) (*Friend, error) {
-	// Получаем или создаем чат
-	chat, err := GetOrCreateChatByTGChatId(ctx, tx, tgChatId, "private", userId)
-	if err != nil {
-		slog.Error("Error getting or creating chat: " + err.Error())
-		return nil, err
-	}
-
-	friend := &Friend{
-		BaseFields: NewBaseFields(),
-		Name:       name,
-		BirthDay:   birthday,
-		UserId:     userId,
-		ChatId:     chat.ID,
-	}
-
-	_, err = friend.RenewNotifayAt()
-	if err != nil {
-		slog.Error("Error setting notify date: " + err.Error())
-		return nil, err
-	}
-
-	err = friend.Save(ctx, tx)
-	if err != nil {
-		slog.Error("Error saving friend: " + err.Error())
-		return nil, err
-	}
-
-	return friend, nil
-}
