@@ -65,10 +65,6 @@ func CallConfirmDeleteChat(id string) *CallbackDataModel {
 	return newCallback("confirm_delete_chat", id, "", "", "chat", "")
 }
 
-func CallAdd(chatId string) *CallbackDataModel {
-	return newCallback("add", chatId, "", "", "friend", "")
-}
-
 func CallSetup() *CallbackDataModel {
 	return newCallback("setup", "", "", "", "", "")
 }

@@ -101,7 +101,11 @@ func GroupInfoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error
 }
 
 func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
-	if _, err := event.ReplyCallbackQuery(ctx, HOWTO); err != nil {
+	msg := fmt.Sprintf(
+		"\n\nМаксимальное количество групповых чатов: %d",
+		MAX_CHATS_FOR_USER,
+	)
+	if _, err := event.ReplyCallbackQuery(ctx, HOWTO + msg); err != nil {
 		return err
 	}
 

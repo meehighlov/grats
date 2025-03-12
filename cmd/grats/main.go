@@ -58,7 +58,6 @@ func main() {
 		"confirm_delete_chat":    handlers.ConfirmDeleteChatHandler,
 		"edit_greeting_template": handlers.EditGreetingTemplateHandler,
 		"save_greeting_template": handlers.SaveGreetingTemplateHandler,
-		"add":                    handlers.AddToChatHandler,
 	}
 
 	rootHandler := common.CreateRootHandler(

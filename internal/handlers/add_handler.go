@@ -15,15 +15,37 @@ import (
 const (
 	FRIEND_NAME_MAX_LEN = 50
 	EMPTY_CHAT_ID       = "empty"
+
+	FRIEND_LIMIT_FOR_CHAT = 1
 )
 
-func AddToChatHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func AddToChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	chatId := common.CallbackFromString(event.GetCallbackQuery().Data).Id
+	friends, err := (&db.Friend{ChatId: chatId}).Filter(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error getting friends: " + err.Error())
+		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
+		return err
+	}
+
+	if len(friends) >= FRIEND_LIMIT_FOR_CHAT {
+		event.ReplyCallbackQuery(
+			ctx,
+			fmt.Sprintf(
+				"Достигнут лимит на количество напоминаний👉👈 Максимальное количество напоминаний в одном чате: %d",
+				FRIEND_LIMIT_FOR_CHAT,
+			),
+		)
+		return nil
+	}
+
 	msg := "Введи имя именинника✨\n\nнапример 👉 Райан Гослинг"
+	msg += fmt.Sprintf("\n\nВ одном чате может быть не более %d напоминаний", FRIEND_LIMIT_FOR_CHAT)
 
 	if _, err := event.ReplyCallbackQuery(ctx, msg); err != nil {
 		return err
 	}
-	event.GetContext().AppendText(common.CallbackFromString(event.GetCallbackQuery().Data).Id)
+	event.GetContext().AppendText(chatId)
 
 	event.SetNextHandler("add_enter_bd")
 

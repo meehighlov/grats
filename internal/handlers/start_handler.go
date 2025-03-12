@@ -10,6 +10,10 @@ import (
 	"github.com/meehighlov/grats/internal/db"
 )
 
+const (
+	MAX_CHATS_FOR_USER = 3
+)
+
 func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	message := event.GetMessage()
 
@@ -62,6 +66,17 @@ func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 }
 
 func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	userChats, err := (&db.Chat{BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id)}).Filter(ctx, tx)
+	if err != nil {
+		event.Logger.Error(
+			"StartFromGroupHandler",
+			"chat", event.GetMessage().GetChatIdStr(),
+			"userId", event.GetMessage().From.Id,
+			"error", err.Error(),
+		)
+		return err
+	}
+
 	chatType := event.GetMessage().Chat.Type
 	chat := db.Chat{
 		ChatId: event.GetMessage().GetChatIdStr(),
@@ -78,7 +93,7 @@ func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx)
 		return err
 	}
 
-	if len(chats) == 0 {
+	if len(chats) == 0 && len(userChats) < MAX_CHATS_FOR_USER {
 		chat.BaseFields = db.NewBaseFields()
 		chat.BotInvitedBy = strconv.Itoa(event.GetMessage().From.Id)
 		chat.GreetingTemplate = "🔔Сегодня день рождения у %s🥳"
@@ -95,6 +110,25 @@ func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx)
 			event.Reply(ctx, "Что-то пошло не так🙃 Попробуй еще раз👉👈")
 			return nil
 		}
+
+		event.Reply(ctx, "Всем привет👋")
+		return nil
+	}
+
+	if len(chats) == 0 && len(userChats) >= MAX_CHATS_FOR_USER {
+		event.Logger.Info(
+			"StartFromGroupHandler",
+			"chat", event.GetMessage().GetChatIdStr(),
+			"userId", event.GetMessage().From.Id,
+			"error", "user reached chats limits",
+		)
+		event.ReplyToUser(
+			ctx,
+			userChats[0].BotInvitedBy,
+			fmt.Sprintf("Не могу добавить новый чат, достигнут лимит (%d) на количество чатов👉👈",
+			MAX_CHATS_FOR_USER))
+
+		return nil
 	}
 
 	event.Reply(ctx, "Всем привет👋")
