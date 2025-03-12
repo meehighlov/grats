@@ -311,7 +311,7 @@ func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
 		ctx,
 		`INSERT INTO chat(id, tgchatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat)
         VALUES($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT(tgchatid) DO UPDATE SET tgchatid=$2, chattype=$3, botinvitedbyid=$4, greeting_template=$5, updatedat=$7
+        ON CONFLICT(tgchatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, greeting_template=$5, updatedat=$7
         RETURNING id;`,
 		c.ID,
 		c.TGChatId,
