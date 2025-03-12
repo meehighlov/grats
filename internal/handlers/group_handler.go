@@ -53,12 +53,12 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	buttons := []common.Button{}
 
 	for _, chat := range chats {
-		fullInfo, err := event.GetChat(ctx, chat.ChatId)
+		fullInfo, err := event.GetChat(ctx, chat.TGChatId)
 		if err != nil {
 			return err
 		}
 		if fullInfo != nil {
-			buttons = append(buttons, *common.NewButton(fullInfo.Title, common.CallChatInfo(chat.ChatId).String()))
+			buttons = append(buttons, *common.NewButton(fullInfo.Title, common.CallChatInfo(chat.TGChatId).String()))
 		}
 	}
 
@@ -128,7 +128,7 @@ func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return err
 	}
 
-	chats, err := (&db.Chat{ChatId: params.Id}).Filter(ctx, tx)
+	chats, err := (&db.Chat{TGChatId: params.Id}).Filter(ctx, tx)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return nil
 	}
 
-	chatId := event.GetContext().GetTexts()[0]
+	tgChatId := event.GetContext().GetTexts()[0]
 
 	newTemplate := event.GetMessage().Text
 
@@ -181,7 +181,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return nil
 	}
 
-	chats, err := (&db.Chat{ChatId: chatId, BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id)}).Filter(ctx, tx)
+	chats, err := (&db.Chat{TGChatId: tgChatId, BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id)}).Filter(ctx, tx)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 	if len(chats) == 0 {
 		event.Logger.Error(
 			"SaveGreetingTemplateHandler chats not found",
-			"chatId", chatId,
+			"tgChatId", tgChatId,
 			"userid", strconv.Itoa(event.GetMessage().From.Id),
 		)
 		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
@@ -203,7 +203,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 	if err != nil {
 		event.Logger.Error(
 			"SaveGreetingTemplateHandler db error",
-			"chatId", chatId,
+			"tgChatId", tgChatId,
 			"userid", strconv.Itoa(event.GetMessage().From.Id),
 			"error", err,
 		)
@@ -211,7 +211,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return err
 	}
 
-	chatInfo, err := event.GetChat(ctx, chatId)
+	chatInfo, err := event.GetChat(ctx, tgChatId)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(chatId).String()),
+		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(tgChatId).String()),
 	)
 
 	if _, err := event.ReplyWithKeyboard(ctx, msg, *keyboard.Murkup()); err != nil {
@@ -264,18 +264,31 @@ func DeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) err
 
 func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
-	chatId := params.Id
+	tgChatId := params.Id
 
+	// Получаем чат по TGChatId
 	chat := db.Chat{
-		ChatId: chatId,
+		TGChatId: tgChatId,
 	}
-	err := (&db.Friend{ChatId: chatId}).Delete(ctx, tx)
+	chats, err := chat.Filter(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error getting chat: " + err.Error())
+		return err
+	}
+
+	if len(chats) == 0 {
+		event.Logger.Error("chat not found: " + tgChatId)
+		return err
+	}
+
+	// Удаляем друзей, связанных с этим чатом
+	err = (&db.Friend{ChatId: chats[0].ID}).Delete(ctx, tx)
 	if err != nil {
 		event.Logger.Error("error deleting friends: " + err.Error())
 		return err
 	}
 
-	chatInfo, err := event.GetChat(ctx, chatId)
+	chatInfo, err := event.GetChat(ctx, tgChatId)
 	if err != nil {
 		event.Logger.Error("error getting chat info when deleting: " + err.Error())
 	}

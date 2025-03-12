@@ -97,7 +97,7 @@ type Chat struct {
 	ChatType string
 
 	BotInvitedBy     string
-	ChatId           string
+	TGChatId         string
 	GreetingTemplate string
 }
 

@@ -18,7 +18,9 @@ const CHECK_TIMEOUT_SEC = 10
 func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger, tx *sql.Tx) error {
 	for _, friend := range friends {
 		template := "🔔Сегодня день рождения у %s🥳"
-		chats, err := (&db.Chat{ChatId: friend.ChatId}).Filter(ctx, tx)
+		chat := db.Chat{}
+		chat.BaseFields.ID = friend.ChatId
+		chats, err := chat.Filter(ctx, tx)
 		if err != nil {
 			logger.Error("Notify job", "error getting chat, default template will be used", err.Error())
 		}
@@ -28,7 +30,7 @@ func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, l
 		}
 
 		msg := fmt.Sprintf(template, friend.Name)
-		_, err = client.SendMessage(ctx, friend.ChatId, msg)
+		_, err = client.SendMessage(ctx, chats[0].TGChatId, msg)
 		if err != nil {
 			logger.Error("Notify job", "Notification not sent", err.Error())
 			continue

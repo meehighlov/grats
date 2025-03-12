@@ -46,9 +46,23 @@ func SetupHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 }
 
 func SetupFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
-	chatId := event.GetMessage().GetChatIdStr()
+	tgChatId := event.GetMessage().GetChatIdStr()
 
-	friends, err := (&db.Friend{ChatId: chatId}).Filter(ctx, tx)
+	chat := db.Chat{
+		TGChatId: tgChatId,
+	}
+	chats, err := chat.Filter(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error fetching chats", "error", err.Error())
+		return err
+	}
+
+	if len(chats) == 0 {
+		event.Reply(ctx, "Нет информации о ближайших др🙌")
+		return nil
+	}
+
+	friends, err := (&db.Friend{ChatId: chats[0].ID}).Filter(ctx, tx)
 	if err != nil {
 		event.Logger.Error("error fetching friends", "error", err.Error())
 		return err
