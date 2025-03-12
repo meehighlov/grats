@@ -70,7 +70,6 @@ func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.
 
 	friend := friends[0]
 
-	// Получаем TGChatId для друга
 	tgChatId, err := friend.GetTGChatId(ctx, tx)
 	if err != nil {
 		event.Logger.Error("error getting TGChatId for friend: " + err.Error())

@@ -101,6 +101,10 @@ type Chat struct {
 	GreetingTemplate string
 }
 
+func (chat *Chat) IsGroupOrSuperGroup() bool {
+	return chat.ChatType == "group" || chat.ChatType == "supergroup"
+}
+
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {
 	parts := strings.Split(friend.BirthDay, ".")
 	birtday_wo_year := strings.Join(parts[:2], ".")
