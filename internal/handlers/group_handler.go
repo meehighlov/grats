@@ -266,7 +266,6 @@ func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 	tgChatId := params.Id
 
-	// Получаем чат по TGChatId
 	chat := db.Chat{
 		TGChatId: tgChatId,
 	}
@@ -281,7 +280,6 @@ func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.
 		return err
 	}
 
-	// Удаляем друзей, связанных с этим чатом
 	err = (&db.Friend{ChatId: chats[0].ID}).Delete(ctx, tx)
 	if err != nil {
 		event.Logger.Error("error deleting friends: " + err.Error())
