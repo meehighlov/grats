@@ -46,7 +46,6 @@ func main() {
 		// callback query handlers
 		"setup":                  handlers.SetupHandler,
 		"list":                   handlers.ListPaginationCallbackQueryHandler,
-		"new_list":               handlers.ListBirthdaysHandler,
 		"info":                   handlers.FriendInfoCallbackQueryHandler,
 		"delete":                 handlers.DeleteFriendCallbackQueryHandler,
 		"confirm_delete":         handlers.ConfirmDeleteFriendCallbackQueryHandler,

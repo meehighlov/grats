@@ -220,12 +220,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		chatInfo.Title,
 		newTemplate)
 
-	keyboard := common.NewInlineKeyboard()
-	keyboard.AppendAsStack(
-		*common.NewButton("⬅️к настройкам чата", common.CallChatInfo(tgChatId).String()),
-	)
-
-	if _, err := event.ReplyWithKeyboard(ctx, msg, *keyboard.Murkup()); err != nil {
+	if _, err := event.Reply(ctx, msg, telegram.WithMarkDown()); err != nil {
 		return err
 	}
 

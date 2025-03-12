@@ -22,12 +22,7 @@ const (
 )
 
 func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
-	message := event.GetMessage()
-
-	tgChatId := message.GetChatIdStr()
-	if event.GetCallbackQuery().Id != "" {
-		tgChatId = common.CallbackFromString(event.GetCallbackQuery().Data).Id
-	}
+	tgChatId := common.CallbackFromString(event.GetCallbackQuery().Data).Id
 
 	chat := db.Chat{
 		TGChatId: tgChatId,

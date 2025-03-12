@@ -21,10 +21,6 @@ func CallList(offset, direction, chatid string) *CallbackDataModel {
 	return newCallback("list", "", offset, direction, "friend", chatid)
 }
 
-func CallNewList(chatid string) *CallbackDataModel {
-	return newCallback("new_list", chatid, "", "", "friend", "")
-}
-
 func CallDelete(id, offset string) *CallbackDataModel {
 	return newCallback("delete", id, offset, "", "friend", "")
 }
