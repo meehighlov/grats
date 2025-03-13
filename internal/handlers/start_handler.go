@@ -66,7 +66,11 @@ func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 }
 
 func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
-	userChats, err := (&db.Chat{BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id)}).Filter(ctx, tx)
+	userChats, err := (&db.Chat{
+		BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id),
+		ChatType:     "%group",
+	}).Filter(ctx, tx)
+
 	if err != nil {
 		event.Logger.Error(
 			"StartFromGroupHandler",
@@ -125,7 +129,7 @@ func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx)
 		event.ReplyToUser(
 			ctx,
 			userChats[0].BotInvitedBy,
-			fmt.Sprintf("Не могу добавить новый чат, достигнут лимит (%d) на количество чатов👉👈",
+			fmt.Sprintf("Не могу добавить новый чат, достигнут лимит (%d) на количество групповых чатов👉👈",
 			MAX_CHATS_FOR_USER))
 
 		return nil
