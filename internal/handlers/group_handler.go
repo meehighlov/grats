@@ -37,7 +37,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(*common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsStack(*common.NewButton("💫Как настроить отправку напоминаний в чаты?💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
+	keyboard.AppendAsStack(*common.NewButton("💫Инструкция💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
 
 	if len(chats) == 0 {
 		if _, err := event.ReplyWithKeyboard(
