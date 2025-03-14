@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/telegram"
 )
 
@@ -47,6 +48,11 @@ func (e *Event) Reply(ctx context.Context, text string, opts ...telegram.SendMes
 
 func (e *Event) ReplyToUser(ctx context.Context, userId, text string, opts ...telegram.SendMessageOption) (*telegram.Message, error) {
 	msg, err := e.client.SendMessage(ctx, userId, text, opts...)
+	return msg, err
+}
+
+func (e *Event) ReplyToSupport(ctx context.Context, text string, opts ...telegram.SendMessageOption) (*telegram.Message, error) {
+	msg, err := e.client.SendMessage(ctx, config.Cfg().SupportChatId, text, opts...)
 	return msg, err
 }
 

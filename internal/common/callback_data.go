@@ -73,6 +73,14 @@ func CallConfirmDelete(id string) *CallbackDataModel {
 	return newCallback("confirm_delete", id, "", "", "friend", "")
 }
 
+func CallSupport(chatId string) *CallbackDataModel {
+	return newCallback("support", chatId, "", "", "support", "")
+}
+
+func CallWriteToSupport(chatId string) *CallbackDataModel {
+	return newCallback("write_to_support", chatId, "", "", "support", "")
+}
+
 func newCallback(command, id, offset, direction, entity, chatid string) *CallbackDataModel {
 	return &CallbackDataModel{
 		Command: command,

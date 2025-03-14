@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/meehighlov/grats/internal/auth"
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/internal/handlers"
-	"github.com/meehighlov/grats/internal/handlers/admin"
 	"github.com/meehighlov/grats/internal/lib"
 	"github.com/meehighlov/grats/telegram"
 )
@@ -25,23 +23,23 @@ func main() {
 
 	updateHandlers := map[string]common.HandlerType{
 		// user
-		"/start":                              auth.Auth(logger, handlers.StartHandler),
-		fmt.Sprintf("/start@%s", cfg.BotName): auth.Auth(logger, handlers.StartFromGroupHandler),
+		"/start":                              handlers.StartHandler,
+		fmt.Sprintf("/start@%s", cfg.BotName): handlers.StartFromGroupHandler,
 
-		"/setup":                              auth.Auth(logger, handlers.SetupHandler),
-		fmt.Sprintf("/setup@%s", cfg.BotName): auth.Auth(logger, handlers.SetupFromGroupHandler),
+		"/setup":                              handlers.SetupHandler,
+		fmt.Sprintf("/setup@%s", cfg.BotName): handlers.SetupFromGroupHandler,
 
 		"add_to_chat":     handlers.AddToChatHandler,
 		"add_enter_bd":    handlers.EnterBirthday,
 		"add_save_friend": handlers.SaveFriend,
 
-		// admin
-		"/admin":                  auth.Admin(logger, admin.AdminCommandListHandler),
-		"/access_list":            auth.Admin(logger, admin.AccessListHandler),
-		"/access_grant":           auth.Admin(logger, admin.GrantAccess),
-		"access_save_tg_username": admin.SaveAccess,
-		"/access_revoke":          auth.Admin(logger, admin.RevokeAccess),
-		"access_update":           admin.UpdateAccessInfo,
+		// admin TODO
+
+		// support
+		"support":               handlers.SupportHandler,
+		"write_to_support":      handlers.WriteToSupportHandler,
+		"send_to_support":       handlers.SendToSupportHandler,
+		"send_support_response": handlers.SendSupportResponseToUserHandler,
 
 		// callback query handlers
 		"setup":                  handlers.SetupHandler,

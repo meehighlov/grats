@@ -44,6 +44,10 @@ func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) tel
 			}
 		}
 
+		if update.Message.GetChatIdStr() == config.Cfg().SupportChatId {
+			command = "send_support_response"
+		}
+
 		event := newEvent(client, update, chatContext, logger)
 
 		logger.Debug("root handler", "update", update)

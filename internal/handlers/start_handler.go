@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
@@ -16,6 +17,12 @@ const (
 
 func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	message := event.GetMessage()
+
+	// at some point it is possible to use /command in group chat
+	// so block this action
+	if strings.HasSuffix(message.Chat.Type, "group") {
+		return nil
+	}
 
 	isAdmin := 0
 	if message.From.IsAdmin() {
@@ -50,11 +57,11 @@ func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	}
 
 	hello := fmt.Sprintf(
-		("Привет, %s👋 Меня зовут grats"+
-		"\n"+
-		"Я напоминаю о днях рождения🥳"+
-		"\n\n"+
-		"Команда /setup покажет все мои команды"),
+		("Привет, %s👋 Меня зовут grats" +
+			"\n" +
+			"Я напоминаю о днях рождения🥳" +
+			"\n\n" +
+			"Команда /setup покажет все мои команды"),
 		message.From.Username,
 	)
 
@@ -111,7 +118,7 @@ func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx)
 				"userId", event.GetMessage().From.Id,
 				"error", err.Error(),
 			)
-			event.Reply(ctx, "Что-то пошло не так🙃 Попробуй еще раз👉👈")
+			event.Reply(ctx, "Что-то пошло не так🙃 Попробуйте еще раз👉👈")
 			return nil
 		}
 
@@ -129,8 +136,8 @@ func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx)
 		event.ReplyToUser(
 			ctx,
 			userChats[0].BotInvitedBy,
-			fmt.Sprintf("Не могу добавить новый чат, достигнут лимит (%d) на количество групповых чатов👉👈",
-			MAX_CHATS_FOR_USER))
+			fmt.Sprintf("Не могу добавить новый чат, достигнут лимит (%d) подключенных групповых чатов👉👈",
+				MAX_CHATS_FOR_USER))
 
 		return nil
 	}

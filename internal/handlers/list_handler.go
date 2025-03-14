@@ -190,7 +190,7 @@ func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId strin
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsLine(*common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsLine(*common.NewButton("➕ Добавить напоминание", common.CallAddToChat(chatId).String()))
+	keyboard.AppendAsLine(*common.NewButton("➕ добавить напоминание", common.CallAddToChat(chatId).String()))
 
 	keyboard.AppendAsStack(*friendsListAsButtons...)
 

@@ -8,17 +8,19 @@ import (
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/telegram"
 )
 
 const HOWTO = `
-1. Добавь меня в групповой чат
-2. Вызови /start в групповом чате
-3. Если в ответ в чат придет сообщение "Всем привет👋",
-   значит настройка прошла успешно
+1. Добавьте меня в групповой чат
+2. Введите %s в групповом чате
 
-После шага 3 чат отобразится в меню "Групповые чаты"
+В групповой чат я пришлю сообщение "Всем привет👋" - это означает, что настройка прошла успешно
+
+Новый чат должен появиться в меню "Групповые чаты"
+
 Уведомления будут приходить в групповой чат
 `
 
@@ -37,7 +39,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(*common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsStack(*common.NewButton("💫Инструкция💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
+	keyboard.AppendAsStack(*common.NewButton("💫инструкция💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
 
 	if len(chats) == 0 {
 		if _, err := event.ReplyWithKeyboard(
@@ -105,7 +107,10 @@ func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) erro
 		"\n\nМаксимальное количество групповых чатов: %d",
 		MAX_CHATS_FOR_USER,
 	)
-	if _, err := event.ReplyCallbackQuery(ctx, HOWTO + msg); err != nil {
+
+	cfg := config.Cfg()
+	msg = fmt.Sprintf(HOWTO, fmt.Sprintf("`/start@%s`", cfg.BotName)) + msg
+	if _, err := event.ReplyCallbackQuery(ctx, msg, telegram.WithMarkDown()); err != nil {
 		return err
 	}
 
@@ -149,7 +154,7 @@ func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 
 	msg := strings.Join([]string{
 		header,
-		"Пришли новый шаблон в ответ на это сообщение, используй %s для подстановки имени именинника",
+		"Напишите новый шаблон в ответ на это сообщение, используйте %s для подстановки имени именинника",
 	}, "\n")
 
 	event.ReplyCallbackQuery(ctx, msg, telegram.WithMarkDown())
@@ -176,7 +181,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 	newTemplate := event.GetMessage().Text
 
 	if !strings.Contains(newTemplate, "%s") {
-		event.Reply(ctx, "Шаблон должен содержать %s для подстановки имени именинника, попробуй еще раз")
+		event.Reply(ctx, "Шаблон должен содержать %s для подстановки имени именинника, попробуйте еще раз")
 		return nil
 	}
 
