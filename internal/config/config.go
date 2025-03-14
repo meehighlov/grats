@@ -18,6 +18,7 @@ type Config struct {
 	ReportChatId          string `env:"REPORT_CHAT_ID" env-required:"true"`
 	HandlerExecTimeoutSec int    `env:"HANDLER_EXEC_TIMEOUT_SEC" env-default:"2"`
 	Timezone              string `env:"TIMEZONE" env-default:"Europe/Moscow"`
+	SupportChatId         string `env:"SUPPORT_CHAT_ID" env-required:"true"`
 
 	loaded bool `env-default:"false"`
 }

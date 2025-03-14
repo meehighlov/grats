@@ -5,12 +5,21 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
 )
 
 func SetupHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+	message := event.GetMessage()
+
+	// at some point it is possible to use /command in group chat
+	// so block this action
+	if strings.HasSuffix(message.Chat.Type, "group") {
+		return nil
+	}
+
 	keyboard := common.NewInlineKeyboard()
 
 	chatId := event.GetMessage().GetChatIdStr()
@@ -20,8 +29,9 @@ func SetupHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 
 	listButton := common.NewButton("🎂 Личные напоминания", common.CallList(fmt.Sprintf("%d", LIST_START_OFFSET), ">", chatId).String())
 	groupButton := common.NewButton("👥 Групповые чаты", common.CallChatList().String())
+	supportButton := common.NewButton("💬 Чат с поддержкой", common.CallSupport(chatId).String())
 
-	keyboard.AppendAsStack(*listButton, *groupButton)
+	keyboard.AppendAsStack(*listButton, *groupButton, *supportButton)
 
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(
