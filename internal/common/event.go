@@ -61,7 +61,7 @@ func (e *Event) ReplyCallbackQuery(ctx context.Context, text string, opts ...tel
 	return msg, err
 }
 
-func (e *Event) ReplyWithKeyboard(ctx context.Context, text string, keyboard [][]map[string]string) (*telegram.Message, error) {
+func (e *Event) ReplyWithKeyboard(ctx context.Context, text string, keyboard [][]map[string]interface{}) (*telegram.Message, error) {
 	msg, err := e.client.SendMessage(
 		ctx,
 		e.GetMessage().GetChatIdStr(),
@@ -72,7 +72,7 @@ func (e *Event) ReplyWithKeyboard(ctx context.Context, text string, keyboard [][
 	return msg, err
 }
 
-func (e *Event) EditCalbackMessage(ctx context.Context, text string, keyboard [][]map[string]string) (*telegram.Message, error) {
+func (e *Event) EditCalbackMessage(ctx context.Context, text string, keyboard [][]map[string]interface{}) (*telegram.Message, error) {
 	msg, err := e.client.EditMessageText(
 		ctx,
 		e.update.CallbackQuery.Message.GetChatIdStr(),

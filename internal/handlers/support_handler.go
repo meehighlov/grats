@@ -104,7 +104,7 @@ func SendSupportResponseToUserHandler(ctx context.Context, event *common.Event, 
 	}
 
 	messageFromSupport := event.GetMessage().Text
-	message := fmt.Sprintf("Ответ на Ваш запрос в поддержку🙌\n\n%s", messageFromSupport)
+	message := fmt.Sprintf("Сообщение от команды поддержки🙌\n\n%s", messageFromSupport)
 
 	if _, err := event.ReplyToUser(
 		ctx,
