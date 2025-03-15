@@ -16,7 +16,7 @@ import (
 const CHECK_TIMEOUT_SEC = 10
 const COMMIT_EXECUTION_TIMEOUT_SEC = 10
 
-func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger, tx *sql.Tx, cfg *config.Config) error {
+func notify(ctx context.Context, client *telegram.Client, friends []*db.Friend, logger *slog.Logger, tx *sql.Tx, cfg *config.Config) error {
 	for _, friend := range friends {
 		template := "🔔Сегодня день рождения у %s🥳"
 		chats, err := (&db.Chat{ChatId: friend.ChatId}).Filter(ctx, tx)
@@ -24,12 +24,23 @@ func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, l
 			logger.Error("Notify job", "error getting chat, default template will be used", err.Error())
 		}
 
-		if len(chats) > 0 && chats[0].GreetingTemplate != "" {
+		if len(chats) == 0 {
+			logger.Error("Notify job", "error getting chat, skipping notification", err.Error())
+			continue
+		}
+
+		if chats[0].GreetingTemplate != "" {
 			template = chats[0].GreetingTemplate
 		}
 
 		msg := fmt.Sprintf(template, friend.Name)
-		_, err = client.SendMessage(ctx, friend.ChatId, msg)
+
+		var sendOpts []telegram.SendMessageOption
+		if chats[0].IsAlreadySilent() {
+			sendOpts = append(sendOpts, telegram.WithDisableNotification())
+		}
+
+		_, err = client.SendMessage(ctx, friend.ChatId, msg, sendOpts...)
 		if err != nil {
 			logger.Error("Notify job", "Notification not sent", err.Error())
 			continue
@@ -69,6 +80,10 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 			logger.Error("Notify job", "error getting notification list", err.Error())
 			continue
 		}
+
+		// renew notify_at for friends
+		// and then commit
+		// and then notify
 
 		notify(ctx, client, friends, logger, tx, cfg)
 

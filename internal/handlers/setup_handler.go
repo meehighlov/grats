@@ -72,7 +72,7 @@ func SetupFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx)
 	nearest := []*db.Friend{}
 	for _, friend := range friends {
 		if friend.IsThisMonthAfterToday() || friend.IsTodayBirthday() {
-			nearest = append(nearest, &friend)
+			nearest = append(nearest, friend)
 		}
 	}
 

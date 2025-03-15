@@ -38,6 +38,13 @@ func WithMarkDown() SendMessageOption {
 	return WithParseMode("MarkDown")
 }
 
+func WithDisableNotification() SendMessageOption {
+	return func(q url.Values) error {
+		q.Add("disable_notification", "true")
+		return nil
+	}
+}
+
 func WithReplyMurkup(replyMarkup [][]map[string]interface{}) SendMessageOption {
 	return func(q url.Values) error {
 		mrakup_ := map[string][][]map[string]interface{}{}

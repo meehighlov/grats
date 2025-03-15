@@ -65,6 +65,10 @@ func CallConfirmDeleteChat(id string) *CallbackDataModel {
 	return newCallback("confirm_delete_chat", id, "", "", "chat", "")
 }
 
+func CallToggleSilentNotifications(id string) *CallbackDataModel {
+	return newCallback("toggle_silent_notifications", id, "", "", "chat", "")
+}
+
 func CallSetup() *CallbackDataModel {
 	return newCallback("setup", "", "", "", "", "")
 }

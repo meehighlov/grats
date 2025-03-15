@@ -85,7 +85,7 @@ func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
 	return users, nil
 }
 
-func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) {
+func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error) {
 	where := []string{}
 	if friend.FilterNotifyAt != "" {
 		where = append(where, "notifyat=$notifyat")
@@ -120,10 +120,10 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]Friend, error) 
 		return nil, err
 	}
 
-	friends := []Friend{}
+	friends := []*Friend{}
 
 	for rows.Next() {
-		friend := Friend{}
+		friend := &Friend{}
 		err := rows.Scan(
 			&friend.ID,
 			&friend.Name,
@@ -201,7 +201,7 @@ func (friend *Friend) Delete(ctx context.Context, tx *sql.Tx) error {
 	return nil
 }
 
-func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
+func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]*Chat, error) {
 	where := []string{}
 	if c.ID != "" {
 		where = append(where, "id=$id")
@@ -217,7 +217,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, chatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat FROM chat WHERE ` + where_ + `;`
+	query := `SELECT id, chatid, chattype, botinvitedbyid, greeting_template, silent_notifications, createdat, updatedat FROM chat WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
@@ -232,7 +232,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 		return nil, err
 	}
 
-	chats := []Chat{}
+	chats := []*Chat{}
 
 	for rows.Next() {
 		chat := Chat{}
@@ -242,6 +242,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 			&chat.ChatType,
 			&chat.BotInvitedBy,
 			&chat.GreetingTemplate,
+			&chat.SilentNotifications,
 			&chat.CreatedAt,
 			&chat.UpdatedAt,
 		)
@@ -249,7 +250,7 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]Chat, error) {
 			slog.Error("Error fetching chats by filter params: " + err.Error())
 			continue
 		}
-		chats = append(chats, chat)
+		chats = append(chats, &chat)
 	}
 
 	return chats, nil
@@ -262,15 +263,16 @@ func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
 
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO chat(id, chatid, chattype, botinvitedbyid, greeting_template, createdat, updatedat)
-        VALUES($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT(chatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, greeting_template=$5, updatedat=$7
+		`INSERT INTO chat(id, chatid, chattype, botinvitedbyid, greeting_template, silent_notifications, createdat, updatedat)
+        VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT(chatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, greeting_template=$5, silent_notifications=$6, updatedat=$8
         RETURNING id;`,
 		&c.ID,
 		&c.ChatId,
 		&c.ChatType,
 		&c.BotInvitedBy,
 		&c.GreetingTemplate,
+		&c.SilentNotifications,
 		&c.CreatedAt,
 		&c.UpdatedAt,
 	)
