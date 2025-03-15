@@ -14,42 +14,32 @@ import (
 )
 
 const CHECK_TIMEOUT_SEC = 10
-const COMMIT_EXECUTION_TIMEOUT_SEC = 10
 
-func notify(ctx context.Context, client *telegram.Client, friends []*db.Friend, logger *slog.Logger, tx *sql.Tx, cfg *config.Config) error {
+func notify(ctx context.Context, client *telegram.Client, friends []*db.Friend, chatIdToChat map[string]*db.Chat, logger *slog.Logger) error {
 	for _, friend := range friends {
 		template := "🔔Сегодня день рождения у %s🥳"
-		chats, err := (&db.Chat{ChatId: friend.ChatId}).Filter(ctx, tx)
-		if err != nil {
-			logger.Error("Notify job", "error getting chat, default template will be used", err.Error())
-		}
-
-		if len(chats) == 0 {
-			logger.Error("Notify job", "error getting chat, skipping notification", err.Error())
-			continue
-		}
-
-		if chats[0].GreetingTemplate != "" {
-			template = chats[0].GreetingTemplate
+		silent := true
+		chat, ok := chatIdToChat[friend.ChatId]
+		if ok {
+			template = chat.GreetingTemplate
+			silent = chat.GetSilent()
+		} else {
+			logger.Error("Notify job", "error getting chat", "silent mode will be used, default template will be used", "chatid", friend.ChatId)
 		}
 
 		msg := fmt.Sprintf(template, friend.Name)
 
 		var sendOpts []telegram.SendMessageOption
-		if chats[0].IsAlreadySilent() {
+		if silent {
 			sendOpts = append(sendOpts, telegram.WithDisableNotification())
 		}
 
-		_, err = client.SendMessage(ctx, friend.ChatId, msg, sendOpts...)
+		logger.Debug("Notify job sending message", "silent", silent)
+
+		_, err := client.SendMessage(ctx, friend.ChatId, msg, sendOpts...)
 		if err != nil {
 			logger.Error("Notify job", "Notification not sent", err.Error())
 			continue
-		}
-
-		friend.UpdateNotifyAt()
-		err = friend.Save(ctx, tx)
-		if err != nil {
-			logger.Error("Notify job", "error updating notify date", err.Error(), "chatid", friend.ChatId)
 		}
 	}
 
@@ -78,22 +68,38 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter(ctx, tx)
 		if err != nil {
 			logger.Error("Notify job", "error getting notification list", err.Error())
+			tx.Rollback()
 			continue
 		}
 
-		// renew notify_at for friends
-		// and then commit
-		// and then notify
-
-		notify(ctx, client, friends, logger, tx, cfg)
-
-		commitContext, cancel := context.WithTimeout(ctx, COMMIT_EXECUTION_TIMEOUT_SEC*time.Second)
-		defer cancel()
-		err = commit(commitContext, tx, client, logger, cfg)
-		if err != nil {
-			break
+		if len(friends) == 0 {
+			logger.Debug("job", "0 friends found", "continue")
+			tx.Rollback()
+			continue
 		}
-		cancel()
+
+		// at most once policy
+
+		isFailed := updateNotifyAt(ctx, tx, friends, logger)
+		if isFailed {
+			tx.Rollback()
+			continue
+		}
+
+		chatIdToChat, err := getChatIdToChat(ctx, tx, friends, logger)
+		if err != nil {
+			logger.Error("Notify job", "error getting chat id to chat", err.Error())
+			tx.Rollback()
+			continue
+		}
+
+		err = commit(ctx, tx, client, logger, cfg)
+		if err != nil {
+			tx.Rollback()
+			continue
+		}
+
+		notify(ctx, client, friends, chatIdToChat, logger)
 	}
 }
 
@@ -156,4 +162,32 @@ func commit(
 	}
 
 	return err
+}
+
+func updateNotifyAt(ctx context.Context, tx *sql.Tx, friends []*db.Friend, logger *slog.Logger) bool {
+	failed := false
+	for _, friend := range friends {
+		friend.UpdateNotifyAt()
+		err := friend.Save(ctx, tx)
+		if err != nil {
+			logger.Error("Notify job", "error updating notify date", err.Error(), "chatid", friend.ChatId)
+			failed = true
+			continue
+		}
+	}
+
+	return failed
+}
+
+func getChatIdToChat(ctx context.Context, tx *sql.Tx, friends []*db.Friend, logger *slog.Logger) (map[string]*db.Chat, error) {
+	chatIdToChat := make(map[string]*db.Chat)
+	for _, friend := range friends {
+		chats, err := (&db.Chat{ChatId: friend.ChatId}).Filter(ctx, tx)
+		if err != nil {
+			logger.Error("Notify job", "error getting chat", err.Error(), "chatid", friend.ChatId)
+			continue
+		}
+		chatIdToChat[friend.ChatId] = chats[0]
+	}
+	return chatIdToChat, nil
 }

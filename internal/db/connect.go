@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"log/slog"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -16,7 +17,9 @@ func MustSetup(dsn string, logger *slog.Logger) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sqliteConn.SetMaxOpenConns(1)
+	sqliteConn.SetMaxOpenConns(100)
+	sqliteConn.SetMaxIdleConns(10)
+	sqliteConn.SetConnMaxLifetime(time.Minute * 30)
 
 	if err = sqliteConn.Ping(); err != nil {
 		log.Fatal(err)

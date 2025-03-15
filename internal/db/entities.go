@@ -108,6 +108,10 @@ func (chat *Chat) IsAlreadySilent() bool {
 	return chat.SilentNotifications == 1
 }
 
+func (chat *Chat) GetSilent() bool {
+	return chat.SilentNotifications == 1
+}
+
 func (chat *Chat) EnableSoundNotifications() {
 	chat.SilentNotifications = 0
 }

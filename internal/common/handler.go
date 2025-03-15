@@ -57,6 +57,7 @@ func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) tel
 			tx, err := db.GetDBConnection().BeginTx(ctx, nil)
 			if err != nil {
 				logger.Error("Root handler", "getting transaction error", err.Error())
+				tx.Rollback()
 			} else {
 				logger.Info("Root handler", "start transaction for command", command, "chat id", update.GetChatIdStr())
 				err := handler(ctx, event, tx)
