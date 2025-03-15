@@ -42,10 +42,10 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	keyboard.AppendAsStack(*common.NewButton("💫инструкция💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
 
 	if len(chats) == 0 {
-		if _, err := event.ReplyWithKeyboard(
+		if _, err := event.ReplyCallbackQuery(
 			ctx,
 			"Чатов пока нет🙌",
-			*keyboard.Murkup(),
+			telegram.WithReplyMurkup(*keyboard.Murkup()),
 		); err != nil {
 			return err
 		}
