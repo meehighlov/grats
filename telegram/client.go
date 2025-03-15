@@ -38,9 +38,9 @@ func WithMarkDown() SendMessageOption {
 	return WithParseMode("MarkDown")
 }
 
-func WithReplyMurkup(replyMarkup [][]map[string]string) SendMessageOption {
+func WithReplyMurkup(replyMarkup [][]map[string]interface{}) SendMessageOption {
 	return func(q url.Values) error {
-		mrakup_ := map[string][][]map[string]string{}
+		mrakup_ := map[string][][]map[string]interface{}{}
 		mrakup_["inline_keyboard"] = replyMarkup
 		markup, err := json.Marshal(mrakup_)
 		if err != nil {
@@ -184,13 +184,13 @@ func (tc *Client) EditMessageReplyMarkup(
 	return &model, err
 }
 
-func (tc *Client) EditMessageText(ctx context.Context, chatId, messageId, text string, replyMarkup [][]map[string]string) (*Message, error) {
+func (tc *Client) EditMessageText(ctx context.Context, chatId, messageId, text string, replyMarkup [][]map[string]interface{}) (*Message, error) {
 	q := url.Values{}
 	q.Add("chat_id", chatId)
 	q.Add("message_id", messageId)
 	q.Add("text", text)
 
-	mrakup_ := map[string][][]map[string]string{}
+	mrakup_ := map[string][][]map[string]interface{}{}
 	mrakup_["inline_keyboard"] = replyMarkup
 	markup, err := json.Marshal(mrakup_)
 	if err != nil {

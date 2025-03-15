@@ -14,14 +14,14 @@ import (
 )
 
 const HOWTO = `
-1. Добавьте меня в групповой чат
-2. Введите %s в групповом чате
+1. Нажмите кнопку "скопировать команду"
+2. Добавьте меня в групповой чат
+3. Отправьте команду в групповой чат
 
-В групповой чат я пришлю сообщение "Всем привет👋" - это означает, что настройка прошла успешно
+Текст команды выглядит так:
+%s
 
-Новый чат должен появиться в меню "Групповые чаты"
-
-Уведомления будут приходить в групповой чат
+В групповой чат я пришлю сообщение "Всем привет👋", чат появится в меню "Групповые чаты"
 `
 
 func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
@@ -104,13 +104,24 @@ func GroupInfoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error
 
 func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 	msg := fmt.Sprintf(
-		"\n\nМаксимальное количество групповых чатов: %d",
+		"\nМаксимальное количество групповых чатов: %d",
 		MAX_CHATS_FOR_USER,
 	)
 
 	cfg := config.Cfg()
 	msg = fmt.Sprintf(HOWTO, fmt.Sprintf("`/start@%s`", cfg.BotName)) + msg
-	if _, err := event.ReplyCallbackQuery(ctx, msg, telegram.WithMarkDown()); err != nil {
+
+	keyboard := common.NewInlineKeyboard()
+	keyboard.AppendAsStack(
+		*common.NewCopyButton("скопировать команду", fmt.Sprintf("`/start@%s`", cfg.BotName)),
+	)
+
+	if _, err := event.ReplyCallbackQuery(
+		ctx,
+		msg,
+		telegram.WithReplyMurkup(*keyboard.Murkup()),
+		telegram.WithMarkDown(),
+	); err != nil {
 		return err
 	}
 

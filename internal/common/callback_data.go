@@ -73,6 +73,14 @@ func CallConfirmDelete(id string) *CallbackDataModel {
 	return newCallback("confirm_delete", id, "", "", "friend", "")
 }
 
+func CallEditName(id string) *CallbackDataModel {
+	return newCallback("edit_name", id, "", "", "friend", "")
+}
+
+func CallEditBirthday(id string) *CallbackDataModel {
+	return newCallback("edit_birthday", id, "", "", "friend", "")
+}
+
 func CallSupport(chatId string) *CallbackDataModel {
 	return newCallback("support", chatId, "", "", "support", "")
 }
