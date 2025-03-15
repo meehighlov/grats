@@ -14,8 +14,9 @@ import (
 )
 
 const CHECK_TIMEOUT_SEC = 10
+const COMMIT_EXECUTION_TIMEOUT_SEC = 10
 
-func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger, tx *sql.Tx) error {
+func notify(ctx context.Context, client *telegram.Client, friends []db.Friend, logger *slog.Logger, tx *sql.Tx, cfg *config.Config) error {
 	for _, friend := range friends {
 		template := "🔔Сегодня день рождения у %s🥳"
 		chats, err := (&db.Chat{ChatId: friend.ChatId}).Filter(ctx, tx)
@@ -53,6 +54,8 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 	}
 
 	for {
+		time.Sleep(CHECK_TIMEOUT_SEC * time.Second)
+
 		date := time.Now().In(location).Format("02.01.2006")
 
 		tx, err := db.GetDBConnection().BeginTx(ctx, nil)
@@ -62,17 +65,20 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 		}
 
 		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter(ctx, tx)
-		logger.Info("Notify job", "found rows", len(friends))
 		if err != nil {
-			logger.Debug("Notify job", "Error getting birthdays", err.Error())
+			logger.Error("Notify job", "error getting notification list", err.Error())
 			continue
 		}
 
-		notify(ctx, client, friends, logger, tx)
+		notify(ctx, client, friends, logger, tx, cfg)
 
-		tx.Commit()
-
-		time.Sleep(CHECK_TIMEOUT_SEC * time.Second)
+		commitContext, cancel := context.WithTimeout(ctx, COMMIT_EXECUTION_TIMEOUT_SEC*time.Second)
+		defer cancel()
+		err = commit(commitContext, tx, client, logger, cfg)
+		if err != nil {
+			break
+		}
+		cancel()
 	}
 }
 
@@ -103,4 +109,36 @@ func BirthdayNotifer(
 	run(withCancel, client, logger, cfg)
 
 	return nil
+}
+
+func commit(
+	ctx context.Context,
+	tx *sql.Tx,
+	client *telegram.Client,
+	logger *slog.Logger,
+	cfg *config.Config,
+) error {
+	err := tx.Commit()
+	if err == nil {
+		return nil
+	}
+
+	errMsg := fmt.Sprintf(
+		"Notify job: Не удалось установить комит для notify_at: %s",
+		err.Error(),
+	)
+	logger.Error(
+		"Notify job", "error committing transaction",
+		err.Error(),
+	)
+	_, err = client.SendMessage(
+		ctx,
+		cfg.ReportChatId,
+		errMsg,
+	)
+	if err != nil {
+		logger.Error("Notify job", "error sending report message", err.Error())
+	}
+
+	return err
 }
