@@ -62,7 +62,7 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 	return nil
 }
 
-func birthdayComparator(friends []db.Friend, i, j int) bool {
+func birthdayComparator(friends []*db.Friend, i, j int) bool {
 	if friends[i].IsTodayBirthday() {
 		return true
 	}
@@ -153,7 +153,7 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 	return nil
 }
 
-func buildFriendsButtons(friends []db.Friend, limit, offset int, callbackDataBuilder func(id string, offset int) string) *[]common.Button {
+func buildFriendsButtons(friends []*db.Friend, limit, offset int, callbackDataBuilder func(id string, offset int) string) *[]common.Button {
 	sort.Slice(friends, func(i, j int) bool { return birthdayComparator(friends, i, j) })
 	buttons := []common.Button{}
 	for i, friend := range friends {
@@ -182,7 +182,7 @@ func buildFriendsButtons(friends []db.Friend, limit, offset int, callbackDataBui
 	return &buttons
 }
 
-func buildFriendsListMarkup(friends []db.Friend, limit, offset int, chatId string) *common.InlineKeyboard {
+func buildFriendsListMarkup(friends []*db.Friend, limit, offset int, chatId string) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
 		return common.CallInfo(id, strconv.Itoa(offset)).String()
 	}

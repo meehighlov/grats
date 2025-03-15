@@ -76,7 +76,7 @@ func SaveEditNameHandler(ctx context.Context, event *common.Event, tx *sql.Tx) e
 
 	msg := "Имя изменено 💾"
 
-	replyWithInfo(ctx, event, &friend, msg)
+	replyWithInfo(ctx, event, friend, msg)
 
 	event.SetNextHandler("")
 
@@ -140,7 +140,7 @@ func SaveEditBirthdayHandler(ctx context.Context, event *common.Event, tx *sql.T
 	msgTemplate := "Дата рождения %s изменена 💾\n\nНапомню о нем %s🔔"
 
 	if strings.EqualFold(newBirthday, oldBirthday) {
-		replyWithInfo(ctx, event, &friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt()))
+		replyWithInfo(ctx, event, friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt()))
 		event.SetNextHandler("")
 		return nil
 	}
@@ -154,7 +154,7 @@ func SaveEditBirthdayHandler(ctx context.Context, event *common.Event, tx *sql.T
 		return err
 	}
 
-	if err := replyWithInfo(ctx, event, &friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt())); err != nil {
+	if err := replyWithInfo(ctx, event, friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt())); err != nil {
 		event.Logger.Error("SaveEditBirthdayHandler", "reply error", err.Error())
 		return err
 	}

@@ -96,9 +96,24 @@ type Chat struct {
 	// todo enum
 	ChatType string
 
-	BotInvitedBy     string
-	ChatId           string
-	GreetingTemplate string
+	BotInvitedBy        string
+	ChatId              string
+	GreetingTemplate    string
+
+	// 0 off, 1 on
+	SilentNotifications int
+}
+
+func (chat *Chat) IsAlreadySilent() bool {
+	return chat.SilentNotifications == 1
+}
+
+func (chat *Chat) EnableSoundNotifications() {
+	chat.SilentNotifications = 0
+}
+
+func (chat *Chat) DisableSoundNotifications() {
+	chat.SilentNotifications = 1
 }
 
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {

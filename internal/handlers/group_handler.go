@@ -85,7 +85,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	return nil
 }
 
-func GroupInfoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func GroupInfoHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	chatInfo, err := event.GetChat(ctx, params.Id)
@@ -93,9 +93,18 @@ func GroupInfoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error
 		return err
 	}
 
+	chats, err := (&db.Chat{ChatId: params.Id}).Filter(ctx, tx)
+	if err != nil {
+		return err
+	}
+
+	if len(chats) == 0 {
+		return fmt.Errorf("chat not found")
+	}
+
 	msg := fmt.Sprintf("⚙️Настройка чата `%s`", chatInfo.Title)
 
-	if _, err := event.EditCalbackMessage(ctx, msg, *buildChatInfoMarkup(params.Id).Murkup()); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildChatInfoMarkup(params.Id, chats[0]).Murkup()); err != nil {
 		return err
 	}
 
@@ -128,11 +137,18 @@ func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) erro
 	return nil
 }
 
-func buildChatInfoMarkup(chatId string) *common.InlineKeyboard {
+func buildChatInfoMarkup(chatId string, chat *db.Chat) *common.InlineKeyboard {
 	keyboard := common.NewInlineKeyboard()
+
+	silentNotificationButtonText := "🔕 выключить звук уведомлений"
+	if chat.IsAlreadySilent() {
+		silentNotificationButtonText = "🔔 включить звук уведомлений"
+	}
+
 	keyboard.AppendAsStack(
 		*common.NewButton("📋 список всех др в чате", common.CallChatBirthdays(chatId).String()),
-		*common.NewButton("🔔 изменить шаблон напоминания", common.CallEditGreetingTemplate(chatId).String()),
+		*common.NewButton("📝 изменить шаблон напоминания", common.CallEditGreetingTemplate(chatId).String()),
+		*common.NewButton(silentNotificationButtonText, common.CallToggleSilentNotifications(chatId).String()),
 		*common.NewButton("🗑 удалить чат", common.CallDeleteChat(chatId).String()),
 		*common.NewButton("⬅️ к списку чатов", common.CallChatList().String()),
 	)
@@ -313,6 +329,48 @@ func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.
 	}
 
 	if _, err := event.EditCalbackMessage(ctx, fmt.Sprintf("Чат `%s` и напоминания удалены👋", chatTitle), *keyboard.Murkup()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ToggleSilentNotificationsHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+	params := common.CallbackFromString(event.GetCallbackQuery().Data)
+	chatId := params.Id
+
+	chats, err := (&db.Chat{ChatId: chatId}).Filter(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error getting chat: " + err.Error())
+		return err
+	}
+
+	if len(chats) == 0 {
+		return fmt.Errorf("chat not found")
+	}
+
+	chat := chats[0]
+
+	if chat.IsAlreadySilent() {
+		chat.EnableSoundNotifications()
+	} else {
+		chat.DisableSoundNotifications()
+	}
+
+	err = chat.Save(ctx, tx)
+	if err != nil {
+		event.Logger.Error("error saving chat: " + err.Error())
+		return err
+	}
+
+	chatInfo, err := event.GetChat(ctx, chatId)
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("⚙️Настройка чата `%s`", chatInfo.Title)
+
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildChatInfoMarkup(chatId, chat).Murkup()); err != nil {
 		return err
 	}
 
