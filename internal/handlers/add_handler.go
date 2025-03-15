@@ -40,7 +40,7 @@ func AddToChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) erro
 	}
 
 	msg := "Введите имя именинника✨\n\nнапример 👉 Райан Гослинг"
-	msg += fmt.Sprintf("\n\nМаксимальное число личных напоминаний: %d", FRIEND_LIMIT_FOR_CHAT)
+	msg += fmt.Sprintf("\n\nМаксимальное количество напоминаний в одном чате: %d", FRIEND_LIMIT_FOR_CHAT)
 
 	if _, err := event.ReplyCallbackQuery(ctx, msg); err != nil {
 		return err
