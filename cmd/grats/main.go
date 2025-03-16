@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
@@ -68,6 +71,23 @@ func main() {
 		updateHandlers,
 	)
 
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	var webhookServer *telegram.WebhookServer
+
+	if cfg.UseWebhook {
+		logger.Info("starting webhook server...", "addr", cfg.WebhookAddr)
+		webhookServer = telegram.StartWebhook(cfg.WebhookAddr, cfg.BotToken, cfg.WebhookSecretToken, rootHandler, logger)
+	}
+
 	logger.Info("starting polling...")
-	telegram.StartPolling(cfg.BotToken, rootHandler)
+	go telegram.StartPolling(cfg.BotToken, rootHandler)
+
+	<-signalChan
+	logger.Info("Sigterm received, stopping...")
+
+	if webhookServer != nil {
+		webhookServer.Stop()
+	}
 }

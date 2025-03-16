@@ -20,6 +20,10 @@ type Config struct {
 	Timezone              string `env:"TIMEZONE" env-default:"Europe/Moscow"`
 	SupportChatId         string `env:"SUPPORT_CHAT_ID" env-required:"true"`
 
+	UseWebhook         bool   `env:"USE_WEBHOOK" env-default:"false"`
+	WebhookAddr        string `env:"WEBHOOK_ADDR" env-default:":8080"`
+	WebhookSecretToken string `env:"WEBHOOK_SECRET_TOKEN" env-default:""`
+
 	loaded bool `env-default:"false"`
 }
 
