@@ -59,6 +59,21 @@ func (ws *WebhookServer) Start() error {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		ws.logger.Debug("Health check requested")
+
+		response := map[string]string{
+			"status": "OK",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			ws.logger.Error("Failed to encode health check response", "error", err)
+		}
+	})
+
 	ws.server = &http.Server{
 		Addr:    ws.addr,
 		Handler: mux,
@@ -74,7 +89,7 @@ func (ws *WebhookServer) Start() error {
 		}
 	}()
 
-	ws.wg.Wait()
+	<-ws.shutdownChan
 
 	ws.logger.Info("Webhook server stopping")
 	return nil
