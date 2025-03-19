@@ -35,7 +35,7 @@ func NewWebhookServer(addr string, token string, secretToken string, handler Upd
 func (ws *WebhookServer) Start() error {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /updates", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/updates", func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
 		if !strings.EqualFold(token, ws.secretToken) {
 			ws.logger.Warn("Invalid webhook token", "received", token)

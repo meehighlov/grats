@@ -79,10 +79,10 @@ func main() {
 	if cfg.UseWebhook {
 		logger.Info("starting webhook server...", "addr", cfg.WebhookAddr)
 		webhookServer = telegram.StartWebhook(cfg.WebhookAddr, cfg.BotToken, cfg.WebhookSecretToken, rootHandler, logger)
+	} else {
+		logger.Info("starting polling...")
+		go telegram.StartPolling(cfg.BotToken, rootHandler)
 	}
-
-	logger.Info("starting polling...")
-	go telegram.StartPolling(cfg.BotToken, rootHandler)
 
 	<-signalChan
 	logger.Info("Sigterm received, stopping...")
