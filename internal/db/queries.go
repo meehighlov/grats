@@ -14,14 +14,14 @@ func (user *User) Save(ctx context.Context, tx *sql.Tx) error {
 
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO user(id, tgid, name, tgusername, chatid, birthday, isadmin, createdat, updatedat)
+		`INSERT INTO user(id, tg_id, name, tg_username, chat_id, birthday, is_admin, created_at, updated_at)
         VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT(tgid) DO UPDATE SET name=$3, tgusername=$4, chatid=$5, birthday=$6, isadmin=$7, updatedat=$9
+        ON CONFLICT(tg_id) DO UPDATE SET name=$3, tg_username=$4, chat_id=$5, birthday=$6, is_admin=$7, updated_at=$9
         RETURNING id;`,
 		&user.ID,
-		&user.TGId,
+		&user.TgId,
 		&user.Name,
-		&user.TGusername,
+		&user.TgUsername,
 		&user.ChatId,
 		&user.Birthday,
 		&user.IsAdmin,
@@ -39,21 +39,21 @@ func (user *User) Save(ctx context.Context, tx *sql.Tx) error {
 
 func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
 	where := []string{}
-	if user.TGId != "" {
-		where = append(where, "tgid=$tgid")
+	if user.TgId != "" {
+		where = append(where, "tg_id=$tg_id")
 	}
-	if user.TGusername != "" {
-		where = append(where, "tgusername=$tgusername")
+	if user.TgUsername != "" {
+		where = append(where, "tg_username=$tg_username")
 	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, tgid, name, tgusername, chatid, birthday, isadmin, createdat, updatedat FROM user WHERE ` + where_ + `;`
+	query := `SELECT id, tg_id, name, tg_username, chat_id, birthday, is_admin, created_at, updated_at FROM user WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
 		query,
-		sql.Named("tgid", user.TGId),
-		sql.Named("tgusername", user.TGusername),
+		sql.Named("tg_id", user.TgId),
+		sql.Named("tg_username", user.TgUsername),
 	)
 	if err != nil {
 		slog.Error("Error when filtering users " + err.Error())
@@ -66,9 +66,9 @@ func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
 		user := User{}
 		err := rows.Scan(
 			&user.ID,
-			&user.TGId,
+			&user.TgId,
 			&user.Name,
-			&user.TGusername,
+			&user.TgUsername,
 			&user.ChatId,
 			&user.Birthday,
 			&user.IsAdmin,
@@ -88,10 +88,10 @@ func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
 func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error) {
 	where := []string{}
 	if friend.FilterNotifyAt != "" {
-		where = append(where, "notifyat=$notifyat")
+		where = append(where, "notify_at=$notify_at")
 	}
 	if friend.UserId != "" {
-		where = append(where, "userid=$userid")
+		where = append(where, "user_id=$user_id")
 	}
 	if friend.Name != "" {
 		where = append(where, "name=$name")
@@ -99,21 +99,17 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error)
 	if friend.ID != "" {
 		where = append(where, "id=$id")
 	}
-	if friend.ChatId != "" {
-		where = append(where, "chatid=$chatid")
-	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, name, birthday, userid, chatid, notifyat, createdat, updatedat FROM friend WHERE ` + where_ + `;`
+	query := `SELECT id, name, birthday, chat_id, user_id, notify_at, created_at, updated_at FROM friend WHERE ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
 		query,
-		sql.Named("userid", friend.UserId),
-		sql.Named("notifyat", friend.FilterNotifyAt),
+		sql.Named("notify_at", friend.FilterNotifyAt),
+		sql.Named("user_id", friend.UserId),
 		sql.Named("name", friend.Name),
 		sql.Named("id", friend.ID),
-		sql.Named("chatid", friend.ChatId),
 	)
 	if err != nil {
 		slog.Error("Error when filtering friends " + err.Error())
@@ -128,8 +124,8 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error)
 			&friend.ID,
 			&friend.Name,
 			&friend.BirthDay,
-			&friend.UserId,
 			&friend.ChatId,
+			&friend.UserId,
 			friend.GetNotifyAt(),
 			&friend.CreatedAt,
 			&friend.UpdatedAt,
@@ -151,15 +147,15 @@ func (friend *Friend) Save(ctx context.Context, tx *sql.Tx) error {
 
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO friend(id, name, birthday, userid, chatid, notifyat, createdat, updatedat)
+		`INSERT INTO friend(id, name, birthday, chat_id, user_id, notify_at, created_at, updated_at)
         VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT(id) DO UPDATE SET name=$2, birthday=$3, userid=$4, chatid=$5, notifyat=$6, createdat=$7, updatedat=$8
+        ON CONFLICT(name,chat_id) DO UPDATE SET birthday=$3, notify_at=$6, updated_at=$8
         RETURNING id;`,
 		friend.ID,
 		friend.Name,
 		friend.BirthDay,
-		friend.UserId,
 		friend.ChatId,
+		friend.UserId,
 		*friend.GetNotifyAt(),
 		friend.CreatedAt,
 		friend.UpdatedAt,
@@ -168,64 +164,50 @@ func (friend *Friend) Save(ctx context.Context, tx *sql.Tx) error {
 		slog.Error("Error when trying to save friend: " + err.Error())
 		return err
 	}
-	slog.Debug("Friend added/updated")
+	slog.Debug("Friend created/updated")
 
 	return nil
 }
 
 func (friend *Friend) Delete(ctx context.Context, tx *sql.Tx) error {
-	where := []string{}
-	if friend.ID != "" {
-		where = append(where, "id=$id")
-	}
-	if friend.ChatId != "" {
-		where = append(where, "chatid=$chatid")
-	}
-
-	where_ := strings.Join(where, " AND ")
-	query := `DELETE FROM friend WHERE ` + where_ + `;`
-
 	_, err := tx.ExecContext(
 		ctx,
-		query,
-		sql.Named("id", friend.ID),
-		sql.Named("chatid", friend.ChatId),
+		`DELETE FROM friend WHERE id=$1;`,
+		&friend.ID,
 	)
 	if err != nil {
-		slog.Error("Error when trying to delete friend rows: " + err.Error())
+		slog.Error("Error when trying to delete friend: " + err.Error())
 		return err
 	}
-
-	slog.Debug("Friend row deleted")
+	slog.Debug("Friend deleted")
 
 	return nil
 }
 
 func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]*Chat, error) {
 	where := []string{}
+	if c.ChatId != "" {
+		where = append(where, "chat_id=$chat_id")
+	}
 	if c.ID != "" {
 		where = append(where, "id=$id")
 	}
-	if c.ChatId != "" {
-		where = append(where, "chatid=$chatid")
-	}
-	if c.ChatType != "" {
-		where = append(where, "chattype LIKE $chattype")
-	}
-	if c.BotInvitedBy != "" {
-		where = append(where, "botinvitedbyid=$botinvitedbyid")
+	if c.BotInvitedById != "" {
+		where = append(where, "bot_invited_by_id=$bot_invited_by_id")
 	}
 
-	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, chatid, chattype, botinvitedbyid, greeting_template, silent_notifications, createdat, updatedat FROM chat WHERE ` + where_ + `;`
+	where_ := ""
+	if len(where) > 0 {
+		where_ = "WHERE " + strings.Join(where, " AND ")
+	}
+	query := `SELECT id, chat_id, chat_type, bot_invited_by_id, created_at, updated_at, greeting_template, silent_notifications FROM chat ` + where_ + `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
 		query,
+		sql.Named("chat_id", c.ChatId),
 		sql.Named("id", c.ID),
-		sql.Named("chatid", c.ChatId),
-		sql.Named("chattype", c.ChatType),
-		sql.Named("botinvitedbyid", c.BotInvitedBy),
+		sql.Named("bot_invited_by_id", c.BotInvitedById),
 	)
 	if err != nil {
 		slog.Error("Error when filtering chats " + err.Error())
@@ -235,22 +217,22 @@ func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]*Chat, error) {
 	chats := []*Chat{}
 
 	for rows.Next() {
-		chat := Chat{}
+		chat := &Chat{}
 		err := rows.Scan(
 			&chat.ID,
 			&chat.ChatId,
 			&chat.ChatType,
-			&chat.BotInvitedBy,
-			&chat.GreetingTemplate,
-			&chat.SilentNotifications,
+			&chat.BotInvitedById,
 			&chat.CreatedAt,
 			&chat.UpdatedAt,
+			&chat.GreetingTemplate,
+			&chat.SilentNotifications,
 		)
 		if err != nil {
 			slog.Error("Error fetching chats by filter params: " + err.Error())
 			continue
 		}
-		chats = append(chats, &chat)
+		chats = append(chats, chat)
 	}
 
 	return chats, nil
@@ -263,18 +245,18 @@ func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
 
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO chat(id, chatid, chattype, botinvitedbyid, greeting_template, silent_notifications, createdat, updatedat)
+		`INSERT INTO chat(id, chat_id, chat_type, bot_invited_by_id, created_at, updated_at, greeting_template, silent_notifications)
         VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT(chatid) DO UPDATE SET chattype=$3, botinvitedbyid=$4, greeting_template=$5, silent_notifications=$6, updatedat=$8
+        ON CONFLICT(chat_id) DO UPDATE SET chat_type=$3, bot_invited_by_id=$4, updated_at=$6, greeting_template=$7, silent_notifications=$8
         RETURNING id;`,
 		&c.ID,
 		&c.ChatId,
 		&c.ChatType,
-		&c.BotInvitedBy,
-		&c.GreetingTemplate,
-		&c.SilentNotifications,
+		&c.BotInvitedById,
 		&c.CreatedAt,
 		&c.UpdatedAt,
+		&c.GreetingTemplate,
+		&c.SilentNotifications,
 	)
 	if err != nil {
 		slog.Error("Error when trying to save chat: " + err.Error())
@@ -288,15 +270,14 @@ func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
 func (c *Chat) Delete(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(
 		ctx,
-		`DELETE FROM chat WHERE chatid = $1;`,
-		&c.ChatId,
+		`DELETE FROM chat WHERE id=$1;`,
+		&c.ID,
 	)
 	if err != nil {
-		slog.Error("Error when trying to delete chat row: " + err.Error())
+		slog.Error("Error when trying to delete chat: " + err.Error())
 		return err
 	}
-
-	slog.Debug("Chat row deleted")
+	slog.Debug("Chat deleted")
 
 	return nil
 }

@@ -31,7 +31,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	}
 
 	// also selects supergroups
-	chats, err := (&db.Chat{BotInvitedBy: strconv.Itoa(invitedBy), ChatType: "%group"}).Filter(ctx, tx)
+	chats, err := (&db.Chat{BotInvitedById: strconv.Itoa(invitedBy), ChatType: "%group"}).Filter(ctx, tx)
 	if err != nil {
 		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		return err
@@ -217,7 +217,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 		return nil
 	}
 
-	chats, err := (&db.Chat{ChatId: chatId, BotInvitedBy: strconv.Itoa(event.GetMessage().From.Id)}).Filter(ctx, tx)
+	chats, err := (&db.Chat{ChatId: chatId, BotInvitedById: strconv.Itoa(event.GetMessage().From.Id)}).Filter(ctx, tx)
 	if err != nil {
 		return err
 	}
