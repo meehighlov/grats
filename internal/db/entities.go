@@ -45,9 +45,9 @@ type User struct {
 
 	BaseFields
 
-	TGId       string // id will be taken from telegram
+	TgId       string // id will be taken from telegram
 	Name       string
-	TGusername string
+	TgUsername string
 	ChatId     string // chatId - id of chat with user, bot uses it to send notification
 	Birthday   string
 	IsAdmin    int
@@ -60,10 +60,10 @@ func (user *User) HasAdminAccess() bool {
 }
 
 func (user *User) GetTGUserName() string {
-	if !strings.HasPrefix("@", user.TGusername) {
-		return "@" + user.TGusername
+	if !strings.HasPrefix("@", user.TgUsername) {
+		return "@" + user.TgUsername
 	}
-	return user.TGusername
+	return user.TgUsername
 }
 
 func (user *User) FriendsListAsString() string {
@@ -96,9 +96,9 @@ type Chat struct {
 	// todo enum
 	ChatType string
 
-	BotInvitedBy        string
-	ChatId              string
-	GreetingTemplate    string
+	BotInvitedById   string
+	ChatId           string
+	GreetingTemplate string
 
 	// 0 off, 1 on
 	SilentNotifications int
@@ -297,12 +297,12 @@ func (friend *Friend) UpdateNotifyAt() (string, error) {
 type Access struct {
 	BaseFields
 
-	TGusername string
+	TgUsername string
 }
 
 func (access *Access) GetTGUserName() string {
-	if !strings.HasPrefix("@", access.TGusername) {
-		return "@" + access.TGusername
+	if !strings.HasPrefix("@", access.TgUsername) {
+		return "@" + access.TgUsername
 	}
-	return access.TGusername
+	return access.TgUsername
 }
