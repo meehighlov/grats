@@ -99,6 +99,9 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error)
 	if friend.ID != "" {
 		where = append(where, "id=$id")
 	}
+	if friend.ChatId != "" {
+		where = append(where, "chat_id=$chat_id")
+	}
 
 	where_ := strings.Join(where, " AND ")
 	query := `SELECT id, name, birthday, chat_id, user_id, notify_at, created_at, updated_at FROM friend WHERE ` + where_ + `;`
@@ -110,6 +113,7 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error)
 		sql.Named("user_id", friend.UserId),
 		sql.Named("name", friend.Name),
 		sql.Named("id", friend.ID),
+		sql.Named("chat_id", friend.ChatId),
 	)
 	if err != nil {
 		slog.Error("Error when filtering friends " + err.Error())
