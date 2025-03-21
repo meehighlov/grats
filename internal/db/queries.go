@@ -110,6 +110,7 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error)
 		sql.Named("user_id", friend.UserId),
 		sql.Named("name", friend.Name),
 		sql.Named("id", friend.ID),
+		sql.Named("chat_id", friend.ChatId),
 	)
 	if err != nil {
 		slog.Error("Error when filtering friends " + err.Error())
