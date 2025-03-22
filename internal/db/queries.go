@@ -4,8 +4,49 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
+	"strconv"
 	"strings"
 )
+
+// injection safe options
+type safeFilterOption func(query string) string
+
+func WithPagination(limit, offset int) safeFilterOption {
+	return func(query string) string {
+		if limit != 0 {
+			query += " LIMIT " + strconv.Itoa(limit)
+		}
+		if offset != 0 {
+			query += " OFFSET " + strconv.Itoa(offset)
+		}
+		return query
+	}
+}
+
+func WithTodayBirthdaysFirst() safeFilterOption {
+	return func(query string) string {
+		// Текущая дата в формате DD.MM
+		nowExpr := "strftime('%d.%m', 'now')"
+		// Выделяем день и месяц из birthday (первые 5 символов в формате DD.MM)
+		bdayExpr := "substr(birthday, 1, 5)"
+
+		// 1. Сначала сегодняшние дни рождения
+		// 2. Затем сортировка по дням до дня рождения
+		query += " ORDER BY " +
+			// Проверка на сегодняшние дни рождения (1 для сегодня, 0 для остальных)
+			"CASE WHEN " + bdayExpr + " = " + nowExpr + " THEN 1 ELSE 0 END DESC, " +
+			// Расчет дней до дня рождения для сортировки оставшихся
+			"CASE " +
+			// Если день рождения уже прошел в этом году, добавляем 1 год
+			"WHEN date(" + bdayExpr + "||'.', strftime('%Y', 'now')) < date('now') " +
+			"THEN julianday(date(" + bdayExpr + "||'.', strftime('%Y', 'now', '+1 year'))) - julianday('now') " +
+			// Иначе считаем дни до дня рождения в этом году
+			"ELSE julianday(date(" + bdayExpr + "||'.', strftime('%Y', 'now'))) - julianday('now') " +
+			"END ASC"
+
+		return query
+	}
+}
 
 // idempotent save
 // accepts ALL fields of entity and save as is
@@ -85,7 +126,7 @@ func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
 	return users, nil
 }
 
-func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error) {
+func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx, safeOptions ...safeFilterOption) ([]*Friend, error) {
 	where := []string{}
 	if friend.FilterNotifyAt != "" {
 		where = append(where, "notify_at=$notify_at")
@@ -104,7 +145,12 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error)
 	}
 
 	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, name, birthday, chat_id, user_id, notify_at, created_at, updated_at FROM friend WHERE ` + where_ + `;`
+	query := `SELECT id, name, birthday, chat_id, user_id, notify_at, created_at, updated_at FROM friend WHERE ` + where_
+	for _, option := range safeOptions {
+		query = option(query)
+	}
+
+	query += `;`
 
 	rows, err := tx.QueryContext(
 		ctx,
@@ -142,6 +188,50 @@ func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error)
 	}
 
 	return friends, nil
+}
+
+func (friend *Friend) Count(ctx context.Context, tx *sql.Tx) (int, error) {
+	where := []string{}
+	if friend.FilterNotifyAt != "" {
+		where = append(where, "notify_at=$notify_at")
+	}
+	if friend.UserId != "" {
+		where = append(where, "user_id=$user_id")
+	}
+	if friend.Name != "" {
+		where = append(where, "name=$name")
+	}
+	if friend.ID != "" {
+		where = append(where, "id=$id")
+	}
+	if friend.ChatId != "" {
+		where = append(where, "chat_id=$chat_id")
+	}
+
+	where_ := ""
+	if len(where) > 0 {
+		where_ = "WHERE " + strings.Join(where, " AND ")
+	}
+
+	query := `SELECT COUNT(*) FROM friend ` + where_ + `;`
+
+	var count int
+	err := tx.QueryRowContext(
+		ctx,
+		query,
+		sql.Named("notify_at", friend.FilterNotifyAt),
+		sql.Named("user_id", friend.UserId),
+		sql.Named("name", friend.Name),
+		sql.Named("id", friend.ID),
+		sql.Named("chat_id", friend.ChatId),
+	).Scan(&count)
+
+	if err != nil {
+		slog.Error("Ошибка при подсчете записей в таблице friend: " + err.Error())
+		return 0, err
+	}
+
+	return count, nil
 }
 
 // idempotent save

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -32,7 +31,15 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 		userId = strconv.Itoa(event.GetCallbackQuery().From.Id)
 	}
 
-	friends, err := (&db.Friend{UserId: userId, ChatId: chatId}).Filter(ctx, tx)
+	totalCount, err := (&db.Friend{UserId: userId, ChatId: chatId}).Count(ctx, tx)
+	if err != nil {
+		event.Logger.Error("Error counting friends: " + err.Error())
+		return err
+	}
+
+	friends, err := (&db.Friend{UserId: userId, ChatId: chatId}).Filter(ctx, tx,
+		db.WithTodayBirthdaysFirst(),
+		db.WithPagination(LIST_LIMIT, LIST_START_OFFSET))
 
 	if err != nil {
 		event.Logger.Error("Error fetching friends" + err.Error())
@@ -42,8 +49,8 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(
 			ctx,
-			buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-			*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+			buildChatHeaderMessage(ctx, chatId, event, totalCount == 0),
+			*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId, totalCount).Murkup(),
 		); err != nil {
 			return err
 		}
@@ -53,8 +60,8 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
-		buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-		*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+		buildChatHeaderMessage(ctx, chatId, event, totalCount == 0),
+		*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId, totalCount).Murkup(),
 	); err != nil {
 		return err
 	}
@@ -62,6 +69,8 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) 
 	return nil
 }
 
+// birthdayComparator больше не используется, так как сортировка выполняется на стороне БД
+// через функцию WithTodayBirthdaysFirst. Оставлена для справки.
 func birthdayComparator(friends []*db.Friend, i, j int) bool {
 	if friends[i].IsTodayBirthday() {
 		return true
@@ -117,7 +126,15 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 
 	chatId := params.BoundChat
 
-	friends, err := (&db.Friend{UserId: strconv.Itoa(callbackQuery.From.Id), ChatId: chatId}).Filter(ctx, tx)
+	totalCount, err := (&db.Friend{UserId: strconv.Itoa(callbackQuery.From.Id), ChatId: chatId}).Count(ctx, tx)
+	if err != nil {
+		event.Logger.Error("Error counting friends: " + err.Error())
+		return err
+	}
+
+	friends, err := (&db.Friend{UserId: strconv.Itoa(callbackQuery.From.Id), ChatId: chatId}).Filter(ctx, tx,
+		db.WithTodayBirthdaysFirst(),
+		db.WithPagination(limit_, offset_))
 
 	if err != nil {
 		event.Logger.Error("Error fetching friends" + err.Error())
@@ -141,31 +158,21 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 		offset_ -= LIST_PAGINATION_SHIFT
 	}
 	if direction == "<>" {
-		offset_ = len(friends)
+		offset_ = totalCount
 	}
 
 	msg := buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0))
 
-	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, chatId).Murkup()); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, chatId, totalCount).Murkup()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func buildFriendsButtons(friends []*db.Friend, limit, offset int, callbackDataBuilder func(id string, offset int) string) *[]common.Button {
-	sort.Slice(friends, func(i, j int) bool { return birthdayComparator(friends, i, j) })
+func buildFriendsButtons(friends []*db.Friend, _, offset int, callbackDataBuilder func(id string, offset int) string) *[]common.Button {
 	buttons := []common.Button{}
-	for i, friend := range friends {
-		if offset != len(friends) {
-			if i == limit+offset {
-				break
-			}
-			if i < offset {
-				continue
-			}
-		}
-
+	for _, friend := range friends {
 		buttonText := fmt.Sprintf("%s %s", friend.Name, friend.BirthDay)
 
 		if friend.IsTodayBirthday() {
@@ -182,7 +189,7 @@ func buildFriendsButtons(friends []*db.Friend, limit, offset int, callbackDataBu
 	return &buttons
 }
 
-func buildFriendsListMarkup(friends []*db.Friend, limit, offset int, chatId string) *common.InlineKeyboard {
+func buildFriendsListMarkup(friends []*db.Friend, limit, offset int, chatId string, totalCount int) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
 		return common.CallInfo(id, strconv.Itoa(offset)).String()
 	}
@@ -194,7 +201,7 @@ func buildFriendsListMarkup(friends []*db.Friend, limit, offset int, chatId stri
 
 	keyboard.AppendAsStack(*friendsListAsButtons...)
 
-	appendControlButtons(keyboard, len(friends), limit, offset, chatId)
+	appendControlButtons(keyboard, totalCount, limit, offset, chatId)
 
 	if strings.Contains(chatId, "-") {
 		keyboard.AppendAsLine(*common.NewButton("⬅️к чату", common.CallChatInfo(chatId).String()))
