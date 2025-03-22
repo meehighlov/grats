@@ -19,9 +19,23 @@ type WebhookServer struct {
 	secretToken  string
 	server       *http.Server
 	wg           sync.WaitGroup
+	useTLS       bool
+	tlsCertFile  string
+	tlsKeyFile   string
+	tlsAddr      string
 }
 
-func NewWebhookServer(addr string, token string, secretToken string, handler UpdateHandler, logger *slog.Logger) *WebhookServer {
+func NewWebhookServer(
+	addr string,
+	token string,
+	secretToken string,
+	handler UpdateHandler,
+	logger *slog.Logger,
+	useTLS bool,
+	tlsCertFile string,
+	tlsKeyFile string,
+	tlsAddr string,
+) *WebhookServer {
 	return &WebhookServer{
 		addr:         addr,
 		handler:      handler,
@@ -29,6 +43,10 @@ func NewWebhookServer(addr string, token string, secretToken string, handler Upd
 		logger:       logger,
 		shutdownChan: make(chan struct{}),
 		secretToken:  secretToken,
+		useTLS:       useTLS,
+		tlsCertFile:  tlsCertFile,
+		tlsKeyFile:   tlsKeyFile,
+		tlsAddr:      tlsAddr,
 	}
 }
 
@@ -74,8 +92,12 @@ func (ws *WebhookServer) Start() error {
 		}
 	})
 
+	addr := ws.addr
+	if ws.useTLS {
+		addr = ws.tlsAddr
+	}
 	ws.server = &http.Server{
-		Addr:    ws.addr,
+		Addr:    addr,
 		Handler: mux,
 	}
 
@@ -84,8 +106,18 @@ func (ws *WebhookServer) Start() error {
 	go func() {
 		defer ws.wg.Done()
 		ws.logger.Info("Starting webhook server", "addr", ws.addr)
-		if err := ws.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			ws.logger.Error("HTTP server error", "error", err)
+
+		if ws.useTLS {
+			ws.logger.Info("Starting webhook server with TLS", "addr", ws.addr)
+			if err := ws.server.ListenAndServeTLS(ws.tlsCertFile, ws.tlsKeyFile); err != nil && err != http.ErrServerClosed {
+				ws.logger.Error("HTTP server error", "error", err)
+			}
+		} else {
+			ws.logger.Info("Starting webhook server without TLS", "addr", ws.addr)
+
+			if err := ws.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				ws.logger.Error("HTTP server error", "error", err)
+			}
 		}
 	}()
 
@@ -113,8 +145,18 @@ func (ws *WebhookServer) Stop() {
 	}
 }
 
-func StartWebhook(addr string, token string, secretToken string, handler UpdateHandler, logger *slog.Logger) *WebhookServer {
-	server := NewWebhookServer(addr, token, secretToken, handler, logger)
+func StartWebhook(
+	addr string,
+	token string,
+	secretToken string,
+	handler UpdateHandler,
+	logger *slog.Logger,
+	useTLS bool,
+	tlsCertFile string,
+	tlsKeyFile string,
+	tlsAddr string,
+) *WebhookServer {
+	server := NewWebhookServer(addr, token, secretToken, handler, logger, useTLS, tlsCertFile, tlsKeyFile, tlsAddr)
 	go server.Start()
 	return server
 }

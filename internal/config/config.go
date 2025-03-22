@@ -23,6 +23,10 @@ type Config struct {
 	UseWebhook         bool   `env:"USE_WEBHOOK" env-default:"false"`
 	WebhookAddr        string `env:"WEBHOOK_ADDR" env-default:":8080"`
 	WebhookSecretToken string `env:"WEBHOOK_SECRET_TOKEN" env-default:""`
+	WebhookTlsOn       bool   `env:"WEBHOOK_TLS_ON" env-default:"false"`
+	WebhookTlsCertFile string `env:"WEBHOOK_TLS_CERT_FILE" env-default:""`
+	WebhookTlsKeyFile  string `env:"WEBHOOK_TLS_KEY_FILE" env-default:""`
+	WebhookTlsAddr     string `env:"WEBHOOK_TLS_ADDR" env-default:":443"`
 
 	loaded bool `env-default:"false"`
 }

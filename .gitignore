@@ -27,3 +27,5 @@ go.work.sum
 *.log
 .idea
 .DS_Store
+cert.pem
+key.pem
