@@ -2,16 +2,16 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"gorm.io/gorm"
 )
 
-func SetupHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func SetupHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 	message := event.GetMessage()
 
 	// at some point it is possible to use /command in group chat
@@ -55,7 +55,7 @@ func SetupHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 	return nil
 }
 
-func SetupFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func SetupFromGroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	chatId := event.GetMessage().GetChatIdStr()
 
 	friends, err := (&db.Friend{ChatId: chatId}).Filter(ctx, tx)

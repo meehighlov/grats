@@ -2,15 +2,15 @@ package common
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/telegram"
+	"gorm.io/gorm"
 )
 
-type HandlerType func(context.Context, *Event, *sql.Tx) error
+type HandlerType func(context.Context, *Event, *gorm.DB) error
 
 func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) telegram.UpdateHandler {
 	chatCahe := NewChatCache()
@@ -54,21 +54,17 @@ func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) tel
 
 		handler, found := handlers[command]
 		if found {
-			tx, err := db.GetDBConnection().BeginTx(ctx, nil)
+			tx := db.GetDB().WithContext(ctx).Begin()
+
+			logger.Info("Root handler", "start transaction for command", command, "chat id", update.GetChatIdStr())
+			err := handler(ctx, event, tx)
 			if err != nil {
-				logger.Error("Root handler", "getting transaction error", err.Error())
 				tx.Rollback()
+				chatContext.Reset()
+				logger.Error("Root handler", "handler error", err.Error(), "chat id", update.GetChatIdStr())
 			} else {
-				logger.Info("Root handler", "start transaction for command", command, "chat id", update.GetChatIdStr())
-				err := handler(ctx, event, tx)
-				if err != nil {
-					tx.Rollback()
-					chatContext.Reset()
-					logger.Error("Root handler", "handler error", err.Error(), "chat id", update.GetChatIdStr())
-				} else {
-					tx.Commit()
-					logger.Info("Root handler", "transaction commited for command", command, "chat id", update.GetChatIdStr())
-				}
+				tx.Commit()
+				logger.Info("Root handler", "transaction commited for command", command, "chat id", update.GetChatIdStr())
 			}
 		}
 

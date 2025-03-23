@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"gorm.io/gorm"
 )
 
-func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	friendId := params.Id
@@ -47,7 +47,7 @@ func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, 
 	return nil
 }
 
-func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	friendId := params.Id

@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"gorm.io/gorm"
 )
 
-func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	callbackQuery := event.GetCallbackQuery()
 
 	params := common.CallbackFromString(callbackQuery.Data)

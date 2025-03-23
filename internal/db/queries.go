@@ -2,286 +2,205 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
-	"strings"
+
+	"gorm.io/gorm"
 )
 
-// idempotent save
-// accepts ALL fields of entity and save as is
-func (user *User) Save(ctx context.Context, tx *sql.Tx) error {
+func (user *User) Save(ctx context.Context, tx *gorm.DB) error {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	db = db.Session(&gorm.Session{
+		SkipHooks: true,
+	})
+
 	_, _, _ = user.RefresTimestamps()
 
-	_, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO user(id, tg_id, name, tg_username, chat_id, birthday, is_admin, created_at, updated_at)
-        VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        ON CONFLICT(tg_id) DO UPDATE SET name=$3, tg_username=$4, chat_id=$5, birthday=$6, is_admin=$7, updated_at=$9
-        RETURNING id;`,
-		&user.ID,
-		&user.TgId,
-		&user.Name,
-		&user.TgUsername,
-		&user.ChatId,
-		&user.Birthday,
-		&user.IsAdmin,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-	if err != nil {
-		slog.Error("Error when trying to save user: " + err.Error())
-		return err
+	result := db.Save(user)
+	if result.Error != nil {
+		slog.Error("Error when trying to save user: " + result.Error.Error())
+		return result.Error
 	}
-	slog.Debug("User created/updated")
 
+	slog.Debug("User created/updated")
 	return nil
 }
 
-func (user *User) Filter(ctx context.Context, tx *sql.Tx) ([]User, error) {
-	where := []string{}
+func (user *User) Filter(ctx context.Context, tx *gorm.DB) ([]User, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var users []User
+	query := db.Model(&User{})
+
 	if user.TgId != "" {
-		where = append(where, "tg_id=$tg_id")
+		query = query.Where("tg_id = ?", user.TgId)
 	}
 	if user.TgUsername != "" {
-		where = append(where, "tg_username=$tg_username")
+		query = query.Where("tg_username = ?", user.TgUsername)
 	}
 
-	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, tg_id, name, tg_username, chat_id, birthday, is_admin, created_at, updated_at FROM user WHERE ` + where_ + `;`
-
-	rows, err := tx.QueryContext(
-		ctx,
-		query,
-		sql.Named("tg_id", user.TgId),
-		sql.Named("tg_username", user.TgUsername),
-	)
-	if err != nil {
-		slog.Error("Error when filtering users " + err.Error())
+	if err := query.Find(&users).Error; err != nil {
+		slog.Error("Error when filtering users: " + err.Error())
 		return nil, err
-	}
-
-	users := []User{}
-
-	for rows.Next() {
-		user := User{}
-		err := rows.Scan(
-			&user.ID,
-			&user.TgId,
-			&user.Name,
-			&user.TgUsername,
-			&user.ChatId,
-			&user.Birthday,
-			&user.IsAdmin,
-			&user.CreatedAt,
-			&user.UpdatedAt,
-		)
-		if err != nil {
-			slog.Error("Error fetching users by filter params: " + err.Error())
-			continue
-		}
-		users = append(users, user)
 	}
 
 	return users, nil
 }
 
-func (friend *Friend) Filter(ctx context.Context, tx *sql.Tx) ([]*Friend, error) {
-	where := []string{}
+func (friend *Friend) Filter(ctx context.Context, tx *gorm.DB) ([]*Friend, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var friends []*Friend
+	query := db.Model(&Friend{})
+
 	if friend.FilterNotifyAt != "" {
-		where = append(where, "notify_at=$notify_at")
+		query = query.Where("notify_at = ?", friend.FilterNotifyAt)
 	}
 	if friend.UserId != "" {
-		where = append(where, "user_id=$user_id")
+		query = query.Where("user_id = ?", friend.UserId)
 	}
 	if friend.Name != "" {
-		where = append(where, "name=$name")
+		query = query.Where("name = ?", friend.Name)
 	}
 	if friend.ID != "" {
-		where = append(where, "id=$id")
+		query = query.Where("id = ?", friend.ID)
 	}
 	if friend.ChatId != "" {
-		where = append(where, "chat_id=$chat_id")
+		query = query.Where("chat_id = ?", friend.ChatId)
 	}
 
-	where_ := strings.Join(where, " AND ")
-	query := `SELECT id, name, birthday, chat_id, user_id, notify_at, created_at, updated_at FROM friend WHERE ` + where_ + `;`
-
-	rows, err := tx.QueryContext(
-		ctx,
-		query,
-		sql.Named("notify_at", friend.FilterNotifyAt),
-		sql.Named("user_id", friend.UserId),
-		sql.Named("name", friend.Name),
-		sql.Named("id", friend.ID),
-		sql.Named("chat_id", friend.ChatId),
-	)
-	if err != nil {
-		slog.Error("Error when filtering friends " + err.Error())
+	if err := query.Find(&friends).Error; err != nil {
+		slog.Error("Error when filtering friends: " + err.Error())
 		return nil, err
-	}
-
-	friends := []*Friend{}
-
-	for rows.Next() {
-		friend := &Friend{}
-		err := rows.Scan(
-			&friend.ID,
-			&friend.Name,
-			&friend.BirthDay,
-			&friend.ChatId,
-			&friend.UserId,
-			friend.GetNotifyAt(),
-			&friend.CreatedAt,
-			&friend.UpdatedAt,
-		)
-		if err != nil {
-			slog.Error("Error fetching friends by filter params: " + err.Error())
-			continue
-		}
-		friends = append(friends, friend)
 	}
 
 	return friends, nil
 }
 
-// idempotent save
-// accepts ALL fields of entity and save as is
-func (friend *Friend) Save(ctx context.Context, tx *sql.Tx) error {
+func (friend *Friend) Save(ctx context.Context, tx *gorm.DB) error {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	db = db.Session(&gorm.Session{
+		SkipHooks: true,
+	})
+
 	_, _, _ = friend.RefresTimestamps()
 
-	_, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO friend(id, name, birthday, chat_id, user_id, notify_at, created_at, updated_at)
-        VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT(name,chat_id) DO UPDATE SET birthday=$3, notify_at=$6, updated_at=$8
-        RETURNING id;`,
-		friend.ID,
-		friend.Name,
-		friend.BirthDay,
-		friend.ChatId,
-		friend.UserId,
-		*friend.GetNotifyAt(),
-		friend.CreatedAt,
-		friend.UpdatedAt,
-	)
-	if err != nil {
-		slog.Error("Error when trying to save friend: " + err.Error())
-		return err
+	result := db.Save(friend)
+	if result.Error != nil {
+		slog.Error("Error when trying to save friend: " + result.Error.Error())
+		return result.Error
 	}
+
 	slog.Debug("Friend created/updated")
-
 	return nil
 }
 
-func (friend *Friend) Delete(ctx context.Context, tx *sql.Tx) error {
-	_, err := tx.ExecContext(
-		ctx,
-		`DELETE FROM friend WHERE id=$1;`,
-		&friend.ID,
-	)
-	if err != nil {
-		slog.Error("Error when trying to delete friend: " + err.Error())
-		return err
+func (friend *Friend) Delete(ctx context.Context, tx *gorm.DB) error {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
 	}
-	slog.Debug("Friend deleted")
 
+	result := db.Delete(friend)
+	if result.Error != nil {
+		slog.Error("Error when trying to delete friend: " + result.Error.Error())
+		return result.Error
+	}
+
+	slog.Debug("Friend deleted")
 	return nil
 }
 
-func (c *Chat) Filter(ctx context.Context, tx *sql.Tx) ([]*Chat, error) {
-	where := []string{}
+func (c *Chat) Filter(ctx context.Context, tx *gorm.DB) ([]*Chat, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var chats []*Chat
+	query := db.Model(&Chat{})
+
 	if c.ChatId != "" {
-		where = append(where, "chat_id=$chat_id")
+		query = query.Where("chat_id = ?", c.ChatId)
 	}
 	if c.ID != "" {
-		where = append(where, "id=$id")
+		query = query.Where("id = ?", c.ID)
 	}
 	if c.BotInvitedById != "" {
-		where = append(where, "bot_invited_by_id=$bot_invited_by_id")
+		query = query.Where("bot_invited_by_id = ?", c.BotInvitedById)
 	}
 
-	where_ := ""
-	if len(where) > 0 {
-		where_ = "WHERE " + strings.Join(where, " AND ")
-	}
-	query := `SELECT id, chat_id, chat_type, bot_invited_by_id, created_at, updated_at, greeting_template, silent_notifications FROM chat ` + where_ + `;`
-
-	rows, err := tx.QueryContext(
-		ctx,
-		query,
-		sql.Named("chat_id", c.ChatId),
-		sql.Named("id", c.ID),
-		sql.Named("bot_invited_by_id", c.BotInvitedById),
-	)
-	if err != nil {
-		slog.Error("Error when filtering chats " + err.Error())
+	if err := query.Find(&chats).Error; err != nil {
+		slog.Error("Error when filtering chats: " + err.Error())
 		return nil, err
-	}
-
-	chats := []*Chat{}
-
-	for rows.Next() {
-		chat := &Chat{}
-		err := rows.Scan(
-			&chat.ID,
-			&chat.ChatId,
-			&chat.ChatType,
-			&chat.BotInvitedById,
-			&chat.CreatedAt,
-			&chat.UpdatedAt,
-			&chat.GreetingTemplate,
-			&chat.SilentNotifications,
-		)
-		if err != nil {
-			slog.Error("Error fetching chats by filter params: " + err.Error())
-			continue
-		}
-		chats = append(chats, chat)
 	}
 
 	return chats, nil
 }
 
-// idempotent save
-// accepts ALL fields of entity and save as is
-func (c *Chat) Save(ctx context.Context, tx *sql.Tx) error {
+func (c *Chat) Save(ctx context.Context, tx *gorm.DB) error {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	db = db.Session(&gorm.Session{
+		SkipHooks: true,
+	})
+
 	_, _, _ = c.RefresTimestamps()
 
-	_, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO chat(id, chat_id, chat_type, bot_invited_by_id, created_at, updated_at, greeting_template, silent_notifications)
-        VALUES($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT(chat_id) DO UPDATE SET chat_type=$3, bot_invited_by_id=$4, updated_at=$6, greeting_template=$7, silent_notifications=$8
-        RETURNING id;`,
-		&c.ID,
-		&c.ChatId,
-		&c.ChatType,
-		&c.BotInvitedById,
-		&c.CreatedAt,
-		&c.UpdatedAt,
-		&c.GreetingTemplate,
-		&c.SilentNotifications,
-	)
-	if err != nil {
-		slog.Error("Error when trying to save chat: " + err.Error())
-		return err
+	result := db.Save(c)
+	if result.Error != nil {
+		slog.Error("Error when trying to save chat: " + result.Error.Error())
+		return result.Error
 	}
-	slog.Debug("Chat created/updated")
 
+	slog.Debug("Chat created/updated")
 	return nil
 }
 
-func (c *Chat) Delete(ctx context.Context, tx *sql.Tx) error {
-	_, err := tx.ExecContext(
-		ctx,
-		`DELETE FROM chat WHERE id=$1;`,
-		&c.ID,
-	)
-	if err != nil {
-		slog.Error("Error when trying to delete chat: " + err.Error())
-		return err
+func (c *Chat) Delete(ctx context.Context, tx *gorm.DB) error {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
 	}
-	slog.Debug("Chat deleted")
 
+	result := db.Delete(c)
+	if result.Error != nil {
+		slog.Error("Error when trying to delete chat: " + result.Error.Error())
+		return result.Error
+	}
+
+	slog.Debug("Chat deleted")
 	return nil
 }
