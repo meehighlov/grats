@@ -77,7 +77,7 @@ func main() {
 	var webhookServer *telegram.WebhookServer
 
 	if cfg.UseWebhook {
-		logger.Info("starting webhook server...", "addr", cfg.WebhookAddr)
+		logger.Info("starting webhook server...")
 		webhookServer = telegram.StartWebhook(
 			cfg.WebhookAddr,
 			cfg.BotToken,

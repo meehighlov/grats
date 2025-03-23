@@ -108,7 +108,7 @@ func (ws *WebhookServer) Start() error {
 		ws.logger.Info("Starting webhook server", "addr", ws.addr)
 
 		if ws.useTLS {
-			ws.logger.Info("Starting webhook server with TLS", "addr", ws.addr)
+			ws.logger.Info("Starting webhook server with TLS", "addr", ws.server.Addr)
 			if err := ws.server.ListenAndServeTLS(ws.tlsCertFile, ws.tlsKeyFile); err != nil && err != http.ErrServerClosed {
 				ws.logger.Error("HTTP server error", "error", err)
 			}
