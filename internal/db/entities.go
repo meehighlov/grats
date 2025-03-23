@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/meehighlov/grats/internal/config"
-	"gorm.io/gorm"
 )
 
 type BaseFields struct {
@@ -29,34 +28,6 @@ func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error
 	b.UpdatedAt = now
 
 	return b.CreatedAt, b.UpdatedAt, nil
-}
-
-func (b *BaseFields) BeforeCreate(tx *gorm.DB) (err error) {
-	if b.ID == "" {
-		b.ID = uuid.New().String()
-	}
-
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " entityId: " + b.ID)
-	}
-	now := time.Now().In(location).Format("02.01.2006T15:04:05")
-
-	if b.CreatedAt == "" {
-		b.CreatedAt = now
-	}
-	b.UpdatedAt = now
-
-	return nil
-}
-
-func (b *BaseFields) BeforeUpdate(tx *gorm.DB) (err error) {
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " entityId: " + b.ID)
-	}
-	b.UpdatedAt = time.Now().In(location).Format("02.01.2006T15:04:05")
-	return nil
 }
 
 func NewBaseFields() BaseFields {

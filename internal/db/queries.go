@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (user *User) Save(ctx context.Context, tx *gorm.DB) error {
@@ -21,7 +22,10 @@ func (user *User) Save(ctx context.Context, tx *gorm.DB) error {
 
 	_, _, _ = user.RefresTimestamps()
 
-	result := db.Save(user)
+	result := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "tg_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"name", "tg_username", "chat_id", "birthday", "is_admin", "updated_at"}),
+	}).Create(user)
 	if result.Error != nil {
 		slog.Error("Error when trying to save user: " + result.Error.Error())
 		return result.Error
@@ -106,7 +110,10 @@ func (friend *Friend) Save(ctx context.Context, tx *gorm.DB) error {
 
 	_, _, _ = friend.RefresTimestamps()
 
-	result := db.Save(friend)
+	result := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"name", "user_id", "birthday", "chat_id", "notify_at", "updated_at"}),
+	}).Create(friend)
 	if result.Error != nil {
 		slog.Error("Error when trying to save friend: " + result.Error.Error())
 		return result.Error
@@ -177,7 +184,10 @@ func (c *Chat) Save(ctx context.Context, tx *gorm.DB) error {
 
 	_, _, _ = c.RefresTimestamps()
 
-	result := db.Save(c)
+	result := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "chat_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"chat_type", "bot_invited_by_id", "greeting_template", "silent_notifications", "updated_at"}),
+	}).Create(c)
 	if result.Error != nil {
 		slog.Error("Error when trying to save chat: " + result.Error.Error())
 		return result.Error
