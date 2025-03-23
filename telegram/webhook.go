@@ -105,7 +105,6 @@ func (ws *WebhookServer) Start() error {
 
 	go func() {
 		defer ws.wg.Done()
-		ws.logger.Info("Starting webhook server", "addr", ws.addr)
 
 		if ws.useTLS {
 			ws.logger.Info("Starting webhook server with TLS", "addr", ws.server.Addr)
