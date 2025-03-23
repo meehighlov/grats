@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,6 +10,7 @@ import (
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/telegram"
+	"gorm.io/gorm"
 )
 
 const CHECK_TIMEOUT_SEC = 10
@@ -59,11 +59,7 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 
 		date := time.Now().In(location).Format("02.01.2006")
 
-		tx, err := db.GetDBConnection().BeginTx(ctx, nil)
-		if err != nil {
-			logger.Error("Notify job", "getting transaction error", err.Error())
-			continue
-		}
+		tx := db.GetDB().WithContext(ctx).Begin()
 
 		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter(ctx, tx)
 		if err != nil {
@@ -134,12 +130,12 @@ func BirthdayNotifer(
 
 func commit(
 	ctx context.Context,
-	tx *sql.Tx,
+	tx *gorm.DB,
 	client *telegram.Client,
 	logger *slog.Logger,
 	cfg *config.Config,
 ) error {
-	err := tx.Commit()
+	err := tx.Commit().Error
 	if err == nil {
 		return nil
 	}
@@ -164,7 +160,7 @@ func commit(
 	return err
 }
 
-func updateNotifyAt(ctx context.Context, tx *sql.Tx, friends []*db.Friend, logger *slog.Logger) bool {
+func updateNotifyAt(ctx context.Context, tx *gorm.DB, friends []*db.Friend, logger *slog.Logger) bool {
 	failed := false
 	for _, friend := range friends {
 		friend.UpdateNotifyAt()
@@ -179,7 +175,7 @@ func updateNotifyAt(ctx context.Context, tx *sql.Tx, friends []*db.Friend, logge
 	return failed
 }
 
-func getChatIdToChat(ctx context.Context, tx *sql.Tx, friends []*db.Friend, logger *slog.Logger) (map[string]*db.Chat, error) {
+func getChatIdToChat(ctx context.Context, tx *gorm.DB, friends []*db.Friend, logger *slog.Logger) (map[string]*db.Chat, error) {
 	chatIdToChat := make(map[string]*db.Chat)
 	for _, friend := range friends {
 		chats, err := (&db.Chat{ChatId: friend.ChatId}).Filter(ctx, tx)

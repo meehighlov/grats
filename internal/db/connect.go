@@ -1,33 +1,79 @@
 package db
 
 import (
-	"database/sql"
+	"context"
 	"log"
 	"log/slog"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
-var sqliteConn *sql.DB
+var db *gorm.DB
 
-func MustSetup(dsn string, logger *slog.Logger) {
+type slogWriter struct {
+	logger *slog.Logger
+}
+
+func (sw *slogWriter) Write(p []byte) (n int, err error) {
+	sw.logger.Info(string(p))
+	return len(p), nil
+}
+
+func MustSetup(dsn string, lgr *slog.Logger, runMigrations bool) {
 	var err error
-	sqliteConn, err = sql.Open("sqlite3", dsn)
+
+	gormLogger := logger.New(
+		log.New(&slogWriter{logger: lgr}, "", 0),
+		logger.Config{
+			SlowThreshold:             time.Second,
+			LogLevel:                  logger.Info,
+			IgnoreRecordNotFoundError: true,
+			ParameterizedQueries:      true,
+		},
+	)
+
+	db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: gormLogger,
+		NamingStrategy: schema.NamingStrategy{
+			SingularTable: true,
+		},
+
+		DisableForeignKeyConstraintWhenMigrating: true,
+		SkipDefaultTransaction:                   true,
+		NowFunc: func() time.Time {
+			return time.Now()
+		},
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	sqliteConn.SetMaxOpenConns(100)
-	sqliteConn.SetMaxIdleConns(10)
-	sqliteConn.SetConnMaxLifetime(time.Minute * 30)
 
-	if err = sqliteConn.Ping(); err != nil {
+	sqlDB, err := db.DB()
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	logger.Info("Database is ready")
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetConnMaxLifetime(time.Minute * 30)
+
+	if runMigrations {
+		if err := RunMigrations(context.Background(), lgr); err != nil {
+			log.Fatal("Migration error:", err)
+		}
+	}
+
+	lgr.Info("Database is ready")
 }
 
-func GetDBConnection() *sql.DB {
-	return sqliteConn
+func GetDB() *gorm.DB {
+	return db
+}
+
+func GetDBConnection() (*gorm.DB, error) {
+	return db, nil
 }

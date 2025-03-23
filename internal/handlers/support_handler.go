@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"regexp"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/telegram"
+	"gorm.io/gorm"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 	`
 )
 
-func SupportHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func SupportHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 	keyboard := common.NewInlineKeyboard()
 
 	homeButton := common.NewButton("🏠 в начало", common.CallSetup().String())
@@ -41,7 +41,7 @@ func SupportHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
 	return nil
 }
 
-func WriteToSupportHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func WriteToSupportHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 	event.SetNextHandler("send_to_support")
 
 	if _, err := event.ReplyCallbackQuery(
@@ -54,7 +54,7 @@ func WriteToSupportHandler(ctx context.Context, event *common.Event, _ *sql.Tx) 
 	return nil
 }
 
-func SendToSupportHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func SendToSupportHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 	user := event.GetMessage().From
 
 	userSupportRequest := event.GetMessage().Text
@@ -89,7 +89,7 @@ func SendToSupportHandler(ctx context.Context, event *common.Event, _ *sql.Tx) e
 	return nil
 }
 
-func SendSupportResponseToUserHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func SendSupportResponseToUserHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 	userRequest := event.GetMessage().ReplyToMessage.Text
 
 	if userRequest == "" {

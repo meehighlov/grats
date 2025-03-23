@@ -2,20 +2,20 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"gorm.io/gorm"
 )
 
 const (
 	MAX_CHATS_FOR_USER = 10
 )
 
-func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func StartHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	message := event.GetMessage()
 
 	// at some point it is possible to use /command in group chat
@@ -72,7 +72,7 @@ func StartHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	return nil
 }
 
-func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	userChats, err := (&db.Chat{
 		BotInvitedById: strconv.Itoa(event.GetMessage().From.Id),
 		ChatType:       "%group",

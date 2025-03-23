@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/telegram"
+	"gorm.io/gorm"
 )
 
 const HOWTO = `
@@ -24,7 +24,7 @@ const HOWTO = `
 В групповой чат я пришлю сообщение "Всем привет👋", чат появится в меню "Групповые чаты"
 `
 
-func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	invitedBy := event.GetMessage().From.Id
 	if event.GetCallbackQuery().Id != "" {
 		invitedBy = event.GetCallbackQuery().From.Id
@@ -85,7 +85,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	return nil
 }
 
-func GroupInfoHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func GroupInfoHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	chatInfo, err := event.GetChat(ctx, params.Id)
@@ -111,7 +111,7 @@ func GroupInfoHandler(ctx context.Context, event *common.Event, tx *sql.Tx) erro
 	return nil
 }
 
-func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *sql.Tx) error {
+func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 	msg := fmt.Sprintf(
 		"\nМаксимальное количество групповых чатов: %d",
 		MAX_CHATS_FOR_USER,
@@ -156,7 +156,7 @@ func buildChatInfoMarkup(chatId string, chat *db.Chat) *common.InlineKeyboard {
 	return keyboard
 }
 
-func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	chatInfo, err := event.GetChat(ctx, params.Id)
@@ -192,7 +192,7 @@ func EditGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 	return nil
 }
 
-func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	if len(event.GetContext().GetTexts()) == 0 {
 		event.Logger.Error(
 			"SaveGreetingTemplateHandler context error",
@@ -265,7 +265,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event, tx *s
 	return nil
 }
 
-func DeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func DeleteChatHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 	chatId := params.Id
 
@@ -293,7 +293,7 @@ func DeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) err
 	return nil
 }
 
-func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 	chatId := params.Id
 
@@ -335,7 +335,7 @@ func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *sql.
 	return nil
 }
 
-func ToggleSilentNotificationsHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func ToggleSilentNotificationsHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 	chatId := params.Id
 

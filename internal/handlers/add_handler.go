@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"gorm.io/gorm"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 	FRIEND_LIMIT_FOR_CHAT = 50
 )
 
-func AddToChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func AddToChatHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	chatId := common.CallbackFromString(event.GetCallbackQuery().Data).Id
 	friends, err := (&db.Friend{ChatId: chatId}).Filter(ctx, tx)
 	if err != nil {
@@ -52,7 +52,7 @@ func AddToChatHandler(ctx context.Context, event *common.Event, tx *sql.Tx) erro
 	return nil
 }
 
-func EnterBirthday(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func EnterBirthday(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	friendName := strings.TrimSpace(event.GetMessage().Text)
 
 	if len(friendName) > FRIEND_NAME_MAX_LEN {
@@ -76,7 +76,7 @@ func EnterBirthday(ctx context.Context, event *common.Event, tx *sql.Tx) error {
 	return nil
 }
 
-func SaveFriend(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func SaveFriend(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 

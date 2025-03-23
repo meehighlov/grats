@@ -8,12 +8,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/meehighlov/grats/internal/config"
+	"gorm.io/gorm"
 )
 
 type BaseFields struct {
-	ID        string
-	CreatedAt string
-	UpdatedAt string
+	ID        string `gorm:"primaryKey;type:string;column:id"`
+	CreatedAt string `gorm:"not null;column:created_at;type:varchar"`
+	UpdatedAt string `gorm:"not null;column:updated_at;type:varchar"`
 }
 
 func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error) {
@@ -30,6 +31,34 @@ func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error
 	return b.CreatedAt, b.UpdatedAt, nil
 }
 
+func (b *BaseFields) BeforeCreate(tx *gorm.DB) (err error) {
+	if b.ID == "" {
+		b.ID = uuid.New().String()
+	}
+
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " entityId: " + b.ID)
+	}
+	now := time.Now().In(location).Format("02.01.2006T15:04:05")
+
+	if b.CreatedAt == "" {
+		b.CreatedAt = now
+	}
+	b.UpdatedAt = now
+
+	return nil
+}
+
+func (b *BaseFields) BeforeUpdate(tx *gorm.DB) (err error) {
+	location, err := time.LoadLocation(config.Cfg().Timezone)
+	if err != nil {
+		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " entityId: " + b.ID)
+	}
+	b.UpdatedAt = time.Now().In(location).Format("02.01.2006T15:04:05")
+	return nil
+}
+
 func NewBaseFields() BaseFields {
 	id := uuid.New().String()
 	location, err := time.LoadLocation(config.Cfg().Timezone)
@@ -42,17 +71,21 @@ func NewBaseFields() BaseFields {
 
 type User struct {
 	// telegram user -> bot's user
-
 	BaseFields
 
-	TgId       string // id will be taken from telegram
-	Name       string
-	TgUsername string
-	ChatId     string // chatId - id of chat with user, bot uses it to send notification
-	Birthday   string
-	IsAdmin    int
+	TgId       string `gorm:"uniqueIndex;not null;column:tg_id;type:varchar"` // id will be taken from telegram
+	Name       string `gorm:"not null;column:name"`
+	TgUsername string `gorm:"not null;column:tg_username"`
+	ChatId     string `gorm:"column:chat_id;type:varchar"` // chatId - id of chat with user, bot uses it to send notification
+	Birthday   string `gorm:"column:birthday;type:varchar"`
+	IsAdmin    int    `gorm:"column:is_admin;type:int"`
 
-	Friends []Friend
+	Friends []Friend `gorm:"foreignKey:UserId;references:ID"`
+}
+
+// TableName переопределяет имя таблицы
+func (User) TableName() string {
+	return "user"
 }
 
 func (user *User) HasAdminAccess() bool {
@@ -79,45 +112,20 @@ type Friend struct {
 
 	// todo store timezone in friend table or somewere in db - for user's specific timezone
 
-	Name           string
-	UserId         string
-	BirthDay       string
-	ChatId         string
-	notifyAt       string
-	FilterNotifyAt string // this param is only for filtering
+	Name     string `gorm:"not null;type:varchar"`
+	UserId   string `gorm:"not null;index;type:varchar"`
+	BirthDay string `gorm:"column:birthday;type:varchar"`
+	ChatId   string `gorm:"column:chat_id;type:varchar"`
+	NotifyAt string `gorm:"column:notify_at;type:varchar"`
+
+	FilterNotifyAt string `gorm:"-"`
+
+	User User `gorm:"foreignKey:UserId;references:ID"`
 }
 
-type Chat struct {
-	BaseFields
-
-	// more: https://core.telegram.org/bots/api#chat
-	// may be one of: private, group, supergroup, channel
-	// lowercase!
-	// todo enum
-	ChatType string
-
-	BotInvitedById   string
-	ChatId           string
-	GreetingTemplate string
-
-	// 0 off, 1 on
-	SilentNotifications int
-}
-
-func (chat *Chat) IsAlreadySilent() bool {
-	return chat.SilentNotifications == 1
-}
-
-func (chat *Chat) GetSilent() bool {
-	return chat.SilentNotifications == 1
-}
-
-func (chat *Chat) EnableSoundNotifications() {
-	chat.SilentNotifications = 0
-}
-
-func (chat *Chat) DisableSoundNotifications() {
-	chat.SilentNotifications = 1
+// TableName переопределяет имя таблицы
+func (Friend) TableName() string {
+	return "friend"
 }
 
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {
@@ -236,7 +244,7 @@ func (friend *Friend) IsTodayBirthday() bool {
 }
 
 func (friend *Friend) GetNotifyAt() *string {
-	return &friend.notifyAt
+	return &friend.NotifyAt
 }
 
 func (friend *Friend) RenewNotifayAt() (string, error) {
@@ -294,15 +302,39 @@ func (friend *Friend) UpdateNotifyAt() (string, error) {
 	return *friend.GetNotifyAt(), nil
 }
 
-type Access struct {
+type Chat struct {
 	BaseFields
 
-	TgUsername string
+	// more: https://core.telegram.org/bots/api#chat
+	// may be one of: private, group, supergroup, channel
+	// lowercase!
+	// todo enum
+	ChatType string `gorm:"column:chat_type;type:varchar"`
+
+	BotInvitedById   string `gorm:"column:bot_invited_by_id;type:varchar"`
+	ChatId           string `gorm:"uniqueIndex;not null;column:chat_id"`
+	GreetingTemplate string `gorm:"column:greeting_template;type:varchar"`
+
+	// 0 off, 1 on
+	SilentNotifications int
 }
 
-func (access *Access) GetTGUserName() string {
-	if !strings.HasPrefix("@", access.TgUsername) {
-		return "@" + access.TgUsername
-	}
-	return access.TgUsername
+func (Chat) TableName() string {
+	return "chat"
+}
+
+func (chat *Chat) IsAlreadySilent() bool {
+	return chat.SilentNotifications == 1
+}
+
+func (chat *Chat) GetSilent() bool {
+	return chat.SilentNotifications == 1
+}
+
+func (chat *Chat) EnableSoundNotifications() {
+	chat.SilentNotifications = 0
+}
+
+func (chat *Chat) DisableSoundNotifications() {
+	chat.SilentNotifications = 1
 }

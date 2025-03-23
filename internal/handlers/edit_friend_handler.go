@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"gorm.io/gorm"
 )
 
-func EditNameHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func EditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	callbackQuery := event.GetCallbackQuery()
 	params := common.CallbackFromString(callbackQuery.Data)
 
@@ -41,7 +41,7 @@ func EditNameHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error
 	return nil
 }
 
-func SaveEditNameHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func SaveEditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 
@@ -83,7 +83,7 @@ func SaveEditNameHandler(ctx context.Context, event *common.Event, tx *sql.Tx) e
 	return nil
 }
 
-func EditBirthdayHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func EditBirthdayHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	callbackQuery := event.GetCallbackQuery()
 	params := common.CallbackFromString(callbackQuery.Data)
 
@@ -109,7 +109,7 @@ func EditBirthdayHandler(ctx context.Context, event *common.Event, tx *sql.Tx) e
 	return nil
 }
 
-func SaveEditBirthdayHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func SaveEditBirthdayHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 

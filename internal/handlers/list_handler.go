@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"sort"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
+	"gorm.io/gorm"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 	HEADER_MESSAGE_LIST_IS_EMPTY       = "✨Записей пока нет"
 )
 
-func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	message := event.GetMessage()
 
 	chatId := message.GetChatIdStr()
@@ -101,7 +101,7 @@ func appendControlButtons(keyboard *common.InlineKeyboard, total, limit, offset 
 	return nil
 }
 
-func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event, tx *sql.Tx) error {
+func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	callbackQuery := event.GetCallbackQuery()
 
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)

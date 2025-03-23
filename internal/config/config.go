@@ -28,6 +28,8 @@ type Config struct {
 	WebhookTlsKeyFile  string `env:"WEBHOOK_TLS_KEY_FILE" env-default:""`
 	WebhookTlsAddr     string `env:"WEBHOOK_TLS_ADDR" env-default:":443"`
 
+	RunMigrations bool `env:"RUN_MIGRATIONS" env-default:"false"`
+
 	loaded bool `env-default:"false"`
 }
 
