@@ -30,9 +30,10 @@ func MustSetup(dsn string, lgr *slog.Logger, runMigrations bool) {
 		log.New(&slogWriter{logger: lgr}, "", 0),
 		logger.Config{
 			SlowThreshold:             time.Second,
-			LogLevel:                  logger.Info,
+			LogLevel:                  logger.Error,
 			IgnoreRecordNotFoundError: true,
 			ParameterizedQueries:      true,
+			Colorful:                  true,
 		},
 	)
 
