@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -131,7 +132,11 @@ func (friend *Friend) Delete(ctx context.Context, tx *gorm.DB) error {
 		db = db.WithContext(ctx)
 	}
 
-	result := db.Delete(friend)
+	if friend.ChatId == "" {
+		return fmt.Errorf("WHERE conditions required: ChatId cannot be empty for Delete operation")
+	}
+
+	result := db.Where("chat_id = ?", friend.ChatId).Delete(friend)
 	if result.Error != nil {
 		slog.Error("Error when trying to delete friend: " + result.Error.Error())
 		return result.Error
@@ -205,7 +210,11 @@ func (c *Chat) Delete(ctx context.Context, tx *gorm.DB) error {
 		db = db.WithContext(ctx)
 	}
 
-	result := db.Delete(c)
+	if c.ChatId == "" {
+		return fmt.Errorf("WHERE conditions required: ChatId cannot be empty for Delete operation")
+	}
+
+	result := db.Where("chat_id = ?", c.ChatId).Delete(c)
 	if result.Error != nil {
 		slog.Error("Error when trying to delete chat: " + result.Error.Error())
 		return result.Error

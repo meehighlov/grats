@@ -13,17 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const HOWTO = `
-1. Нажмите кнопку "скопировать команду"
-2. Добавьте меня в групповой чат
-3. Отправьте команду в групповой чат
-
-Текст команды выглядит так:
-%s
-
-В групповой чат я пришлю сообщение "Всем привет👋", чат появится в меню "Групповые чаты"
-`
-
 func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	invitedBy := event.GetMessage().From.Id
 	if event.GetCallbackQuery().Id != "" {
@@ -39,12 +28,12 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(*common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsStack(*common.NewButton("💫инструкция💫", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
+	keyboard.AppendAsStack(*common.NewAddBotToChatURLButton("➕ добавить бота в чат", config.Cfg().BotName))
 
 	if len(chats) == 0 {
 		if _, err := event.EditCalbackMessage(
 			ctx,
-			"Чатов пока нет🙌",
+			"После добавления в группу тут отобразится список Ваших групп, в которые я добавлен",
 			*keyboard.Murkup(),
 		); err != nil {
 			return err
@@ -105,32 +94,6 @@ func GroupInfoHandler(ctx context.Context, event *common.Event, tx *gorm.DB) err
 	msg := fmt.Sprintf("⚙️Настройка чата `%s`", chatInfo.Title)
 
 	if _, err := event.EditCalbackMessage(ctx, msg, *buildChatInfoMarkup(params.Id, chats[0]).Murkup()); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
-	msg := fmt.Sprintf(
-		"\nМаксимальное количество групповых чатов: %d",
-		MAX_CHATS_FOR_USER,
-	)
-
-	cfg := config.Cfg()
-	msg = fmt.Sprintf(HOWTO, fmt.Sprintf("`/start@%s`", cfg.BotName)) + msg
-
-	keyboard := common.NewInlineKeyboard()
-	keyboard.AppendAsStack(
-		*common.NewCopyButton("скопировать команду", fmt.Sprintf("`/start@%s`", cfg.BotName)),
-	)
-
-	if _, err := event.ReplyCallbackQuery(
-		ctx,
-		msg,
-		telegram.WithReplyMurkup(*keyboard.Murkup()),
-		telegram.WithMarkDown(),
-	); err != nil {
 		return err
 	}
 

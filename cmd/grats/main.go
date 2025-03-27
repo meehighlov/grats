@@ -29,6 +29,9 @@ func main() {
 		"/start":                              handlers.StartHandler,
 		fmt.Sprintf("/start@%s", cfg.BotName): handlers.StartFromGroupHandler,
 
+		// call format when telegram adds bot to group
+		fmt.Sprintf("/start@%s true", cfg.BotName): handlers.StartFromGroupHandler,
+
 		"/setup":                              handlers.SetupHandler,
 		fmt.Sprintf("/setup@%s", cfg.BotName): handlers.SetupFromGroupHandler,
 
@@ -52,7 +55,6 @@ func main() {
 		"delete":                      handlers.DeleteFriendCallbackQueryHandler,
 		"confirm_delete":              handlers.ConfirmDeleteFriendCallbackQueryHandler,
 		"chat_info":                   handlers.GroupInfoHandler,
-		"chat_howto":                  handlers.GroupHowtoHandler,
 		"chat_list":                   handlers.GroupHandler,
 		"chat_birthdays":              handlers.ListBirthdaysHandler,
 		"delete_chat":                 handlers.DeleteChatHandler,
