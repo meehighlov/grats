@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
 	"gorm.io/gorm"
 )
@@ -31,7 +32,12 @@ func SetupHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 	groupButton := common.NewButton("👥 Групповые чаты", common.CallChatList().String())
 	supportButton := common.NewButton("💬 Чат с поддержкой", common.CallSupport(chatId).String())
 
+	// Добавляем кнопку для добавления бота в чат
+	cfg := config.Cfg()
+	addBotButton := common.NewAddBotToChatURLButton("➕ Добавить бота в чат", cfg.BotName)
+
 	keyboard.AppendAsStack(*listButton, *groupButton, *supportButton)
+	keyboard.AppendAsLine(*addBotButton)
 
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(

@@ -89,6 +89,10 @@ func CallWriteToSupport(chatId string) *CallbackDataModel {
 	return newCallback("write_to_support", chatId, "", "", "support", "")
 }
 
+func CallChatHowto(id string) *CallbackDataModel {
+	return newCallback("chat_howto", id, "", "", "chat", "")
+}
+
 func newCallback(command, id, offset, direction, entity, chatid string) *CallbackDataModel {
 	return &CallbackDataModel{
 		Command: command,

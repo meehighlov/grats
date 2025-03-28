@@ -55,6 +55,7 @@ func main() {
 		"delete":                      handlers.DeleteFriendCallbackQueryHandler,
 		"confirm_delete":              handlers.ConfirmDeleteFriendCallbackQueryHandler,
 		"chat_info":                   handlers.GroupInfoHandler,
+		"chat_howto":                  handlers.GroupHowtoHandler,
 		"chat_list":                   handlers.GroupHandler,
 		"chat_birthdays":              handlers.ListBirthdaysHandler,
 		"delete_chat":                 handlers.DeleteChatHandler,

@@ -13,6 +13,18 @@ import (
 	"gorm.io/gorm"
 )
 
+const HOWTO = `
+Чтобы добавить меня в групповой чат:
+
+1. Нажмите кнопку "➕ Добавить бота в чат"
+2. Выберите групповой чат, в который хотите добавить бота
+3. После добавления в чат отправьте команду /start@%s
+
+В групповой чат я пришлю сообщение "Всем привет👋", и чат появится в меню "Групповые чаты"
+
+Максимальное количество групповых чатов: %d
+`
+
 func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	invitedBy := event.GetMessage().From.Id
 	if event.GetCallbackQuery().Id != "" {
@@ -28,12 +40,19 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(*common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsStack(*common.NewAddBotToChatURLButton("➕ добавить бота в чат", config.Cfg().BotName))
+
+	// Создаем кнопку с URL для добавления бота в чат
+	cfg := config.Cfg()
+	addBotButton := common.NewAddBotToChatURLButton("➕ Добавить бота в чат", cfg.BotName)
+	keyboard.AppendAsLine(*addBotButton)
+
+	// Добавляем кнопку для перехода к инструкции
+	keyboard.AppendAsStack(*common.NewButton("как добавить бота в группу?", common.CallChatHowto(event.GetMessage().GetChatIdStr()).String()))
 
 	if len(chats) == 0 {
 		if _, err := event.EditCalbackMessage(
 			ctx,
-			"После добавления в группу тут отобразится список Ваших групп, в которые я добавлен",
+			"Чатов пока нет🙌",
 			*keyboard.Murkup(),
 		); err != nil {
 			return err
@@ -334,6 +353,39 @@ func ToggleSilentNotificationsHandler(ctx context.Context, event *common.Event, 
 	msg := fmt.Sprintf("⚙️Настройка чата `%s`", chatInfo.Title)
 
 	if _, err := event.EditCalbackMessage(ctx, msg, *buildChatInfoMarkup(chatId, chat).Murkup()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GroupHowtoHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
+	// Получаем имя бота из конфигурации
+	cfg := config.Cfg()
+	botName := cfg.BotName
+
+	// Форматируем сообщение с инструкцией
+	msg := fmt.Sprintf(HOWTO, botName, MAX_CHATS_FOR_USER)
+
+	keyboard := common.NewInlineKeyboard()
+
+	// Кнопка для возврата к списку чатов
+	keyboard.AppendAsStack(*common.NewButton("⬅️ Назад к чатам", common.CallChatList().String()))
+
+	// Кнопка для добавления бота в чат
+	addBotButton := common.NewAddBotToChatURLButton("➕ Добавить бота в чат", botName)
+	keyboard.AppendAsLine(*addBotButton)
+
+	// Кнопка для копирования команды /start@bot_name
+	keyboard.AppendAsLine(*common.NewCopyButton("📋 Скопировать команду", fmt.Sprintf("/start@%s", botName)))
+
+	// Отправляем сообщение с инструкцией и клавиатурой
+	if _, err := event.ReplyCallbackQuery(
+		ctx,
+		msg,
+		telegram.WithReplyMurkup(*keyboard.Murkup()),
+		telegram.WithMarkDown(),
+	); err != nil {
 		return err
 	}
 
