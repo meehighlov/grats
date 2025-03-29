@@ -29,9 +29,10 @@ func SetupHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error {
 
 	listButton := common.NewButton("🎂 Личные напоминания", common.CallList(fmt.Sprintf("%d", LIST_START_OFFSET), ">", chatId).String())
 	groupButton := common.NewButton("👥 Групповые чаты", common.CallChatList().String())
+	wishButton := common.NewButton("🎁 Список желаний", common.CallWishList(chatId).String())
 	supportButton := common.NewButton("💬 Чат с поддержкой", common.CallSupport(chatId).String())
 
-	keyboard.AppendAsStack(listButton, groupButton, supportButton)
+	keyboard.AppendAsStack(listButton, groupButton, wishButton, supportButton)
 
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -29,8 +30,8 @@ func CallDelete(id, offset string) *CallbackDataModel {
 	return newCallback("delete", id, offset, "", "friend", "")
 }
 
-func CallInfo(id, offset string) *CallbackDataModel {
-	return newCallback("info", id, offset, "", "friend", "")
+func CallInfo(id, offset, table string) *CallbackDataModel {
+	return newCallback(fmt.Sprintf("%s_info", table), id, offset, "", table, "")
 }
 
 func CallChatInfo(id string) *CallbackDataModel {
@@ -41,8 +42,8 @@ func CallChatList() *CallbackDataModel {
 	return newCallback("chat_list", "", "", "", "chat", "")
 }
 
-func CallAddToChat(id string) *CallbackDataModel {
-	return newCallback("add_to_chat", id, "", "", "chat", "")
+func CallAddItem(id, table string) *CallbackDataModel {
+	return newCallback(fmt.Sprintf("add_to_%s", table), id, "", "", table, "")
 }
 
 func CallChatBirthdays(id string) *CallbackDataModel {
@@ -67,6 +68,22 @@ func CallConfirmDeleteChat(id string) *CallbackDataModel {
 
 func CallToggleSilentNotifications(id string) *CallbackDataModel {
 	return newCallback("toggle_silent_notifications", id, "", "", "chat", "")
+}
+
+func CallWishList(chatid string) *CallbackDataModel {
+	return newCallback("wish_list", chatid, "", "", "wish", "")
+}
+
+func CallDeleteWish(id, offset string) *CallbackDataModel {
+	return newCallback("delete_wish", id, offset, "", "wish", "")
+}
+
+func CallWishInfo(id, offset string) *CallbackDataModel {
+	return newCallback("wish_info", id, offset, "", "wish", "")
+}
+
+func CallConfirmDeleteWish(id string) *CallbackDataModel {
+	return newCallback("confirm_delete_wish", id, "", "", "wish", "")
 }
 
 func CallSetup() *CallbackDataModel {

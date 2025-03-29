@@ -40,7 +40,7 @@ func ListItemsHandler(ctx context.Context, event *common.Event, tx *gorm.DB) err
 		if _, err := event.EditCalbackMessage(
 			ctx,
 			buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0)),
-			*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+			*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId, entity).Murkup(),
 		); err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func ListItemsHandler(ctx context.Context, event *common.Event, tx *gorm.DB) err
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
 		buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0)),
-		*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+		*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId, entity).Murkup(),
 	); err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 
 	msg := buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0))
 
-	if _, err := event.EditCalbackMessage(ctx, msg, *buildListMarkup(entities, limit_, offset_, chatId).Murkup()); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildListMarkup(entities, limit_, offset_, chatId, params.Entity).Murkup()); err != nil {
 		return err
 	}
 
@@ -161,15 +161,15 @@ func buildEntityButtons[T db.Entity](entities []T, limit, offset int, callbackDa
 	return buttons
 }
 
-func buildListMarkup[T db.Entity](entities []T, limit, offset int, chatId string) *common.InlineKeyboard {
+func buildListMarkup[T db.Entity](entities []T, limit, offset int, chatId string, table string) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
-		return common.CallInfo(id, strconv.Itoa(offset)).String()
+		return common.CallInfo(id, strconv.Itoa(offset), table).String()
 	}
 	entityListAsButtons := buildEntityButtons(entities, limit, offset, callbackDataBuilder)
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsLine(common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsLine(common.NewButton("➕ добавить напоминание", common.CallAddToChat(chatId).String()))
+	keyboard.AppendAsLine(common.NewButton("➕ добавить", common.CallAddItem(chatId, table).String()))
 
 	keyboard.AppendAsStack(entityListAsButtons...)
 

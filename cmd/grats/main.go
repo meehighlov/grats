@@ -36,6 +36,17 @@ func main() {
 		"add_enter_bd":    handlers.EnterBirthday,
 		"add_save_friend": handlers.SaveFriend,
 
+		// wish handlers
+		"add_to_wish":         handlers.AddWishHandler,
+		"add_enter_ozon_link": handlers.EnterOzonLink,
+		"add_enter_wb_link":   handlers.EnterWbLink,
+		"add_enter_price":     handlers.EnterPrice,
+		"add_save_wish":       handlers.SaveWish,
+		"wish_list":           handlers.ListItemsHandler,
+		"wish_info":           handlers.WishInfoHandler,
+		"delete_wish":         handlers.DeleteWishCallbackQueryHandler,
+		"confirm_delete_wish": handlers.ConfirmDeleteWishCallbackQueryHandler,
+
 		// admin TODO
 
 		// support
@@ -48,7 +59,7 @@ func main() {
 		"setup":                       handlers.SetupHandler,
 		"list":                        handlers.ListPaginationCallbackQueryHandler,
 		"new_list":                    handlers.ListItemsHandler,
-		"info":                        handlers.FriendInfoCallbackQueryHandler,
+		"friend_info":                 handlers.FriendInfoCallbackQueryHandler,
 		"delete":                      handlers.DeleteFriendCallbackQueryHandler,
 		"confirm_delete":              handlers.ConfirmDeleteFriendCallbackQueryHandler,
 		"chat_info":                   handlers.GroupInfoHandler,

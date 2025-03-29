@@ -341,3 +341,131 @@ func (c *Chat) Search(ctx context.Context, tx *gorm.DB, chatId, userId string) (
 
 	return entities, nil
 }
+
+func (wish *Wish) GetId() string {
+	return wish.ID
+}
+
+func (w *Wish) GreaterThan(other Entity) bool {
+	return true
+}
+
+func (w *Wish) ButtonText() string {
+	displayName := w.Link
+	if displayName == "" {
+		displayName = "Желание без ссылки"
+	}
+	return displayName
+}
+
+func (w *Wish) Search(ctx context.Context, tx *gorm.DB, chatId, userId string) ([]Entity, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var wishes []*Wish
+	query := db.Model(&Wish{})
+
+	if chatId != "" {
+		query = query.Where("chat_id = ?", chatId)
+	}
+	if userId != "" {
+		query = query.Where("user_id = ?", userId)
+	}
+
+	if err := query.Find(&wishes).Error; err != nil {
+		slog.Error("Error when searching wishes: " + err.Error())
+		return nil, err
+	}
+
+	var entities []Entity
+	for _, wish := range wishes {
+		entities = append(entities, wish)
+	}
+
+	return entities, nil
+}
+
+func (w *Wish) Filter(ctx context.Context, tx *gorm.DB) ([]*Wish, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var wishes []*Wish
+	query := db.Model(&Wish{})
+
+	if w.UserId != "" {
+		query = query.Where("user_id = ?", w.UserId)
+	}
+	if w.ID != "" {
+		query = query.Where("id = ?", w.ID)
+	}
+	if w.ChatId != "" {
+		query = query.Where("chat_id = ?", w.ChatId)
+	}
+	if w.Link != "" {
+		query = query.Where("link = ?", w.Link)
+	}
+
+	if err := query.Find(&wishes).Error; err != nil {
+		slog.Error("Error when filtering wishes: " + err.Error())
+		return nil, err
+	}
+
+	return wishes, nil
+}
+
+func (w *Wish) Save(ctx context.Context, tx *gorm.DB) error {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	db = db.Session(&gorm.Session{
+		SkipHooks: true,
+	})
+
+	_, _, _ = w.RefresTimestamps()
+
+	result := db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"chat_id", "user_id", "link", "ozon_link", "wb_link", "locked", "price", "updated_at"}),
+	}).Create(w)
+	if result.Error != nil {
+		slog.Error("Error when trying to save wish: " + result.Error.Error())
+		return result.Error
+	}
+
+	slog.Debug("Wish created/updated")
+	return nil
+}
+
+func (w *Wish) Delete(ctx context.Context, tx *gorm.DB) error {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	db = db.Session(&gorm.Session{
+		SkipHooks: true,
+	})
+
+	result := db.Delete(w)
+	if result.Error != nil {
+		slog.Error("Error when trying to delete wish: " + result.Error.Error())
+		return result.Error
+	}
+
+	slog.Debug("Wish deleted")
+	return nil
+}

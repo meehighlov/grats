@@ -50,6 +50,9 @@ func NewEntity(table string) Entity {
 	if table == "chat" {
 		return &Chat{}
 	}
+	if table == "wish" {
+		return &Wish{}
+	}
 	return nil
 }
 
@@ -100,6 +103,24 @@ type Friend struct {
 
 func (Friend) TableName() string {
 	return "friend"
+}
+
+type Wish struct {
+	BaseFields
+
+	ChatId   string `gorm:"column:chat_id;type:varchar"`
+	UserId   string `gorm:"not null;index;column:user_id;type:varchar"`
+	Link     string `gorm:"column:link;type:varchar"`
+	OzonLink string `gorm:"column:ozon_link;type:varchar"`
+	WbLink   string `gorm:"column:wb_link;type:varchar"`
+	Locked   string `gorm:"column:locked;type:varchar"`
+	Price    string `gorm:"column:price;type:varchar"`
+
+	User User `gorm:"foreignKey:UserId;references:ID"`
+}
+
+func (Wish) TableName() string {
+	return "wish"
 }
 
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {

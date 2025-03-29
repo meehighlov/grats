@@ -164,7 +164,7 @@ func buildNavigationMarkup(chatId string) *common.InlineKeyboard {
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsStack(
-		common.NewButton("➕ добавить еще", common.CallAddToChat(chatId).String()),
+		common.NewButton("➕ добавить еще", common.CallAddItem(chatId, "chat").String()),
 		common.NewButton("📋 список др", common.CallChatBirthdays(chatId).String()),
 	)
 

@@ -28,7 +28,7 @@ func EditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) erro
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		common.NewButton("⬅️ назад", common.CallInfo(params.Id, "0").String()),
+		common.NewButton("⬅️ назад", common.CallInfo(params.Id, "0", "friend").String()),
 	)
 
 	if _, err := event.ReplyCallbackQuery(ctx, msg); err != nil {
@@ -174,7 +174,7 @@ func replyWithInfo(
 	keyboard.AppendAsStack(
 		common.NewButton(
 			fmt.Sprintf("%s %s", friend.Name, friend.BirthDay),
-			common.CallInfo(friend.ID, fmt.Sprintf("%d", LIST_START_OFFSET)).String(),
+			common.CallInfo(friend.ID, fmt.Sprintf("%d", LIST_START_OFFSET), "friend").String(),
 		),
 	)
 

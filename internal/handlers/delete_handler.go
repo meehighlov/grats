@@ -36,7 +36,7 @@ func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, 
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsStack(
-		common.NewButton("⬅️ назад", common.CallInfo(friendId, params.Pagination.Offset).String()),
+		common.NewButton("⬅️ назад", common.CallInfo(friendId, params.Pagination.Offset, "friend").String()),
 		common.NewButton("🗑 удалить", common.CallConfirmDelete(friendId).String()),
 	)
 
