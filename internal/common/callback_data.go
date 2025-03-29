@@ -49,6 +49,10 @@ func CallChatBirthdays(id string) *CallbackDataModel {
 	return newCallback("chat_birthdays", id, "", "", "chat", "")
 }
 
+func CallChatHowto(id string) *CallbackDataModel {
+	return newCallback("chat_howto", id, "", "", "chat", "")
+}
+
 func CallEditGreetingTemplate(id string) *CallbackDataModel {
 	return newCallback("edit_greeting_template", id, "", "", "chat", "")
 }

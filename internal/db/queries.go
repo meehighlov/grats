@@ -122,11 +122,7 @@ func (friend *Friend) Delete(ctx context.Context, tx *gorm.DB) error {
 		db = db.WithContext(ctx)
 	}
 
-	if friend.ChatId == "" {
-		return fmt.Errorf("WHERE conditions required: ChatId cannot be empty for Delete operation")
-	}
-
-	result := db.Where("chat_id = ?", friend.ChatId).Delete(friend)
+	result := db.Delete(friend)
 	if result.Error != nil {
 		slog.Error("Error when trying to delete friend: " + result.Error.Error())
 		return result.Error
@@ -217,11 +213,7 @@ func (c *Chat) Delete(ctx context.Context, tx *gorm.DB) error {
 		db = db.WithContext(ctx)
 	}
 
-	if c.ChatId == "" {
-		return fmt.Errorf("WHERE conditions required: ChatId cannot be empty for Delete operation")
-	}
-
-	result := db.Where("chat_id = ?", c.ChatId).Delete(c)
+	result := db.Delete(c)
 	if result.Error != nil {
 		slog.Error("Error when trying to delete chat: " + result.Error.Error())
 		return result.Error
