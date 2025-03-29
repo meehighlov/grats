@@ -17,9 +17,8 @@ const (
 	LIST_LIMIT            = 5
 	LIST_START_OFFSET     = 0
 
-	HEADER_MESSAGE_LIST_NOT_EMPTY      = "✨Личные напоминания о др"
-	HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT = "✨Список др в чате %s"
-	HEADER_MESSAGE_LIST_IS_EMPTY       = "✨Записей пока нет"
+	HEADER_MESSAGE_LIST_NOT_EMPTY = "✨Список %s"
+	HEADER_MESSAGE_LIST_IS_EMPTY  = "✨Записей пока нет"
 )
 
 func ListItemsHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
@@ -39,7 +38,7 @@ func ListItemsHandler(ctx context.Context, event *common.Event, tx *gorm.DB) err
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(
 			ctx,
-			buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0)),
+			buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0), entity),
 			*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId, entity).Murkup(),
 		); err != nil {
 			return err
@@ -50,7 +49,7 @@ func ListItemsHandler(ctx context.Context, event *common.Event, tx *gorm.DB) err
 
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
-		buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0)),
+		buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0), entity),
 		*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId, entity).Murkup(),
 	); err != nil {
 		return err
@@ -131,7 +130,7 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 		offset_ = len(entities)
 	}
 
-	msg := buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0))
+	msg := buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0), params.Entity)
 
 	if _, err := event.EditCalbackMessage(ctx, msg, *buildListMarkup(entities, limit_, offset_, chatId, params.Entity).Murkup()); err != nil {
 		return err
@@ -182,17 +181,20 @@ func buildListMarkup[T db.Entity](entities []T, limit, offset int, chatId string
 	return keyboard
 }
 
-func buildChatHeaderMessage(ctx context.Context, chatId string, event *common.Event, emptyList bool) string {
+func buildChatHeaderMessage(ctx context.Context, chatId string, event *common.Event, emptyList bool, table string) string {
 	if emptyList {
 		return HEADER_MESSAGE_LIST_IS_EMPTY
 	}
+	if table == "wish" {
+		return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY, "желаний")
+	}
 	chatFullInfo, err := event.GetChat(ctx, chatId)
 	if err != nil {
-		return HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT
+		return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY, "напоминаний о др в чате")
 	}
 	if chatFullInfo.Id < 0 {
-		return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY_CHAT, chatFullInfo.Title)
+		return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY, "напоминаний о др в чате "+chatFullInfo.Title)
 	} else {
-		return HEADER_MESSAGE_LIST_NOT_EMPTY
+		return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY, "личных напоминаний о др")
 	}
 }

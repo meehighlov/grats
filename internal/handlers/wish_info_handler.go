@@ -60,16 +60,16 @@ func WishInfoHandler(ctx context.Context, event *common.Event, tx *gorm.DB) erro
 		msgLines = append(msgLines, "🔓 Статус: не забронировано")
 	}
 
-	created := strings.Split(wish.CreatedAt, "T")[0]
-	msgLines = append(msgLines, fmt.Sprintf("📅 Добавлено: %s", created))
-
 	msg := strings.Join(msgLines, "\n\n")
 
 	offset := params.Pagination.Offset
 
 	keyboard := common.NewInlineKeyboard()
 
+	// todo add link button
 	keyboard.AppendAsStack(
+		common.NewButton("💰 обновить цену", common.CallEditPrice(wish.ID).String()),
+		common.NewButton("🔗 обновить ссылку", common.CallEditLink(wish.ID).String()),
 		common.NewButton("⬅️ к списку желаний", common.CallWishList(wish.ChatId).String()),
 		common.NewButton("🗑 удалить", common.CallDeleteWish(params.Id, offset).String()),
 	)

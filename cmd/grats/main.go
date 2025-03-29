@@ -38,15 +38,15 @@ func main() {
 
 		// wish handlers
 		"add_to_wish":         handlers.AddWishHandler,
-		"add_enter_ozon_link": handlers.EnterOzonLink,
-		"add_enter_wb_link":   handlers.EnterWbLink,
-		"add_enter_price":     handlers.EnterPrice,
 		"add_save_wish":       handlers.SaveWish,
 		"wish_list":           handlers.ListItemsHandler,
 		"wish_info":           handlers.WishInfoHandler,
 		"delete_wish":         handlers.DeleteWishCallbackQueryHandler,
 		"confirm_delete_wish": handlers.ConfirmDeleteWishCallbackQueryHandler,
-
+		"edit_price":          handlers.EditPriceHandler,
+		"edit_link":           handlers.EditLinkHandler,
+		"edit_price_save":     handlers.SaveEditPriceHandler,
+		"edit_link_save":      handlers.SaveEditLinkHandler,
 		// admin TODO
 
 		// support

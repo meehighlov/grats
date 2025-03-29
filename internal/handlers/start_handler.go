@@ -45,9 +45,9 @@ func StartHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	}
 
 	chat := db.Chat{
-		BaseFields:   db.NewBaseFields(),
-		ChatType:     "private",
-		ChatId:       event.GetMessage().GetChatIdStr(),
+		BaseFields:     db.NewBaseFields(),
+		ChatType:       "private",
+		ChatId:         event.GetMessage().GetChatIdStr(),
 		BotInvitedById: strconv.Itoa(event.GetMessage().From.Id),
 	}
 

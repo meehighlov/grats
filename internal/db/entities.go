@@ -115,6 +115,7 @@ type Wish struct {
 	WbLink   string `gorm:"column:wb_link;type:varchar"`
 	Locked   string `gorm:"column:locked;type:varchar"`
 	Price    string `gorm:"column:price;type:varchar"`
+	Name     string `gorm:"column:name;type:varchar"`
 
 	User User `gorm:"foreignKey:UserId;references:ID"`
 }

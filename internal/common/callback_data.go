@@ -78,6 +78,14 @@ func CallDeleteWish(id, offset string) *CallbackDataModel {
 	return newCallback("delete_wish", id, offset, "", "wish", "")
 }
 
+func CallEditPrice(id string) *CallbackDataModel {
+	return newCallback("edit_price", id, "", "", "wish", "")
+}
+
+func CallEditLink(id string) *CallbackDataModel {
+	return newCallback("edit_link", id, "", "", "wish", "")
+}
+
 func CallWishInfo(id, offset string) *CallbackDataModel {
 	return newCallback("wish_info", id, offset, "", "wish", "")
 }

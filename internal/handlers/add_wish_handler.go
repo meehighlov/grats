@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
@@ -38,7 +37,7 @@ func AddWishHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error
 		return nil
 	}
 
-	msg := "Введите ссылку на желание✨\n\nнапример 👉 https://example.com/wish"
+	msg := "✨Введите название желания\n\n"
 	msg += fmt.Sprintf("\n\nМаксимальное количество желаний для пользователя: %d", WISH_LIMIT_FOR_USER)
 
 	if _, err := event.ReplyCallbackQuery(ctx, msg); err != nil {
@@ -47,86 +46,6 @@ func AddWishHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error
 	event.GetContext().AppendText(chatId)
 	event.GetContext().AppendText(userId)
 
-	event.SetNextHandler("add_enter_ozon_link")
-
-	return nil
-}
-
-func EnterOzonLink(ctx context.Context, event *common.Event, tx *gorm.DB) error {
-	wishLink := strings.TrimSpace(event.GetMessage().Text)
-
-	if len(wishLink) > WISH_LINK_MAX_LEN {
-		if _, err := event.Reply(ctx, fmt.Sprintf("Ссылка не должна превышать %d символов", WISH_LINK_MAX_LEN)); err != nil {
-			return err
-		}
-		event.SetNextHandler("add_enter_ozon_link")
-		return nil
-	}
-
-	event.GetContext().AppendText(wishLink)
-
-	msg := "Введите ссылку на OZON (если есть)✨\n\nнапример 👉 https://ozon.ru/product/123 или введите '-' если её нет"
-
-	if _, err := event.Reply(ctx, msg); err != nil {
-		return err
-	}
-
-	event.SetNextHandler("add_enter_wb_link")
-
-	return nil
-}
-
-func EnterWbLink(ctx context.Context, event *common.Event, tx *gorm.DB) error {
-	ozonLink := strings.TrimSpace(event.GetMessage().Text)
-
-	if ozonLink == "-" {
-		ozonLink = ""
-	}
-
-	if len(ozonLink) > WISH_LINK_MAX_LEN {
-		if _, err := event.Reply(ctx, fmt.Sprintf("Ссылка не должна превышать %d символов", WISH_LINK_MAX_LEN)); err != nil {
-			return err
-		}
-		event.SetNextHandler("add_enter_wb_link")
-		return nil
-	}
-
-	event.GetContext().AppendText(ozonLink)
-
-	msg := "Введите ссылку на Wildberries (если есть)✨\n\nнапример 👉 https://wildberries.ru/catalog/123 или введите '-' если её нет"
-
-	if _, err := event.Reply(ctx, msg); err != nil {
-		return err
-	}
-
-	event.SetNextHandler("add_enter_price")
-
-	return nil
-}
-
-func EnterPrice(ctx context.Context, event *common.Event, tx *gorm.DB) error {
-	wbLink := strings.TrimSpace(event.GetMessage().Text)
-
-	if wbLink == "-" {
-		wbLink = ""
-	}
-
-	if len(wbLink) > WISH_LINK_MAX_LEN {
-		if _, err := event.Reply(ctx, fmt.Sprintf("Ссылка не должна превышать %d символов", WISH_LINK_MAX_LEN)); err != nil {
-			return err
-		}
-		event.SetNextHandler("add_enter_price")
-		return nil
-	}
-
-	event.GetContext().AppendText(wbLink)
-
-	msg := "Укажите примерную цену (если известна)✨\n\nнапример 👉 1000₽ или введите '-' если цена неизвестна"
-
-	if _, err := event.Reply(ctx, msg); err != nil {
-		return err
-	}
-
 	event.SetNextHandler("add_save_wish")
 
 	return nil
@@ -134,26 +53,13 @@ func EnterPrice(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 
 func SaveWish(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	message := event.GetMessage()
-	chatContext := event.GetContext()
-
-	price := strings.TrimSpace(message.Text)
-	if price == "-" {
-		price = ""
-	}
-
-	chatContext.AppendText(price)
-	data := chatContext.GetTexts()
-	chatId, userId, link, ozonLink, wbLink, priceVal := data[0], data[1], data[2], data[3], data[4], data[5]
 
 	wish := db.Wish{
 		BaseFields: db.NewBaseFields(),
-		ChatId:     chatId,
-		UserId:     userId,
-		Link:       link,
-		OzonLink:   ozonLink,
-		WbLink:     wbLink,
-		Locked:     "",
-		Price:      priceVal,
+		Name:       message.Text,
+		ChatId:     message.GetChatIdStr(),
+		UserId:     strconv.Itoa(message.From.Id),
+		Locked:     "0",
 	}
 
 	err := wish.Save(ctx, tx)
@@ -161,25 +67,12 @@ func SaveWish(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 		return err
 	}
 
-	msg := "Желание успешно добавлено 💾"
-
-	if strings.Contains(chatId, "-") {
-		chatTitle := "чат"
-		chatFullInfo, err := event.GetChat(ctx, chatId)
-		if err != nil {
-			return err
-		}
-		if chatFullInfo.Id != 0 {
-			chatTitle = fmt.Sprintf("чат %s", chatFullInfo.Title)
-		}
-
-		msg = fmt.Sprintf("Желание добавлено в %s 💾", chatTitle)
-	}
+	msg := "Желание добавлено 💾"
 
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
 		msg,
-		*buildWishNavigationMarkup(chatId).Murkup(),
+		*buildWishNavigationMarkup(event.GetChatId(), wish.ID).Murkup(),
 	); err != nil {
 		return err
 	}
@@ -189,11 +82,13 @@ func SaveWish(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	return nil
 }
 
-func buildWishNavigationMarkup(chatId string) *common.InlineKeyboard {
+func buildWishNavigationMarkup(chatId string, wishId string) *common.InlineKeyboard {
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsStack(
-		common.NewButton("➕ добавить еще", common.CallAddItem(chatId, "wish").String()),
+		common.NewButton("➕ новое желание", common.CallAddItem(chatId, "wish").String()),
+		common.NewButton("💰 обновить цену", common.CallEditPrice(wishId).String()),
+		common.NewButton("🔗 обновить ссылку", common.CallEditLink(wishId).String()),
 		common.NewButton("📋 список желаний", common.CallWishList(chatId).String()),
 	)
 
