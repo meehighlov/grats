@@ -36,8 +36,8 @@ func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event, 
 	keyboard := common.NewInlineKeyboard()
 
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️ назад", common.CallInfo(friendId, params.Pagination.Offset).String()),
-		*common.NewButton("🗑 удалить", common.CallConfirmDelete(friendId).String()),
+		common.NewButton("⬅️ назад", common.CallInfo(friendId, params.Pagination.Offset).String()),
+		common.NewButton("🗑 удалить", common.CallConfirmDelete(friendId).String()),
 	)
 
 	if _, err := event.EditCalbackMessage(ctx, fmt.Sprintf("Удаляем напоминание для %s (%s)?", friend.Name, friend.BirthDay), *keyboard.Murkup()); err != nil {
@@ -82,7 +82,7 @@ func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.
 
 	keyboard := common.NewInlineKeyboard()
 
-	keyboard.AppendAsStack(*common.NewButton("⬅️ к списку др", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", friend.ChatId).String()))
+	keyboard.AppendAsStack(common.NewButton("⬅️ к списку др", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<", friend.ChatId).String()))
 
 	if _, err := event.EditCalbackMessage(ctx, "Напоминание удалено👋", *keyboard.Murkup()); err != nil {
 		return err

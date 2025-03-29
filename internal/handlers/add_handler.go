@@ -163,7 +163,10 @@ func validateBirthdaty(birtday string) error {
 func buildNavigationMarkup(chatId string) *common.InlineKeyboard {
 	keyboard := common.NewInlineKeyboard()
 
-	keyboard.AppendAsStack(*common.NewButton("➕ добавить еще", common.CallAddToChat(chatId).String()), *common.NewButton("📋 список др", common.CallChatBirthdays(chatId).String()))
+	keyboard.AppendAsStack(
+		common.NewButton("➕ добавить еще", common.CallAddToChat(chatId).String()),
+		common.NewButton("📋 список др", common.CallChatBirthdays(chatId).String()),
+	)
 
 	return keyboard
 }

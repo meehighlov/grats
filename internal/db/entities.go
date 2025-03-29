@@ -40,6 +40,19 @@ func NewBaseFields() BaseFields {
 	return BaseFields{id, now, now}
 }
 
+func NewEntity(table string) Entity {
+	if table == "user" {
+		return &User{}
+	}
+	if table == "friend" {
+		return &Friend{}
+	}
+	if table == "chat" {
+		return &Chat{}
+	}
+	return nil
+}
+
 type User struct {
 	// telegram user -> bot's user
 	BaseFields
@@ -54,7 +67,6 @@ type User struct {
 	Friends []Friend `gorm:"foreignKey:UserId;references:ID"`
 }
 
-// TableName переопределяет имя таблицы
 func (User) TableName() string {
 	return "user"
 }
@@ -68,14 +80,6 @@ func (user *User) GetTGUserName() string {
 		return "@" + user.TgUsername
 	}
 	return user.TgUsername
-}
-
-func (user *User) FriendsListAsString() string {
-	result := ""
-	for _, friend := range user.Friends {
-		result += friend.Name + " " + friend.BirthDay + "\n"
-	}
-	return result
 }
 
 type Friend struct {
@@ -94,7 +98,6 @@ type Friend struct {
 	User User `gorm:"foreignKey:UserId;references:ID"`
 }
 
-// TableName переопределяет имя таблицы
 func (Friend) TableName() string {
 	return "friend"
 }

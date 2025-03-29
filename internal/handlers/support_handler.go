@@ -28,7 +28,7 @@ func SupportHandler(ctx context.Context, event *common.Event, _ *gorm.DB) error 
 
 	homeButton := common.NewButton("🏠 в начало", common.CallSetup().String())
 	writeButton := common.NewButton("написать", common.CallWriteToSupport(event.GetMessage().GetChatIdStr()).String())
-	keyboard.AppendAsStack(*homeButton, *writeButton)
+	keyboard.AppendAsStack(homeButton, writeButton)
 
 	if _, err := event.EditCalbackMessage(
 		ctx,

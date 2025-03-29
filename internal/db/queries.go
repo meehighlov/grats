@@ -9,6 +9,18 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+func (user *User) GetId() string {
+	return user.ID
+}
+
+func (friend *Friend) GetId() string {
+	return friend.ID
+}
+
+func (chat *Chat) GetId() string {
+	return chat.ID
+}
+
 func (user *User) Save(ctx context.Context, tx *gorm.DB) error {
 	db := GetDB()
 	if tx != nil {
@@ -36,30 +48,8 @@ func (user *User) Save(ctx context.Context, tx *gorm.DB) error {
 	return nil
 }
 
-func (user *User) Filter(ctx context.Context, tx *gorm.DB) ([]User, error) {
-	db := GetDB()
-	if tx != nil {
-		db = tx
-	} else {
-		db = db.WithContext(ctx)
-	}
-
-	var users []User
-	query := db.Model(&User{})
-
-	if user.TgId != "" {
-		query = query.Where("tg_id = ?", user.TgId)
-	}
-	if user.TgUsername != "" {
-		query = query.Where("tg_username = ?", user.TgUsername)
-	}
-
-	if err := query.Find(&users).Error; err != nil {
-		slog.Error("Error when filtering users: " + err.Error())
-		return nil, err
-	}
-
-	return users, nil
+func (u *User) GreaterThan(other Entity) bool {
+	return true
 }
 
 func (friend *Friend) Filter(ctx context.Context, tx *gorm.DB) ([]*Friend, error) {
@@ -146,6 +136,23 @@ func (friend *Friend) Delete(ctx context.Context, tx *gorm.DB) error {
 	return nil
 }
 
+func (f *Friend) GreaterThan(other Entity) bool {
+	otherFriend, ok := other.(*Friend)
+	if !ok {
+		return false
+	}
+
+	if f.IsTodayBirthday() {
+		return true
+	}
+	if otherFriend.IsTodayBirthday() {
+		return false
+	}
+	countI := f.CountDaysToBirthday()
+	countJ := otherFriend.CountDaysToBirthday()
+	return countI > countJ
+}
+
 func (c *Chat) Filter(ctx context.Context, tx *gorm.DB) ([]*Chat, error) {
 	db := GetDB()
 	if tx != nil {
@@ -222,4 +229,123 @@ func (c *Chat) Delete(ctx context.Context, tx *gorm.DB) error {
 
 	slog.Debug("Chat deleted")
 	return nil
+}
+
+func (c *Chat) GreaterThan(other Entity) bool {
+	return true
+}
+
+func (f *Friend) ButtonText() string {
+	buttonText := fmt.Sprintf("%s %s", f.Name, f.BirthDay)
+
+	if f.IsTodayBirthday() {
+		buttonText = fmt.Sprintf("%s 🥳", buttonText)
+	} else {
+		if f.IsThisMonthAfterToday() {
+			buttonText = fmt.Sprintf("%s 🕒", buttonText)
+		}
+	}
+
+	return buttonText
+}
+
+func (c *Chat) ButtonText() string {
+	return c.ChatId
+}
+
+func (u *User) ButtonText() string {
+	return u.Name
+}
+
+func (u *User) Search(ctx context.Context, tx *gorm.DB, chatId, userId string) ([]Entity, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var users []*User
+	query := db.Model(&User{})
+
+	if userId != "" {
+		query = query.Where("user_id = ?", userId)
+	}
+	if chatId != "" {
+		query = query.Where("chat_id = ?", chatId)
+	}
+
+	if err := query.Find(&users).Error; err != nil {
+		slog.Error("Error when searching users: " + err.Error())
+		return nil, err
+	}
+
+	var entities []Entity
+	for _, user := range users {
+		entities = append(entities, user)
+	}
+
+	return entities, nil
+}
+
+func (f *Friend) Search(ctx context.Context, tx *gorm.DB, chatId, userId string) ([]Entity, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var friends []*Friend
+	query := db.Model(&Friend{})
+
+	if userId != "" {
+		query = query.Where("user_id = ?", userId)
+	}
+	if chatId != "" {
+		query = query.Where("chat_id = ?", chatId)
+	}
+
+	if err := query.Find(&friends).Error; err != nil {
+		slog.Error("Error when searching friends: " + err.Error())
+		return nil, err
+	}
+
+	var entities []Entity
+	for _, friend := range friends {
+		entities = append(entities, friend)
+	}
+
+	return entities, nil
+}
+
+func (c *Chat) Search(ctx context.Context, tx *gorm.DB, chatId, userId string) ([]Entity, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var chats []*Chat
+	query := db.Model(&Chat{})
+
+	if chatId != "" {
+		query = query.Where("chat_id = ?", chatId)
+	}
+	if userId != "" {
+		query = query.Where("bot_invited_by_id = ?", userId)
+	}
+
+	if err := query.Find(&chats).Error; err != nil {
+		slog.Error("Error when searching chats: " + err.Error())
+		return nil, err
+	}
+
+	var entities []Entity
+	for _, chat := range chats {
+		entities = append(entities, chat)
+	}
+
+	return entities, nil
 }

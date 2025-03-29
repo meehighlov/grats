@@ -103,7 +103,7 @@ func NewInlineKeyboard() *InlineKeyboard {
 }
 
 // appends button list to representation of keyboard to new row below
-func (ik *InlineKeyboard) AppendAsLine(buttons ...Button) {
+func (ik *InlineKeyboard) AppendAsLine(buttons ...*Button) {
 	rawButtons := []map[string]interface{}{}
 	for _, button := range buttons {
 		rawButtons = append(rawButtons, button.Raw())
@@ -113,7 +113,7 @@ func (ik *InlineKeyboard) AppendAsLine(buttons ...Button) {
 }
 
 // appends button list as stacked lines
-func (ik *InlineKeyboard) AppendAsStack(buttons ...Button) {
+func (ik *InlineKeyboard) AppendAsStack(buttons ...*Button) {
 	for _, button := range buttons {
 		ik.AppendAsLine(button)
 	}

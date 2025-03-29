@@ -27,8 +27,8 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	}
 
 	keyboard := common.NewInlineKeyboard()
-	keyboard.AppendAsStack(*common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsStack(*common.NewAddBotToChatURLButton("➕ добавить бота в чат", config.Cfg().BotName))
+	keyboard.AppendAsStack(common.NewButton("🏠 в начало", common.CallSetup().String()))
+	keyboard.AppendAsStack(common.NewAddBotToChatURLButton("➕ добавить бота в чат", config.Cfg().BotName))
 
 	if len(chats) == 0 {
 		if _, err := event.EditCalbackMessage(
@@ -41,7 +41,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 		return nil
 	}
 
-	buttons := []common.Button{}
+	buttons := []*common.Button{}
 
 	for _, chat := range chats {
 		fullInfo, err := event.GetChat(ctx, chat.ChatId)
@@ -49,7 +49,7 @@ func GroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 			return err
 		}
 		if fullInfo != nil {
-			buttons = append(buttons, *common.NewButton(fullInfo.Title, common.CallChatInfo(chat.ChatId).String()))
+			buttons = append(buttons, common.NewButton(fullInfo.Title, common.CallChatInfo(chat.ChatId).String()))
 		}
 	}
 
@@ -109,11 +109,11 @@ func buildChatInfoMarkup(chatId string, chat *db.Chat) *common.InlineKeyboard {
 	}
 
 	keyboard.AppendAsStack(
-		*common.NewButton("📋 список всех др в чате", common.CallChatBirthdays(chatId).String()),
-		*common.NewButton("📝 изменить шаблон напоминания", common.CallEditGreetingTemplate(chatId).String()),
-		*common.NewButton(silentNotificationButtonText, common.CallToggleSilentNotifications(chatId).String()),
-		*common.NewButton("🗑 удалить чат", common.CallDeleteChat(chatId).String()),
-		*common.NewButton("⬅️ к списку чатов", common.CallChatList().String()),
+		common.NewButton("📋 список всех др в чате", common.CallChatBirthdays(chatId).String()),
+		common.NewButton("📝 изменить шаблон напоминания", common.CallEditGreetingTemplate(chatId).String()),
+		common.NewButton(silentNotificationButtonText, common.CallToggleSilentNotifications(chatId).String()),
+		common.NewButton("🗑 удалить чат", common.CallDeleteChat(chatId).String()),
+		common.NewButton("⬅️ к списку чатов", common.CallChatList().String()),
 	)
 
 	return keyboard
@@ -245,8 +245,8 @@ func DeleteChatHandler(ctx context.Context, event *common.Event, tx *gorm.DB) er
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️ к настройкам чата", common.CallChatInfo(chatId).String()),
-		*common.NewButton("🗑 удалить", common.CallConfirmDeleteChat(chatId).String()),
+		common.NewButton("⬅️ к настройкам чата", common.CallChatInfo(chatId).String()),
+		common.NewButton("🗑 удалить", common.CallConfirmDeleteChat(chatId).String()),
 	)
 
 	if _, err := event.EditCalbackMessage(ctx, fmt.Sprintf("Чат `%s` будет удален со всеми его напоминаниями, удаляем?", chatTitle), *keyboard.Murkup()); err != nil {
@@ -284,7 +284,7 @@ func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event, tx *gorm
 	}
 
 	keyboard := common.NewInlineKeyboard()
-	keyboard.AppendAsStack(*common.NewButton("⬅️к списку чатов", common.CallChatList().String()))
+	keyboard.AppendAsStack(common.NewButton("⬅️к списку чатов", common.CallChatList().String()))
 
 	chatTitle := "чат"
 	if chatInfo != nil {

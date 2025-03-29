@@ -22,17 +22,14 @@ const (
 	HEADER_MESSAGE_LIST_IS_EMPTY       = "✨Записей пока нет"
 )
 
-func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
-	message := event.GetMessage()
+func ListItemsHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+	callbackData := common.CallbackFromString(event.GetCallbackQuery().Data)
 
-	chatId := message.GetChatIdStr()
-	userId := strconv.Itoa(message.From.Id)
-	if event.GetCallbackQuery().Id != "" {
-		chatId = common.CallbackFromString(event.GetCallbackQuery().Data).Id
-		userId = strconv.Itoa(event.GetCallbackQuery().From.Id)
-	}
+	chatId := callbackData.Id
+	userId := strconv.Itoa(event.GetCallbackQuery().From.Id)
+	entity := callbackData.Entity
 
-	friends, err := (&db.Friend{UserId: userId, ChatId: chatId}).Filter(ctx, tx)
+	entities, err := db.NewEntity(entity).Search(ctx, tx, chatId, userId)
 
 	if err != nil {
 		event.Logger.Error("Error fetching friends" + err.Error())
@@ -42,8 +39,8 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *gorm.DB)
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(
 			ctx,
-			buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-			*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+			buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0)),
+			*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
 		); err != nil {
 			return err
 		}
@@ -53,8 +50,8 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *gorm.DB)
 
 	if _, err := event.ReplyWithKeyboard(
 		ctx,
-		buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0)),
-		*buildFriendsListMarkup(friends, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
+		buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0)),
+		*buildListMarkup(entities, LIST_LIMIT, LIST_START_OFFSET, chatId).Murkup(),
 	); err != nil {
 		return err
 	}
@@ -62,48 +59,38 @@ func ListBirthdaysHandler(ctx context.Context, event *common.Event, tx *gorm.DB)
 	return nil
 }
 
-func birthdayComparator(friends []*db.Friend, i, j int) bool {
-	if friends[i].IsTodayBirthday() {
-		return true
-	}
-	if friends[j].IsTodayBirthday() {
-		return false
-	}
-	countI := friends[i].CountDaysToBirthday()
-	countJ := friends[j].CountDaysToBirthday()
-	return countI > countJ
+func comparator[T db.Entity](entities []T, i, j int) bool {
+	return (entities[i]).GreaterThan(entities[j])
 }
 
 func appendControlButtons(keyboard *common.InlineKeyboard, total, limit, offset int, chatId string) error {
-	buttons := []common.Button{}
+	buttons := []*common.Button{}
 	if total <= limit || total == 0 {
 		return nil
 	}
 	if offset == total {
-		buttons = append(buttons, *common.NewButton("⬆️", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<<<", chatId).String()))
+		buttons = append(buttons, common.NewButton("⬆️", common.CallList(strconv.Itoa(LIST_START_OFFSET), "<<<", chatId).String()))
 		keyboard.AppendAsLine(buttons...)
 		return nil
 	}
 	if offset+limit >= total {
-		buttons = append(buttons, *common.NewButton("⬅️", common.CallList(strconv.Itoa(offset), "<<", chatId).String()))
+		buttons = append(buttons, common.NewButton("⬅️", common.CallList(strconv.Itoa(offset), "<<", chatId).String()))
 	} else {
 		if offset == 0 {
-			buttons = append(buttons, *common.NewButton("➡️", common.CallList(strconv.Itoa(offset), ">>", chatId).String()))
+			buttons = append(buttons, common.NewButton("➡️", common.CallList(strconv.Itoa(offset), ">>", chatId).String()))
 		} else {
-			buttons = append(buttons, *common.NewButton("⬅️", common.CallList(strconv.Itoa(offset), "<<", chatId).String()))
-			buttons = append(buttons, *common.NewButton("➡️", common.CallList(strconv.Itoa(offset), ">>", chatId).String()))
+			buttons = append(buttons, common.NewButton("⬅️", common.CallList(strconv.Itoa(offset), "<<", chatId).String()))
+			buttons = append(buttons, common.NewButton("➡️", common.CallList(strconv.Itoa(offset), ">>", chatId).String()))
 		}
 	}
 
 	keyboard.AppendAsLine(buttons...)
-	keyboard.AppendAsStack(*common.NewButton(fmt.Sprintf("(%d)⬇️", total), common.CallList(strconv.Itoa(offset), "<>", chatId).String()))
+	keyboard.AppendAsStack(common.NewButton(fmt.Sprintf("(%d)⬇️", total), common.CallList(strconv.Itoa(offset), "<>", chatId).String()))
 
 	return nil
 }
 
 func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
-	callbackQuery := event.GetCallbackQuery()
-
 	params := common.CallbackFromString(event.GetCallbackQuery().Data)
 
 	offset := params.Pagination.Offset
@@ -117,7 +104,7 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 
 	chatId := params.BoundChat
 
-	friends, err := (&db.Friend{UserId: strconv.Itoa(callbackQuery.From.Id), ChatId: chatId}).Filter(ctx, tx)
+	entities, err := db.NewEntity(params.Entity).Search(ctx, tx, chatId, "")
 
 	if err != nil {
 		event.Logger.Error("Error fetching friends" + err.Error())
@@ -141,23 +128,23 @@ func ListPaginationCallbackQueryHandler(ctx context.Context, event *common.Event
 		offset_ -= LIST_PAGINATION_SHIFT
 	}
 	if direction == "<>" {
-		offset_ = len(friends)
+		offset_ = len(entities)
 	}
 
-	msg := buildChatHeaderMessage(ctx, chatId, event, (len(friends) == 0))
+	msg := buildChatHeaderMessage(ctx, chatId, event, (len(entities) == 0))
 
-	if _, err := event.EditCalbackMessage(ctx, msg, *buildFriendsListMarkup(friends, limit_, offset_, chatId).Murkup()); err != nil {
+	if _, err := event.EditCalbackMessage(ctx, msg, *buildListMarkup(entities, limit_, offset_, chatId).Murkup()); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func buildFriendsButtons(friends []*db.Friend, limit, offset int, callbackDataBuilder func(id string, offset int) string) *[]common.Button {
-	sort.Slice(friends, func(i, j int) bool { return birthdayComparator(friends, i, j) })
-	buttons := []common.Button{}
-	for i, friend := range friends {
-		if offset != len(friends) {
+func buildEntityButtons[T db.Entity](entities []T, limit, offset int, callbackDataBuilder func(id string, offset int) string) []*common.Button {
+	sort.Slice(entities, func(i, j int) bool { return comparator(entities, i, j) })
+	buttons := []*common.Button{}
+	for i, entity := range entities {
+		if offset != len(entities) {
 			if i == limit+offset {
 				break
 			}
@@ -166,38 +153,30 @@ func buildFriendsButtons(friends []*db.Friend, limit, offset int, callbackDataBu
 			}
 		}
 
-		buttonText := fmt.Sprintf("%s %s", friend.Name, friend.BirthDay)
+		buttonText := entity.ButtonText()
 
-		if friend.IsTodayBirthday() {
-			buttonText = fmt.Sprintf("%s 🥳", buttonText)
-		} else {
-			if friend.IsThisMonthAfterToday() {
-				buttonText = fmt.Sprintf("%s 🕒", buttonText)
-			}
-		}
-
-		buttons = append(buttons, *common.NewButton(buttonText, callbackDataBuilder(friend.ID, offset)))
+		buttons = append(buttons, common.NewButton(buttonText, callbackDataBuilder(entity.GetId(), offset)))
 	}
 
-	return &buttons
+	return buttons
 }
 
-func buildFriendsListMarkup(friends []*db.Friend, limit, offset int, chatId string) *common.InlineKeyboard {
+func buildListMarkup[T db.Entity](entities []T, limit, offset int, chatId string) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
 		return common.CallInfo(id, strconv.Itoa(offset)).String()
 	}
-	friendsListAsButtons := buildFriendsButtons(friends, limit, offset, callbackDataBuilder)
+	entityListAsButtons := buildEntityButtons(entities, limit, offset, callbackDataBuilder)
 	keyboard := common.NewInlineKeyboard()
 
-	keyboard.AppendAsLine(*common.NewButton("🏠 в начало", common.CallSetup().String()))
-	keyboard.AppendAsLine(*common.NewButton("➕ добавить напоминание", common.CallAddToChat(chatId).String()))
+	keyboard.AppendAsLine(common.NewButton("🏠 в начало", common.CallSetup().String()))
+	keyboard.AppendAsLine(common.NewButton("➕ добавить напоминание", common.CallAddToChat(chatId).String()))
 
-	keyboard.AppendAsStack(*friendsListAsButtons...)
+	keyboard.AppendAsStack(entityListAsButtons...)
 
-	appendControlButtons(keyboard, len(friends), limit, offset, chatId)
+	appendControlButtons(keyboard, len(entities), limit, offset, chatId)
 
 	if strings.Contains(chatId, "-") {
-		keyboard.AppendAsLine(*common.NewButton("⬅️к чату", common.CallChatInfo(chatId).String()))
+		keyboard.AppendAsLine(common.NewButton("⬅️к чату", common.CallChatInfo(chatId).String()))
 	}
 
 	return keyboard
