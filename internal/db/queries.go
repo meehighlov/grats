@@ -123,7 +123,19 @@ func (friend *Friend) Delete(ctx context.Context, tx *gorm.DB) error {
 		db = db.WithContext(ctx)
 	}
 
-	result := db.Delete(friend)
+	query := db.Model(&Friend{})
+
+	if friend.ID != "" {
+		query = query.Where("id = ?", friend.ID)
+	}
+	if friend.UserId != "" {
+		query = query.Where("user_id = ?", friend.UserId)
+	}
+	if friend.ChatId != "" {
+		query = query.Where("chat_id = ?", friend.ChatId)
+	}
+
+	result := query.Delete(&Friend{})
 	if result.Error != nil {
 		slog.Error("Error when trying to delete friend: " + result.Error.Error())
 		return result.Error
@@ -214,7 +226,19 @@ func (c *Chat) Delete(ctx context.Context, tx *gorm.DB) error {
 		db = db.WithContext(ctx)
 	}
 
-	result := db.Delete(c)
+	query := db.Model(&Chat{})
+
+	if c.ID != "" {
+		query = query.Where("id = ?", c.ID)
+	}
+	if c.ChatId != "" {
+		query = query.Where("chat_id = ?", c.ChatId)
+	}
+	if c.BotInvitedById != "" {
+		query = query.Where("bot_invited_by_id = ?", c.BotInvitedById)
+	}
+
+	result := query.Delete(&Chat{})
 	if result.Error != nil {
 		slog.Error("Error when trying to delete chat: " + result.Error.Error())
 		return result.Error
@@ -472,7 +496,22 @@ func (w *Wish) Delete(ctx context.Context, tx *gorm.DB) error {
 		SkipHooks: true,
 	})
 
-	result := db.Delete(w)
+	query := db.Model(&Wish{})
+
+	if w.ID != "" {
+		query = query.Where("id = ?", w.ID)
+	}
+	if w.UserId != "" {
+		query = query.Where("user_id = ?", w.UserId)
+	}
+	if w.ChatId != "" {
+		query = query.Where("chat_id = ?", w.ChatId)
+	}
+	if w.WishListId != "" {
+		query = query.Where("wish_list_id = ?", w.WishListId)
+	}
+
+	result := query.Delete(&Wish{})
 	if result.Error != nil {
 		slog.Error("Error when trying to delete wish: " + result.Error.Error())
 		return result.Error
@@ -589,7 +628,22 @@ func (w *WishList) Delete(ctx context.Context, tx *gorm.DB) error {
 		db = db.WithContext(ctx)
 	}
 
-	result := db.Delete(w)
+	query := db.Model(&WishList{})
+
+	if w.ID != "" {
+		query = query.Where("id = ?", w.ID)
+	}
+	if w.UserId != "" {
+		query = query.Where("user_id = ?", w.UserId)
+	}
+	if w.ChatId != "" {
+		query = query.Where("chat_id = ?", w.ChatId)
+	}
+	if w.Name != "" {
+		query = query.Where("name = ?", w.Name)
+	}
+
+	result := query.Delete(&WishList{})
 	if result.Error != nil {
 		slog.Error("Error when trying to delete wishList: " + result.Error.Error())
 		return result.Error
