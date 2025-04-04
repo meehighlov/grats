@@ -9,7 +9,7 @@ import (
 
 type Chat struct {
 	// full description https://core.telegram.org/bots/api#chat
-	//Type of chat, can be either “private”, “group”, “supergroup” or “channel”
+	//Type of chat, can be either "private", "group", "supergroup" or "channel"
 	Id        int    `json:"id"`
 	Type      string `json:"type"`
 	Title     string `json:"title"`
@@ -158,4 +158,10 @@ func (u *Update) GetChatIdStr() string {
 	}
 
 	return ""
+}
+
+// BotCommand представляет команду бота для меню
+type BotCommand struct {
+	Command     string `json:"command"`
+	Description string `json:"description"`
 }

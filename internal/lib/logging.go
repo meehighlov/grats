@@ -4,13 +4,14 @@ import (
 	"log"
 	"log/slog"
 
+	"github.com/meehighlov/grats/internal/config"
 	"github.com/natefinch/lumberjack"
 )
 
 func MustSetupLogging(fileName string, useAsDefault bool, env string) *slog.Logger {
 	envToLogLevel := map[string]slog.Level{}
-	envToLogLevel["local"] = slog.LevelDebug
-	envToLogLevel["prod"] = slog.LevelInfo
+	envToLogLevel[config.LOCAL] = slog.LevelDebug
+	envToLogLevel[config.PROD] = slog.LevelInfo
 
 	logLevel, found := envToLogLevel[env]
 

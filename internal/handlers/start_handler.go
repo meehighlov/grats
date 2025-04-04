@@ -15,7 +15,7 @@ const (
 	MAX_CHATS_FOR_USER = 10
 )
 
-func StartHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func StartHandler(ctx context.Context, event *common.Event) error {
 	message := event.GetMessage()
 
 	// at some point it is possible to use /command in group chat
@@ -24,44 +24,24 @@ func StartHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 		return nil
 	}
 
-	isAdmin := 0
-	if message.From.IsAdmin() {
-		isAdmin = 1
-	}
-
-	user := db.User{
-		BaseFields: db.NewBaseFields(),
-		Name:       message.From.FirstName,
-		TgUsername: message.From.Username,
-		TgId:       strconv.Itoa(message.From.Id),
-		ChatId:     strconv.Itoa(message.Chat.Id),
-		Birthday:   "",
-		IsAdmin:    isAdmin,
-	}
-
-	err := user.Save(ctx, tx)
+	err := RegisterOrUpdateUser(ctx, event)
 	if err != nil {
+		event.Logger.Error("start error registering user", "chatId", message.GetChatIdStr(), "error", err.Error())
 		return err
 	}
 
-	chat := db.Chat{
-		BaseFields:     db.NewBaseFields(),
-		ChatType:       "private",
-		ChatId:         event.GetMessage().GetChatIdStr(),
-		BotInvitedById: strconv.Itoa(event.GetMessage().From.Id),
-	}
-
-	err = chat.Save(ctx, tx)
-	if err != nil {
-		return err
+	username := message.From.Username
+	if username == "" {
+		username = message.From.FirstName
+		if username == "" {
+			username = "друг"
+		}
 	}
 
 	hello := fmt.Sprintf(
-		("Привет, %s👋 Меня зовут grats" +
-			"\n" +
-			"Я напоминаю о днях рождения🥳" +
+		("Привет, %s👋" +
 			"\n\n" +
-			"Команда /setup покажет все мои команды"),
+			"/commands - покажет все мои команды"),
 		message.From.Username,
 	)
 
@@ -72,45 +52,29 @@ func StartHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	return nil
 }
 
-func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
-	userChats, err := (&db.Chat{
-		BotInvitedById: strconv.Itoa(event.GetMessage().From.Id),
-		ChatType:       "%group",
-	}).Filter(ctx, tx)
+func StartFromGroupHandler(ctx context.Context, event *common.Event) error {
+	err := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		userChats, err := (&db.Chat{
+			BotInvitedById: strconv.Itoa(event.GetMessage().From.Id),
+			ChatType:       "%group",
+		}).Filter(ctx, tx)
 
-	if err != nil {
-		event.Logger.Error(
-			"StartFromGroupHandler",
-			"chat", event.GetMessage().GetChatIdStr(),
-			"userId", event.GetMessage().From.Id,
-			"error", err.Error(),
-		)
-		return err
-	}
+		if err != nil {
+			event.Logger.Error(
+				"StartFromGroupHandler",
+				"chat", event.GetMessage().GetChatIdStr(),
+				"userId", event.GetMessage().From.Id,
+				"error", err.Error(),
+			)
+			return err
+		}
 
-	chatType := event.GetMessage().Chat.Type
-	chat := db.Chat{
-		ChatId: event.GetMessage().GetChatIdStr(),
-	}
+		chatType := event.GetMessage().Chat.Type
+		chat := db.Chat{
+			ChatId: event.GetMessage().GetChatIdStr(),
+		}
 
-	chats, err := chat.Filter(ctx, tx)
-	if err != nil {
-		event.Logger.Error(
-			"StartFromGroupHandler",
-			"chat", chat.ChatId,
-			"userId", event.GetMessage().From.Id,
-			"error", err.Error(),
-		)
-		return err
-	}
-
-	if len(chats) == 0 && len(userChats) < MAX_CHATS_FOR_USER {
-		chat.BaseFields = db.NewBaseFields()
-		chat.BotInvitedById = strconv.Itoa(event.GetMessage().From.Id)
-		chat.GreetingTemplate = "🔔Сегодня день рождения у %s🥳"
-		chat.ChatType = chatType
-
-		err := chat.Save(ctx, tx)
+		chats, err := chat.Filter(ctx, tx)
 		if err != nil {
 			event.Logger.Error(
 				"StartFromGroupHandler",
@@ -118,31 +82,51 @@ func StartFromGroupHandler(ctx context.Context, event *common.Event, tx *gorm.DB
 				"userId", event.GetMessage().From.Id,
 				"error", err.Error(),
 			)
-			event.Reply(ctx, "Что-то пошло не так🙃 Попробуйте еще раз👉👈")
+			return err
+		}
+
+		if len(chats) == 0 && len(userChats) < MAX_CHATS_FOR_USER {
+			chat.BaseFields = db.NewBaseFields(false)
+			chat.BotInvitedById = strconv.Itoa(event.GetMessage().From.Id)
+			chat.GreetingTemplate = "🔔Сегодня день рождения празднует %s🥳"
+			chat.ChatType = chatType
+
+			err := chat.Save(ctx, tx)
+			if err != nil {
+				event.Logger.Error(
+					"StartFromGroupHandler",
+					"chat", chat.ChatId,
+					"userId", event.GetMessage().From.Id,
+					"error", err.Error(),
+				)
+				event.Reply(ctx, "Что-то пошло не так🙃 Попробуйте еще раз👉👈")
+				return nil
+			}
 			return nil
 		}
 
-		event.Reply(ctx, "Всем привет👋")
+		if len(chats) == 0 && len(userChats) >= MAX_CHATS_FOR_USER {
+			event.Logger.Info(
+				"StartFromGroupHandler",
+				"chat", event.GetMessage().GetChatIdStr(),
+				"userId", event.GetMessage().From.Id,
+				"error", "user reached chats limits",
+			)
+			event.ReplyToUser(
+				ctx,
+				userChats[0].BotInvitedById,
+				fmt.Sprintf("Не могу добавить новый чат, достигнут лимит (%d) подключенных групповых чатов👉👈",
+					MAX_CHATS_FOR_USER))
+
+			return nil
+		}
+
 		return nil
+	})
+
+	if err != nil {
+		return err
 	}
-
-	if len(chats) == 0 && len(userChats) >= MAX_CHATS_FOR_USER {
-		event.Logger.Info(
-			"StartFromGroupHandler",
-			"chat", event.GetMessage().GetChatIdStr(),
-			"userId", event.GetMessage().From.Id,
-			"error", "user reached chats limits",
-		)
-		event.ReplyToUser(
-			ctx,
-			userChats[0].BotInvitedById,
-			fmt.Sprintf("Не могу добавить новый чат, достигнут лимит (%d) подключенных групповых чатов👉👈",
-				MAX_CHATS_FOR_USER))
-
-		return nil
-	}
-
-	event.Reply(ctx, "Всем привет👋")
 
 	return nil
 }

@@ -3,14 +3,13 @@ package common
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/meehighlov/grats/internal/config"
-	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/telegram"
-	"gorm.io/gorm"
 )
 
-type HandlerType func(context.Context, *Event, *gorm.DB) error
+type HandlerType func(context.Context, *Event) error
 
 func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) telegram.UpdateHandler {
 	chatCahe := NewChatCache()
@@ -44,6 +43,10 @@ func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) tel
 			}
 		}
 
+		if strings.HasPrefix(update.Message.Text, "/start wl") {
+			command = "show_swl"
+		}
+
 		if update.Message.GetChatIdStr() == config.Cfg().SupportChatId {
 			command = "send_support_response"
 		}
@@ -54,17 +57,13 @@ func CreateRootHandler(logger *slog.Logger, handlers map[string]HandlerType) tel
 
 		handler, found := handlers[command]
 		if found {
-			tx := db.GetDB().WithContext(ctx).Begin()
-
 			logger.Info("Root handler", "start transaction for command", command, "chat id", update.GetChatIdStr())
-			err := handler(ctx, event, tx)
+			err := handler(ctx, event)
 			if err != nil {
-				tx.Rollback()
 				chatContext.Reset()
 				logger.Error("Root handler", "handler error", err.Error(), "chat id", update.GetChatIdStr())
 			} else {
-				tx.Commit()
-				logger.Info("Root handler", "transaction commited for command", command, "chat id", update.GetChatIdStr())
+				logger.Info("Root handler", "success finished handler", command, "chat id", update.GetChatIdStr())
 			}
 		}
 
