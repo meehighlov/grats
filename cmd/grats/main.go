@@ -29,16 +29,29 @@ func main() {
 		"/start":                              handlers.StartHandler,
 		fmt.Sprintf("/start@%s", cfg.BotName): handlers.StartFromGroupHandler,
 
-		// call format when telegram adds bot to group
-		fmt.Sprintf("/start@%s true", cfg.BotName): handlers.StartFromGroupHandler,
+		"/commands": handlers.CommandListHandler,
 
-		"/setup":                              handlers.SetupHandler,
-		fmt.Sprintf("/setup@%s", cfg.BotName): handlers.SetupFromGroupHandler,
-
-		"add_to_chat":     handlers.AddToChatHandler,
+		"add_to_friend":   handlers.AddToChatHandler,
 		"add_enter_bd":    handlers.EnterBirthday,
 		"add_save_friend": handlers.SaveFriend,
 
+		// wish handlers
+		"add_to_wish":         handlers.AddWishHandler,
+		"add_save_wish":       handlers.SaveWish,
+		"wish_list":           handlers.ListItemsHandler,
+		"wish_info":           handlers.WishInfoHandler,
+		"delete_wish":         handlers.DeleteWishCallbackQueryHandler,
+		"confirm_delete_wish": handlers.ConfirmDeleteWishCallbackQueryHandler,
+		"edit_price":          handlers.EditPriceHandler,
+		"edit_link":           handlers.EditLinkHandler,
+		"edit_price_save":     handlers.SaveEditPriceHandler,
+		"edit_link_save":      handlers.SaveEditLinkHandler,
+		"edit_wish_name":      handlers.EditWishNameHandler,
+		"edit_wish_name_save": handlers.SaveEditWishNameHandler,
+		"share_wish_list":     handlers.ShareWishListHandler,
+		"show_swl":            handlers.ShowSharedWishlistHandler,
+		"show_swi":            handlers.WishInfoHandler,
+		"toggle_wish_lock":    handlers.ToggleWishLockHandler,
 		// admin TODO
 
 		// support
@@ -48,15 +61,15 @@ func main() {
 		"send_support_response": handlers.SendSupportResponseToUserHandler,
 
 		// callback query handlers
-		"setup":                       handlers.SetupHandler,
-		"list":                        handlers.ListPaginationCallbackQueryHandler,
-		"new_list":                    handlers.ListBirthdaysHandler,
-		"info":                        handlers.FriendInfoCallbackQueryHandler,
+		"commands":                    handlers.CommandListHandler,
+		"list":                        handlers.ListItemsHandler,
+		"friend_info":                 handlers.FriendInfoCallbackQueryHandler,
 		"delete":                      handlers.DeleteFriendCallbackQueryHandler,
 		"confirm_delete":              handlers.ConfirmDeleteFriendCallbackQueryHandler,
 		"chat_info":                   handlers.GroupInfoHandler,
+		"chat_howto":                  handlers.GroupHowtoHandler,
 		"chat_list":                   handlers.GroupHandler,
-		"chat_birthdays":              handlers.ListBirthdaysHandler,
+		"chat_birthdays":              handlers.ListItemsHandler,
 		"delete_chat":                 handlers.DeleteChatHandler,
 		"confirm_delete_chat":         handlers.ConfirmDeleteChatHandler,
 		"edit_greeting_template":      handlers.EditGreetingTemplateHandler,

@@ -240,15 +240,16 @@ func (tc *Client) GetChat(ctx context.Context, chatId string) (*GetChatResponse,
 
 	tc.logger.Debug("Telegram client", "chat id", chatId)
 
+	model := GetChatResponse{}
+
 	data, err := tc.sendRequest(ctx, "getChat", q)
 	if err != nil {
 		tc.logger.Error("Telegram client error", "getChat", err.Error())
-		return nil, err
+		return &model, err
 	}
 
-	model := GetChatResponse{}
 	if err := json.Unmarshal(data, &model); err != nil {
-		return nil, err
+		return &model, err
 	}
 
 	return &model, err
@@ -302,4 +303,59 @@ func (tc *Client) GetUpdatesChannel(ctx context.Context) UpdatesChannel {
 	}()
 
 	return ch
+}
+
+// SetMyCommands устанавливает список команд меню бота
+func (tc *Client) SetMyCommands(ctx context.Context, commands []BotCommand) error {
+	q := url.Values{}
+
+	commandsJSON, err := json.Marshal(commands)
+	if err != nil {
+		tc.logger.Error("error marshaling commands: " + err.Error())
+		return err
+	}
+
+	q.Add("commands", string(commandsJSON))
+
+	_, err = tc.sendRequest(ctx, "setMyCommands", q)
+	if err != nil {
+		tc.logger.Error("error setting bot commands: " + err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (tc *Client) DeleteMessage(ctx context.Context, chatId string, messageId string) error {
+	q := url.Values{}
+	q.Add("chat_id", chatId)
+	q.Add("message_id", messageId)
+
+	_, err := tc.sendRequest(ctx, "deleteMessage", q)
+	if err != nil {
+		tc.logger.Error("error deleting message: " + err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (tc *Client) GetChatMember(ctx context.Context, userId string) (*SingleChatMemberResponse, error) {
+	q := url.Values{}
+	q.Add("chat_id", userId)
+	q.Add("user_id", userId)
+
+	model := SingleChatMemberResponse{}
+
+	data, err := tc.sendRequest(ctx, "getChatMember", q)
+	if err != nil {
+		tc.logger.Error("error getting chat member: " + err.Error())
+		return &model, err
+	}
+
+	if err := json.Unmarshal(data, &model); err != nil {
+		return &model, err
+	}
+
+	return &model, nil
 }

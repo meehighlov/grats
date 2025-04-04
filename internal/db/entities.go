@@ -7,7 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
+)
+
+const (
+	SHORT_ID_LENGTH = 6
 )
 
 type BaseFields struct {
@@ -30,14 +35,36 @@ func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error
 	return b.CreatedAt, b.UpdatedAt, nil
 }
 
-func NewBaseFields() BaseFields {
+func NewBaseFields(shortId bool) BaseFields {
 	id := uuid.New().String()
+	if shortId {
+		id = GenerateShortID(SHORT_ID_LENGTH)
+	}
 	location, err := time.LoadLocation(config.Cfg().Timezone)
 	if err != nil {
 		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " NewEntityId: " + id)
 	}
 	now := time.Now().In(location).Format("02.01.2006T15:04:05")
 	return BaseFields{id, now, now}
+}
+
+func NewEntity(table string) common.PaginatedEntity {
+	if table == "user" {
+		return &User{}
+	}
+	if table == "friend" {
+		return &Friend{}
+	}
+	if table == "chat" {
+		return &Chat{}
+	}
+	if table == "wish" {
+		return &Wish{}
+	}
+	if table == "wish_list" {
+		return &WishList{}
+	}
+	return nil
 }
 
 type User struct {
@@ -54,9 +81,12 @@ type User struct {
 	Friends []Friend `gorm:"foreignKey:UserId;references:ID"`
 }
 
-// TableName переопределяет имя таблицы
 func (User) TableName() string {
 	return "user"
+}
+
+func (user *User) GetUserId() string {
+	return user.ID
 }
 
 func (user *User) HasAdminAccess() bool {
@@ -68,14 +98,6 @@ func (user *User) GetTGUserName() string {
 		return "@" + user.TgUsername
 	}
 	return user.TgUsername
-}
-
-func (user *User) FriendsListAsString() string {
-	result := ""
-	for _, friend := range user.Friends {
-		result += friend.Name + " " + friend.BirthDay + "\n"
-	}
-	return result
 }
 
 type Friend struct {
@@ -94,9 +116,111 @@ type Friend struct {
 	User User `gorm:"foreignKey:UserId;references:ID"`
 }
 
-// TableName переопределяет имя таблицы
 func (Friend) TableName() string {
 	return "friend"
+}
+
+func (friend *Friend) GetUserId() string {
+	return friend.UserId
+}
+
+type WishList struct {
+	BaseFields
+
+	Name   string `gorm:"column:name;type:varchar"`
+	UserId string `gorm:"not null;index;column:user_id;type:varchar"`
+	ChatId string `gorm:"column:chat_id;type:varchar"`
+
+	User User `gorm:"foreignKey:UserId;references:ID"`
+}
+
+func (WishList) TableName() string {
+	return "wish_list"
+}
+
+func (wishList *WishList) GetUserId() string {
+	return wishList.UserId
+}
+
+type Wish struct {
+	BaseFields
+
+	ChatId     string `gorm:"column:chat_id;type:varchar"`
+	UserId     string `gorm:"not null;index;column:user_id;type:varchar"`
+	WishListId string `gorm:"column:wish_list_id;type:varchar"`
+	Link       string `gorm:"column:link;type:varchar"`
+	Price      string `gorm:"column:price;type:varchar"`
+	Name       string `gorm:"column:name;type:varchar"`
+	ExecutorId string `gorm:"column:executor_id;type:varchar"`
+
+	User     User     `gorm:"foreignKey:UserId;references:ID"`
+	WishList WishList `gorm:"foreignKey:WishListId;references:ID"`
+}
+
+func (Wish) TableName() string {
+	return "wish"
+}
+
+func (wish *Wish) GetUserId() string {
+	return wish.UserId
+}
+
+func (wish *Wish) IsOzon() bool {
+	ozonPrefix1 := "https://ozon.ru/"
+	ozonPrefix2 := "https://www.ozon.ru/"
+	return strings.HasPrefix(wish.Link, ozonPrefix1) || strings.HasPrefix(wish.Link, ozonPrefix2)
+}
+
+func (wish *Wish) IsWildberries() bool {
+	wbPrefix1 := "https://wildberries.ru/"
+	wbPrefix2 := "https://www.wildberries.ru/"
+	return strings.HasPrefix(wish.Link, wbPrefix1) || strings.HasPrefix(wish.Link, wbPrefix2)
+}
+
+func (wish *Wish) IsYandexMarket() bool {
+	yandexMarketPrefix1 := "https://market.yandex.ru/"
+	yandexMarketPrefix2 := "https://www.market.yandex.ru/"
+	return strings.HasPrefix(wish.Link, yandexMarketPrefix1) || strings.HasPrefix(wish.Link, yandexMarketPrefix2)
+}
+
+func (wish *Wish) IsAvito() bool {
+	avitoPrefix1 := "https://avito.ru/"
+	avitoPrefix2 := "https://www.avito.ru/"
+	return strings.HasPrefix(wish.Link, avitoPrefix1) || strings.HasPrefix(wish.Link, avitoPrefix2)
+}
+
+func (wish *Wish) GetMarketplace() string {
+	switch {
+	case wish.IsOzon():
+		return "ozon"
+	case wish.IsWildberries():
+		return "wildberries"
+	case wish.IsYandexMarket():
+		return "yandex market"
+	case wish.IsAvito():
+		return "avito"
+	}
+	return "смотреть на сайте"
+}
+
+func (wish *Wish) Info(executorId string) string {
+	price := ""
+	if wish.Price != "" {
+		price = fmt.Sprintf(" - %s(RUB)", wish.Price)
+	}
+	msgLines := []string{
+		fmt.Sprintf("✨ %s%s", wish.Name, price),
+	}
+	if wish.ExecutorId == "" {
+		msgLines = append(msgLines, "🟢 желание пока не выбрали")
+	} else {
+		if wish.ExecutorId == executorId {
+			msgLines = append(msgLines, "🎁 вы забронировали это желание")
+		} else {
+			msgLines = append(msgLines, "🎁 кто-то забронировал это желание")
+		}
+	}
+	return strings.Join(msgLines, "\n\n")
 }
 
 func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {
@@ -292,6 +416,10 @@ type Chat struct {
 
 func (Chat) TableName() string {
 	return "chat"
+}
+
+func (chat *Chat) GetUserId() string {
+	return chat.BotInvitedById
 }
 
 func (chat *Chat) IsAlreadySilent() bool {

@@ -3,13 +3,14 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"html"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
-	"gorm.io/gorm"
 )
 
 const (
@@ -19,12 +20,11 @@ const (
 	FRIEND_LIMIT_FOR_CHAT = 50
 )
 
-func AddToChatHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func AddToChatHandler(ctx context.Context, event *common.Event) error {
 	chatId := common.CallbackFromString(event.GetCallbackQuery().Data).Id
-	friends, err := (&db.Friend{ChatId: chatId}).Filter(ctx, tx)
+	friends, err := (&db.Friend{ChatId: chatId}).Filter(ctx, nil)
 	if err != nil {
 		event.Logger.Error("error getting friends: " + err.Error())
-		event.Reply(ctx, "Возникла непредвиденная ошибка, над этим уже работают😔")
 		return err
 	}
 
@@ -52,18 +52,19 @@ func AddToChatHandler(ctx context.Context, event *common.Event, tx *gorm.DB) err
 	return nil
 }
 
-func EnterBirthday(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func EnterBirthday(ctx context.Context, event *common.Event) error {
 	friendName := strings.TrimSpace(event.GetMessage().Text)
 
-	if len(friendName) > FRIEND_NAME_MAX_LEN {
-		if _, err := event.Reply(ctx, fmt.Sprintf("Имя не должно превышать %d символов", FRIEND_NAME_MAX_LEN)); err != nil {
+	validatedName, err := validateFriendName(friendName)
+	if err != nil {
+		if _, err := event.Reply(ctx, err.Error()); err != nil {
 			return err
 		}
 		event.SetNextHandler("add_enter_bd")
 		return nil
 	}
 
-	event.GetContext().AppendText(friendName)
+	event.GetContext().AppendText(validatedName)
 
 	msg := "Введите дату рождения✨\n\nформат 👉 день.месяц[.год]\n\nнапример 👉 12.11.1980 или 12.11"
 
@@ -76,7 +77,7 @@ func EnterBirthday(ctx context.Context, event *common.Event, tx *gorm.DB) error 
 	return nil
 }
 
-func SaveFriend(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func SaveFriend(ctx context.Context, event *common.Event) error {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 
@@ -94,7 +95,7 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 	chatid, name, bd := data[0], data[1], data[2]
 
 	friend := db.Friend{
-		BaseFields: db.NewBaseFields(),
+		BaseFields: db.NewBaseFields(false),
 		Name:       name,
 		BirthDay:   bd,
 		UserId:     strconv.Itoa(message.From.Id),
@@ -103,7 +104,7 @@ func SaveFriend(ctx context.Context, event *common.Event, tx *gorm.DB) error {
 
 	friend.RenewNotifayAt()
 
-	err := friend.Save(ctx, tx)
+	err := friend.Save(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -160,10 +161,31 @@ func validateBirthdaty(birtday string) error {
 	return nil
 }
 
+func validateFriendName(name string) (string, error) {
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return "", fmt.Errorf("имя не может быть пустым")
+	}
+
+	if len(trimmedName) > FRIEND_NAME_MAX_LEN {
+		return "", fmt.Errorf("имя не должно превышать %d символов", FRIEND_NAME_MAX_LEN)
+	}
+
+	sanitizedName := html.EscapeString(trimmedName)
+
+	reg := regexp.MustCompile(`[^\p{L}\p{N}\p{P}\p{Z}]`)
+	sanitizedName = reg.ReplaceAllString(sanitizedName, "")
+
+	return sanitizedName, nil
+}
+
 func buildNavigationMarkup(chatId string) *common.InlineKeyboard {
 	keyboard := common.NewInlineKeyboard()
 
-	keyboard.AppendAsStack(*common.NewButton("➕ добавить еще", common.CallAddToChat(chatId).String()), *common.NewButton("📋 список др", common.CallChatBirthdays(chatId).String()))
+	keyboard.AppendAsStack(
+		common.NewButton("➕ добавить еще", common.CallAddItem(chatId, "friend").String()),
+		common.NewButton("📋 список др", common.CallList(fmt.Sprintf("%d", LIST_START_OFFSET), ">", chatId, "friend").String()),
+	)
 
 	return keyboard
 }

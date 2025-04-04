@@ -10,12 +10,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func EditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func EditNameHandler(ctx context.Context, event *common.Event) error {
 	callbackQuery := event.GetCallbackQuery()
 	params := common.CallbackFromString(callbackQuery.Data)
 
 	baseFields := db.BaseFields{ID: params.Id}
-	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
+	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, nil)
 
 	if err != nil {
 		event.Logger.Error("error during fetching friend info: " + err.Error())
@@ -28,7 +28,7 @@ func EditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) erro
 
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️ назад", common.CallInfo(params.Id, "0").String()),
+		common.NewButton("⬅️ назад", common.CallInfo(params.Id, "0", "friend").String()),
 	)
 
 	if _, err := event.ReplyCallbackQuery(ctx, msg); err != nil {
@@ -41,14 +41,17 @@ func EditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) erro
 	return nil
 }
 
-func SaveEditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func SaveEditNameHandler(ctx context.Context, event *common.Event) error {
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 
-	newName := strings.TrimSpace(message.Text)
+	newName := message.Text
 
-	if len(newName) > FRIEND_NAME_MAX_LEN {
-		if _, err := event.Reply(ctx, fmt.Sprintf("Имя не должно превышать %d символов", FRIEND_NAME_MAX_LEN)); err != nil {
+	var friend *db.Friend
+
+	validatedName, err := validateFriendName(newName)
+	if err != nil {
+		if _, err := event.Reply(ctx, err.Error()); err != nil {
 			return err
 		}
 		event.SetNextHandler("save_edit_name")
@@ -57,41 +60,50 @@ func SaveEditNameHandler(ctx context.Context, event *common.Event, tx *gorm.DB) 
 
 	friendId := chatContext.GetTexts()[0]
 
-	baseFields := db.BaseFields{ID: friendId}
-	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
+	done := false
+
+	err = db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		baseFields := db.BaseFields{ID: friendId}
+		friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
+
+		if err != nil {
+			return err
+		}
+
+		friend = friends[0]
+		friend.Name = validatedName
+
+		err = friend.Save(ctx, tx)
+		if err != nil {
+			return err
+		}
+
+		done = true
+
+		return nil
+	})
 
 	if err != nil {
-		event.Logger.Error("error during fetching friend info: " + err.Error())
 		return err
 	}
 
-	friend := friends[0]
-	friend.Name = newName
-
-	err = friend.Save(ctx, tx)
-	if err != nil {
-		event.Logger.Error("error saving friend with new name: " + err.Error())
-		return err
+	if done {
+		event.SetNextHandler("")
+		msg := "Имя изменено 💾"
+		replyWithInfo(ctx, event, friend, msg)
 	}
-
-	msg := "Имя изменено 💾"
-
-	replyWithInfo(ctx, event, friend, msg)
-
-	event.SetNextHandler("")
 
 	return nil
 }
 
-func EditBirthdayHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func EditBirthdayHandler(ctx context.Context, event *common.Event) error {
 	callbackQuery := event.GetCallbackQuery()
 	params := common.CallbackFromString(callbackQuery.Data)
 
 	baseFields := db.BaseFields{ID: params.Id}
-	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
+	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, nil)
 
 	if err != nil {
-		event.Logger.Error("error during fetching friend info: " + err.Error())
 		return err
 	}
 
@@ -109,7 +121,11 @@ func EditBirthdayHandler(ctx context.Context, event *common.Event, tx *gorm.DB) 
 	return nil
 }
 
-func SaveEditBirthdayHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func SaveEditBirthdayHandler(ctx context.Context, event *common.Event) error {
+	var (
+		friend      *db.Friend
+		msgTemplate = "Дата рождения %s изменена 💾\n\nНапомню о нем %s🔔"
+	)
 	message := event.GetMessage()
 	chatContext := event.GetContext()
 
@@ -126,40 +142,47 @@ func SaveEditBirthdayHandler(ctx context.Context, event *common.Event, tx *gorm.
 
 	friendId := chatContext.GetTexts()[0]
 
-	baseFields := db.BaseFields{ID: friendId}
-	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
+	done := false
 
-	if err != nil {
-		event.Logger.Error("error during fetching friend info: " + err.Error())
-		return err
-	}
+	err := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		baseFields := db.BaseFields{ID: friendId}
+		friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
 
-	friend := friends[0]
-	oldBirthday := friend.BirthDay
+		if err != nil {
+			event.Logger.Error("error during fetching friend info: " + err.Error())
+			return err
+		}
 
-	msgTemplate := "Дата рождения %s изменена 💾\n\nНапомню о нем %s🔔"
+		friend = friends[0]
+		oldBirthday := friend.BirthDay
 
-	if strings.EqualFold(newBirthday, oldBirthday) {
-		replyWithInfo(ctx, event, friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt()))
-		event.SetNextHandler("")
+		if strings.EqualFold(newBirthday, oldBirthday) {
+			replyWithInfo(ctx, event, friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt()))
+			event.SetNextHandler("")
+			return nil
+		}
+
+		friend.BirthDay = newBirthday
+		friend.RenewNotifayAt()
+
+		err = friend.Save(ctx, tx)
+		if err != nil {
+			return err
+		}
+
+		done = true
+
 		return nil
-	}
+	})
 
-	friend.BirthDay = newBirthday
-	friend.RenewNotifayAt()
-
-	err = friend.Save(ctx, tx)
 	if err != nil {
-		event.Logger.Error("SaveEditBirthdayHandler", "birthday update error", err.Error())
 		return err
 	}
 
-	if err := replyWithInfo(ctx, event, friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt())); err != nil {
-		event.Logger.Error("SaveEditBirthdayHandler", "reply error", err.Error())
-		return err
+	if done {
+		event.SetNextHandler("")
+		replyWithInfo(ctx, event, friend, fmt.Sprintf(msgTemplate, friend.Name, *friend.GetNotifyAt()))
 	}
-
-	event.SetNextHandler("")
 
 	return nil
 }
@@ -172,9 +195,10 @@ func replyWithInfo(
 ) error {
 	keyboard := common.NewInlineKeyboard()
 	keyboard.AppendAsStack(
-		*common.NewButton(
+		common.NewButton(
 			fmt.Sprintf("%s %s", friend.Name, friend.BirthDay),
-			common.CallInfo(friend.ID, fmt.Sprintf("%d", LIST_START_OFFSET)).String()),
+			common.CallInfo(friend.ID, fmt.Sprintf("%d", LIST_START_OFFSET), "friend").String(),
+		),
 	)
 
 	if _, err := event.ReplyWithKeyboard(ctx, msg, *keyboard.Murkup()); err != nil {

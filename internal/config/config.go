@@ -10,6 +10,11 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+const (
+	PROD  = "prod"
+	LOCAL = "local"
+)
+
 type Config struct {
 	ENV                   string `env:"ENV" env-default:"local"`
 	BotToken              string `env:"BOT_TOKEN" env-required:"true"`
@@ -39,6 +44,10 @@ func (cfg *Config) AdminList() []string {
 
 func (cfg *Config) HandlerTmeout() time.Duration {
 	return time.Duration(cfg.HandlerExecTimeoutSec) * time.Second
+}
+
+func (cfg *Config) IsProd() bool {
+	return cfg.ENV == PROD
 }
 
 var cfg Config

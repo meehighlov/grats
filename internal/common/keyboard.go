@@ -1,9 +1,5 @@
 package common
 
-import (
-	"fmt"
-)
-
 type Button struct {
 	text                            string
 	callback_data                   string
@@ -34,7 +30,7 @@ func NewSwitchInlineButton(text string) *Button {
 	}
 }
 
-func NewAddToChatButton(text, botName string) *Button {
+func NewAddToChatButton(text, query string) *Button {
 	return &Button{
 		text: text,
 		switch_inline_query_chosen_chat: map[string]interface{}{
@@ -42,17 +38,35 @@ func NewAddToChatButton(text, botName string) *Button {
 			"allow_bot_chats":     false,
 			"allow_group_chats":   true,
 			"allow_channel_chats": false,
-			"query":               fmt.Sprintf("/start@%s", botName),
+			"query":               query,
 		},
 		button_type: "switch_inline_query_chosen_chat",
 	}
 }
 
-func NewAddBotToChatURLButton(text, botName string) *Button {
+func NewURLButton(text, url string) *Button {
 	return &Button{
 		text:        text,
-		url:         fmt.Sprintf("https://t.me/%s?startgroup=true", botName),
+		url:         url,
 		button_type: "url",
+	}
+}
+
+func NewShareLinkButton(text, link, description string) *Button {
+	query := link
+	if description != "" {
+		query = description + "\n\n" + link
+	}
+	return &Button{
+		text: text,
+		switch_inline_query_chosen_chat: map[string]interface{}{
+			"allow_user_chats":    true,
+			"allow_bot_chats":     true,
+			"allow_group_chats":   true,
+			"allow_channel_chats": true,
+			"query":               query,
+		},
+		button_type: "switch_inline_query_chosen_chat",
 	}
 }
 
@@ -103,7 +117,7 @@ func NewInlineKeyboard() *InlineKeyboard {
 }
 
 // appends button list to representation of keyboard to new row below
-func (ik *InlineKeyboard) AppendAsLine(buttons ...Button) {
+func (ik *InlineKeyboard) AppendAsLine(buttons ...*Button) {
 	rawButtons := []map[string]interface{}{}
 	for _, button := range buttons {
 		rawButtons = append(rawButtons, button.Raw())
@@ -113,7 +127,7 @@ func (ik *InlineKeyboard) AppendAsLine(buttons ...Button) {
 }
 
 // appends button list as stacked lines
-func (ik *InlineKeyboard) AppendAsStack(buttons ...Button) {
+func (ik *InlineKeyboard) AppendAsStack(buttons ...*Button) {
 	for _, button := range buttons {
 		ik.AppendAsLine(button)
 	}

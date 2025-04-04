@@ -83,6 +83,21 @@ func (e *Event) EditCalbackMessage(ctx context.Context, text string, keyboard []
 	return msg, err
 }
 
+func (e *Event) RefreshMessage(ctx context.Context, chatId, messageId, text string, keyboard [][]map[string]interface{}) (*telegram.Message, error) {
+	msg, err := e.client.EditMessageText(
+		ctx,
+		chatId,
+		messageId,
+		text,
+		keyboard,
+	)
+	return msg, err
+}
+
+func (e *Event) DeleteMessage(ctx context.Context, chatId string, messageId string) error {
+	return e.client.DeleteMessage(ctx, chatId, messageId)
+}
+
 func (e *Event) GetChat(ctx context.Context, chatId string) (*telegram.Chat, error) {
 	chat, err := e.client.GetChat(ctx, chatId)
 	if chat != nil {
@@ -91,10 +106,18 @@ func (e *Event) GetChat(ctx context.Context, chatId string) (*telegram.Chat, err
 	return nil, err
 }
 
+func (e *Event) GetChatMember(ctx context.Context, userId string) (*telegram.SingleChatMemberResponse, error) {
+	return e.client.GetChatMember(ctx, userId)
+}
+
 func (e *Event) GetNextHandler() string {
 	return e.GetContext().GetNextHandler()
 }
 
 func (e *Event) SetNextHandler(nextHandler string) string {
 	return e.GetContext().SetNextHandler(nextHandler)
+}
+
+func (e *Event) SetBotCommands(ctx context.Context, commands []telegram.BotCommand) error {
+	return e.client.SetMyCommands(ctx, commands)
 }

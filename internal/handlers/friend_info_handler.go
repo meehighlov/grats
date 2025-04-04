@@ -7,16 +7,15 @@ import (
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
-	"gorm.io/gorm"
 )
 
-func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx *gorm.DB) error {
+func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event) error {
 	callbackQuery := event.GetCallbackQuery()
 
 	params := common.CallbackFromString(callbackQuery.Data)
 
 	baseFields := db.BaseFields{ID: params.Id}
-	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
+	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, nil)
 
 	if err != nil {
 		event.Logger.Error("error during fetching event info: " + err.Error())
@@ -52,11 +51,14 @@ func FriendInfoCallbackQueryHandler(ctx context.Context, event *common.Event, tx
 
 	keyboard := common.NewInlineKeyboard()
 
+	keyboard.AppendAsLine(
+		common.NewButton("✏️ имя", common.CallEditName(params.Id).String()),
+		common.NewButton("✏️ др", common.CallEditBirthday(params.Id).String()),
+	)
+
 	keyboard.AppendAsStack(
-		*common.NewButton("⬅️ к списку др", common.CallList(offset, "<", friend.ChatId).String()),
-		*common.NewButton("✏️ редактировать имя", common.CallEditName(params.Id).String()),
-		*common.NewButton("📅 редактировать др", common.CallEditBirthday(params.Id).String()),
-		*common.NewButton("🗑 удалить", common.CallDelete(params.Id, params.Pagination.Offset).String()),
+		common.NewButton("🗑 удалить", common.CallDelete(params.Id, params.Pagination.Offset).String()),
+		common.NewButton("⬅️ к списку др", common.CallList(offset, "<", friend.ChatId, "friend").String()),
 	)
 
 	if _, err := event.EditCalbackMessage(ctx, msg, *keyboard.Murkup()); err != nil {
