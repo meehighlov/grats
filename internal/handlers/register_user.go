@@ -37,10 +37,10 @@ func RegisterOrUpdateUser(ctx context.Context, event *common.Event) error {
 		}
 
 		chat := db.Chat{
-			BaseFields:     db.NewBaseFields(false),
-			ChatType:       "private",
-			ChatId:         event.GetMessage().GetChatIdStr(),
-			BotInvitedById: userId,
+			BaseFields:       db.NewBaseFields(false),
+			ChatType:         "private",
+			ChatId:           event.GetMessage().GetChatIdStr(),
+			BotInvitedById:   userId,
 			GreetingTemplate: "🔔Сегодня день рождения празднует %s🥳",
 		}
 

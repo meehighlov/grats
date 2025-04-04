@@ -59,39 +59,39 @@ func run(ctx context.Context, client *telegram.Client, logger *slog.Logger, cfg 
 
 		date := time.Now().In(location).Format("02.01.2006")
 
-		tx := db.GetDB().WithContext(ctx).Begin()
+		var friends []*db.Friend
+		var chatIdToChat map[string]*db.Chat
 
-		friends, err := (&db.Friend{FilterNotifyAt: date}).Filter(ctx, tx)
+		err := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			friends, err = (&db.Friend{FilterNotifyAt: date}).Filter(ctx, tx)
+			if err != nil {
+				logger.Error("Notify job", "error getting notification list", err.Error())
+				return err
+			}
+
+			if len(friends) == 0 {
+				logger.Debug("job", "0 friends found", "continue")
+				return nil
+			}
+
+			// at most once policy
+
+			isFailed := updateNotifyAt(ctx, tx, friends, logger)
+			if isFailed {
+				return nil
+			}
+
+			chatIdToChat, err = getChatIdToChat(ctx, tx, friends, logger)
+			if err != nil {
+				logger.Error("Notify job", "error getting chat id to chat", err.Error())
+				return err
+			}
+
+			return nil
+		})
+
 		if err != nil {
-			logger.Error("Notify job", "error getting notification list", err.Error())
-			tx.Rollback()
-			continue
-		}
-
-		if len(friends) == 0 {
-			logger.Debug("job", "0 friends found", "continue")
-			tx.Rollback()
-			continue
-		}
-
-		// at most once policy
-
-		isFailed := updateNotifyAt(ctx, tx, friends, logger)
-		if isFailed {
-			tx.Rollback()
-			continue
-		}
-
-		chatIdToChat, err := getChatIdToChat(ctx, tx, friends, logger)
-		if err != nil {
-			logger.Error("Notify job", "error getting chat id to chat", err.Error())
-			tx.Rollback()
-			continue
-		}
-
-		err = commit(ctx, tx, client, logger, cfg)
-		if err != nil {
-			tx.Rollback()
+			logger.Error("Notify job", "error running job", err.Error())
 			continue
 		}
 
@@ -120,44 +120,15 @@ func BirthdayNotifer(
 			if err != nil {
 				logger.Error("report fatal error:" + err.Error())
 			}
+
+			logger.Info("Job failed, restarting...")
+			go BirthdayNotifer(ctx, logger, cfg)
 		}
 	}()
 
 	run(withCancel, client, logger, cfg)
 
 	return nil
-}
-
-func commit(
-	ctx context.Context,
-	tx *gorm.DB,
-	client *telegram.Client,
-	logger *slog.Logger,
-	cfg *config.Config,
-) error {
-	err := tx.Commit().Error
-	if err == nil {
-		return nil
-	}
-
-	errMsg := fmt.Sprintf(
-		"Notify job: Не удалось установить комит для notify_at: %s",
-		err.Error(),
-	)
-	logger.Error(
-		"Notify job", "error committing transaction",
-		err.Error(),
-	)
-	_, err = client.SendMessage(
-		ctx,
-		cfg.ReportChatId,
-		errMsg,
-	)
-	if err != nil {
-		logger.Error("Notify job", "error sending report message", err.Error())
-	}
-
-	return err
 }
 
 func updateNotifyAt(ctx context.Context, tx *gorm.DB, friends []*db.Friend, logger *slog.Logger) bool {

@@ -19,7 +19,7 @@ func DeleteFriendCallbackQueryHandler(ctx context.Context, event *common.Event) 
 	friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, nil)
 
 	if err != nil {
-		if _, err := event.ReplyCallbackQuery(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки"); err != nil {
+		if _, err := event.ReplyCallbackQuery(ctx, common.ERROR_MESSAGE); err != nil {
 			return err
 		}
 		event.Logger.Error("error serching friend when deleting: " + err.Error())
@@ -66,7 +66,7 @@ func ConfirmDeleteFriendCallbackQueryHandler(ctx context.Context, event *common.
 		friends, err := (&db.Friend{BaseFields: baseFields}).Filter(ctx, tx)
 
 		if err != nil {
-			if _, err := event.ReplyCallbackQuery(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки"); err != nil {
+			if _, err := event.ReplyCallbackQuery(ctx, common.ERROR_MESSAGE); err != nil {
 				return err
 			}
 			event.Logger.Error("error serching friend when deleting: " + err.Error())

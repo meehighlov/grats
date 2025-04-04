@@ -99,7 +99,6 @@ func StartFromGroupHandler(ctx context.Context, event *common.Event) error {
 					"userId", event.GetMessage().From.Id,
 					"error", err.Error(),
 				)
-				event.Reply(ctx, "Что-то пошло не так🙃 Попробуйте еще раз👉👈")
 				return nil
 			}
 			return nil

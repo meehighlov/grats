@@ -18,7 +18,7 @@ func DeleteWishCallbackQueryHandler(ctx context.Context, event *common.Event) er
 	wishes, err := (&db.Wish{BaseFields: baseFields}).Filter(ctx, nil)
 
 	if err != nil {
-		if _, err := event.ReplyCallbackQuery(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки"); err != nil {
+		if _, err := event.ReplyCallbackQuery(ctx, common.ERROR_MESSAGE); err != nil {
 			return err
 		}
 		event.Logger.Error("error searching wish when deleting: " + err.Error())
@@ -63,7 +63,7 @@ func ConfirmDeleteWishCallbackQueryHandler(ctx context.Context, event *common.Ev
 		wishes, err := (&db.Wish{BaseFields: baseFields}).Filter(ctx, tx)
 
 		if err != nil {
-			if _, err := event.ReplyCallbackQuery(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки"); err != nil {
+			if _, err := event.ReplyCallbackQuery(ctx, common.ERROR_MESSAGE); err != nil {
 				return err
 			}
 			event.Logger.Error("error searching wish when deleting: " + err.Error())

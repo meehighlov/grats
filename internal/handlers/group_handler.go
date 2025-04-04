@@ -29,7 +29,7 @@ func GroupHandler(ctx context.Context, event *common.Event) error {
 	// also selects supergroups
 	chats, err := (&db.Chat{BotInvitedById: strconv.Itoa(invitedBy), ChatType: "%group"}).Filter(ctx, nil)
 	if err != nil {
-		event.Reply(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки")
+		event.Reply(ctx, common.ERROR_MESSAGE)
 		return err
 	}
 
@@ -192,7 +192,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event) error
 			"chatId", "is not provided on previous step",
 			"userid", strconv.Itoa(event.GetMessage().From.Id),
 		)
-		event.Reply(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки")
+		event.Reply(ctx, common.ERROR_MESSAGE)
 		return nil
 	}
 
@@ -220,7 +220,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event) error
 				"chatId", chatId,
 				"userid", strconv.Itoa(event.GetMessage().From.Id),
 			)
-			event.Reply(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки")
+			event.Reply(ctx, common.ERROR_MESSAGE)
 			return nil
 		}
 
@@ -235,7 +235,7 @@ func SaveGreetingTemplateHandler(ctx context.Context, event *common.Event) error
 				"userid", strconv.Itoa(event.GetMessage().From.Id),
 				"error", err,
 			)
-			event.Reply(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки")
+			event.Reply(ctx, common.ERROR_MESSAGE)
 			return err
 		}
 
@@ -308,7 +308,7 @@ func ConfirmDeleteChatHandler(ctx context.Context, event *common.Event) error {
 		err = chat.Delete(ctx, tx)
 		if err != nil {
 			event.Logger.Error("error deleting chat: " + err.Error())
-			if _, err := event.ReplyCallbackQuery(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки"); err != nil {
+			if _, err := event.ReplyCallbackQuery(ctx, common.ERROR_MESSAGE); err != nil {
 				return err
 			}
 			return err

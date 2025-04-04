@@ -15,7 +15,7 @@ type CallbackDataModel struct {
 	Id         string
 	Pagination pagination
 	Entity     string
-	ListId   string
+	ListId     string
 }
 
 type ListCaller func(offset, direction, listId, entity string) *CallbackDataModel
@@ -136,8 +136,8 @@ func newCallback(command, id, offset, direction, entity, listId string) *Callbac
 			Offset:    offset,
 			Direction: direction,
 		},
-		Entity:   entity,
-		ListId:   listId,
+		Entity: entity,
+		ListId: listId,
 	}
 }
 
@@ -154,8 +154,8 @@ func CallbackFromString(raw string) *CallbackDataModel {
 			Offset:    params[2],
 			Direction: params[3],
 		},
-		Entity:   params[4],
-		ListId:   listId,
+		Entity: params[4],
+		ListId: listId,
 	}
 }
 

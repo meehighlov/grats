@@ -23,7 +23,7 @@ func ToggleWishLockHandler(ctx context.Context, event *common.Event) error {
 		baseFields := db.BaseFields{ID: wishId}
 		wishes, err := (&db.Wish{BaseFields: baseFields}).Filter(ctx, tx)
 		if err != nil {
-			if _, err := event.ReplyCallbackQuery(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки"); err != nil {
+			if _, err := event.ReplyCallbackQuery(ctx, common.ERROR_MESSAGE); err != nil {
 				return err
 			}
 			event.Logger.Error("error searching wish when locking: " + err.Error())

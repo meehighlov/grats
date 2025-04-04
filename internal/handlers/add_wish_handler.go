@@ -24,7 +24,7 @@ func AddWishHandler(ctx context.Context, event *common.Event) error {
 	wishes, err := (&db.Wish{UserId: userId}).Filter(ctx, nil)
 	if err != nil {
 		event.Logger.Error("error getting wishes: " + err.Error())
-		event.Reply(ctx, "Что-то пошло не так⚠️ Если проблема повторяется - опишите ее в чате поддержки")
+		event.Reply(ctx, common.ERROR_MESSAGE)
 		return err
 	}
 
