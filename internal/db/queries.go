@@ -285,8 +285,8 @@ func (u *User) Search(ctx context.Context, tx *gorm.DB, params *common.SearchPar
 	var users []*User
 	query := db.Model(&User{})
 
-	if params.SourceId != "" {
-		query = query.Where("id = ?", params.SourceId)
+	if params.ListId != "" {
+		query = query.Where("id = ?", params.ListId)
 	}
 
 	if err := query.Find(&users).Error; err != nil {
@@ -313,8 +313,8 @@ func (f *Friend) Search(ctx context.Context, tx *gorm.DB, params *common.SearchP
 	var friends []*Friend
 	query := db.Model(&Friend{})
 
-	if params.SourceId != "" {
-		query = query.Where("chat_id = ?", params.SourceId)
+	if params.ListId != "" {
+		query = query.Where("chat_id = ?", params.ListId)
 	}
 
 	if err := query.Find(&friends).Error; err != nil {
@@ -341,8 +341,8 @@ func (c *Chat) Search(ctx context.Context, tx *gorm.DB, params *common.SearchPar
 	var chats []*Chat
 	query := db.Model(&Chat{})
 
-	if params.SourceId != "" {
-		query = query.Where("chat_id = ?", params.SourceId)
+	if params.ListId != "" {
+		query = query.Where("chat_id = ?", params.ListId)
 	}
 
 	if err := query.Find(&chats).Error; err != nil {
@@ -408,8 +408,8 @@ func (w *Wish) Search(ctx context.Context, tx *gorm.DB, params *common.SearchPar
 	var wishes []*Wish
 	query := db.Model(&Wish{})
 
-	if params.SourceId != "" {
-		query = query.Where("wish_list_id = ?", params.SourceId)
+	if params.ListId != "" {
+		query = query.Where("wish_list_id = ?", params.ListId)
 	}
 
 	if err := query.Find(&wishes).Error; err != nil {
@@ -544,8 +544,8 @@ func (w *WishList) Search(ctx context.Context, tx *gorm.DB, params *common.Searc
 	var wishLists []*WishList
 	query := db.Model(&WishList{})
 
-	if params.SourceId != "" {
-		query = query.Where("id = ?", params.SourceId)
+	if params.ListId != "" {
+		query = query.Where("id = ?", params.ListId)
 	}
 
 	if err := query.Find(&wishLists).Error; err != nil {

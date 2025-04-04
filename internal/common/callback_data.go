@@ -15,13 +15,13 @@ type CallbackDataModel struct {
 	Id         string
 	Pagination pagination
 	Entity     string
-	SourceId   string
+	ListId   string
 }
 
-type ListCaller func(offset, direction, sourceId, entity string) *CallbackDataModel
+type ListCaller func(offset, direction, listId, entity string) *CallbackDataModel
 
-func CallList(offset, direction, sourceId string, entity string) *CallbackDataModel {
-	return newCallback("list", "", offset, direction, entity, sourceId)
+func CallList(offset, direction, listId string, entity string) *CallbackDataModel {
+	return newCallback("list", "", offset, direction, entity, listId)
 }
 
 func CallDelete(id, offset string) *CallbackDataModel {
@@ -128,7 +128,7 @@ func CallWriteToSupport(chatId string) *CallbackDataModel {
 	return newCallback("write_to_support", chatId, "", "", "support", "")
 }
 
-func newCallback(command, id, offset, direction, entity, sourceId string) *CallbackDataModel {
+func newCallback(command, id, offset, direction, entity, listId string) *CallbackDataModel {
 	return &CallbackDataModel{
 		Command: command,
 		Id:      id,
@@ -137,15 +137,15 @@ func newCallback(command, id, offset, direction, entity, sourceId string) *Callb
 			Direction: direction,
 		},
 		Entity:   entity,
-		SourceId: sourceId,
+		ListId:   listId,
 	}
 }
 
 func CallbackFromString(raw string) *CallbackDataModel {
 	params := strings.Split(raw, ";")
-	sourceId := ""
+	listId := ""
 	if len(params) == 6 {
-		sourceId = params[5]
+		listId = params[5]
 	}
 	return &CallbackDataModel{
 		Command: params[0],
@@ -155,7 +155,7 @@ func CallbackFromString(raw string) *CallbackDataModel {
 			Direction: params[3],
 		},
 		Entity:   params[4],
-		SourceId: sourceId,
+		ListId:   listId,
 	}
 }
 
@@ -168,7 +168,7 @@ func (cd *CallbackDataModel) String() string {
 			cd.Pagination.Offset,
 			cd.Pagination.Direction,
 			cd.Entity,
-			cd.SourceId,
+			cd.ListId,
 		},
 		separator,
 	)

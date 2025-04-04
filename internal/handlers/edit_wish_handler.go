@@ -62,7 +62,7 @@ func SaveEditPriceHandler(ctx context.Context, event *common.Event) error {
 
 		chatId := event.GetMessage().GetChatIdStr()
 		refreshMessageId := event.GetContext().GetTexts()[1]
-		event.RefreshMessage(ctx, chatId, refreshMessageId, wish[0].Info(executorId), *buildWishInfoKeyboard(wish[0], fmt.Sprintf("%d", LIST_START_OFFSET), params.Pagination.Direction, params.SourceId).Murkup())
+		event.RefreshMessage(ctx, chatId, refreshMessageId, wish[0].Info(executorId), *buildWishInfoKeyboard(wish[0], fmt.Sprintf("%d", LIST_START_OFFSET), params.Pagination.Direction, wish[0].WishListId).Murkup())
 
 		return nil
 	})
@@ -138,7 +138,7 @@ func SaveEditLinkHandler(ctx context.Context, event *common.Event) error {
 		executorId := strconv.Itoa(event.GetMessage().From.Id)
 		refreshMessageId := event.GetContext().GetTexts()[1]
 		chatId := event.GetMessage().GetChatIdStr()
-		event.RefreshMessage(ctx, chatId, refreshMessageId, wish[0].Info(executorId), *buildWishInfoKeyboard(wish[0], fmt.Sprintf("%d", LIST_START_OFFSET), params.Pagination.Direction, params.SourceId).Murkup())
+		event.RefreshMessage(ctx, chatId, refreshMessageId, wish[0].Info(executorId), *buildWishInfoKeyboard(wish[0], fmt.Sprintf("%d", LIST_START_OFFSET), params.Pagination.Direction, wish[0].WishListId).Murkup())
 
 		// delete message with link - it's too large
 		event.DeleteMessage(ctx, chatId, message.GetMessageIdStr())
@@ -209,7 +209,7 @@ func SaveEditWishNameHandler(ctx context.Context, event *common.Event) error {
 
 		refreshMessageId := event.GetContext().GetTexts()[1]
 		chatId := event.GetMessage().GetChatIdStr()
-		event.RefreshMessage(ctx, chatId, refreshMessageId, wish[0].Info(executorId), *buildWishInfoKeyboard(wish[0], fmt.Sprintf("%d", LIST_START_OFFSET), params.Pagination.Direction, params.SourceId).Murkup())
+		event.RefreshMessage(ctx, chatId, refreshMessageId, wish[0].Info(executorId), *buildWishInfoKeyboard(wish[0], fmt.Sprintf("%d", LIST_START_OFFSET), params.Pagination.Direction, wish[0].WishListId).Murkup())
 
 		return nil
 	})

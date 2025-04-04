@@ -10,7 +10,7 @@ import (
 )
 
 type SearchParams struct {
-	SourceId string
+	ListId string
 }
 
 type PaginatedEntity interface {
@@ -81,7 +81,7 @@ func AppendControlButtons(
 	total,
 	limit,
 	offset int,
-	sourceId string,
+	listId string,
 	entity string,
 	listCaller ListCaller,
 	listStartOffset int,
@@ -91,23 +91,23 @@ func AppendControlButtons(
 		return nil
 	}
 	if offset == total {
-		buttons = append(buttons, NewButton("⬆️", listCaller(strconv.Itoa(listStartOffset), "<<<", sourceId, entity).String()))
+		buttons = append(buttons, NewButton("⬆️", listCaller(strconv.Itoa(listStartOffset), "<<<", listId, entity).String()))
 		keyboard.AppendAsLine(buttons...)
 		return nil
 	}
 	if offset+limit >= total {
-		buttons = append(buttons, NewButton("⬅️", listCaller(strconv.Itoa(offset), "<<", sourceId, entity).String()))
+		buttons = append(buttons, NewButton("⬅️", listCaller(strconv.Itoa(offset), "<<", listId, entity).String()))
 	} else {
 		if offset == 0 {
-			buttons = append(buttons, NewButton("➡️", listCaller(strconv.Itoa(offset), ">>", sourceId, entity).String()))
+			buttons = append(buttons, NewButton("➡️", listCaller(strconv.Itoa(offset), ">>", listId, entity).String()))
 		} else {
-			buttons = append(buttons, NewButton("⬅️", listCaller(strconv.Itoa(offset), "<<", sourceId, entity).String()))
-			buttons = append(buttons, NewButton("➡️", listCaller(strconv.Itoa(offset), ">>", sourceId, entity).String()))
+			buttons = append(buttons, NewButton("⬅️", listCaller(strconv.Itoa(offset), "<<", listId, entity).String()))
+			buttons = append(buttons, NewButton("➡️", listCaller(strconv.Itoa(offset), ">>", listId, entity).String()))
 		}
 	}
 
 	keyboard.AppendAsLine(buttons...)
-	keyboard.AppendAsStack(NewButton(fmt.Sprintf("(%d)⬇️", total), listCaller(strconv.Itoa(offset), "<>", sourceId, entity).String()))
+	keyboard.AppendAsStack(NewButton(fmt.Sprintf("(%d)⬇️", total), listCaller(strconv.Itoa(offset), "<>", listId, entity).String()))
 
 	return nil
 }

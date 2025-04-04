@@ -22,11 +22,11 @@ const (
 func ListItemsHandler(ctx context.Context, event *common.Event) error {
 	callbackData := common.CallbackFromString(event.GetCallbackQuery().Data)
 
-	sourceId := callbackData.SourceId
+	listId := callbackData.ListId
 	entity := callbackData.Entity
 
 	entities, err := db.NewEntity(entity).Search(ctx, nil, &common.SearchParams{
-		SourceId: sourceId,
+		ListId: listId,
 	})
 
 	if err != nil {
@@ -44,8 +44,8 @@ func ListItemsHandler(ctx context.Context, event *common.Event) error {
 
 	if _, err := event.EditCalbackMessage(
 		ctx,
-		buildChatHeaderMessage(ctx, sourceId, event, entities, entity),
-		*buildListMarkup(entities, LIST_LIMIT, offset_, sourceId, entity).Murkup(),
+		buildChatHeaderMessage(ctx, listId, event, entities, entity),
+		*buildListMarkup(entities, LIST_LIMIT, offset_, listId, entity).Murkup(),
 	); err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func ListItemsHandler(ctx context.Context, event *common.Event) error {
 	return nil
 }
 
-func buildListMarkup(entities []common.PaginatedEntity, limit, offset int, sourceId string, table string) *common.InlineKeyboard {
+func buildListMarkup(entities []common.PaginatedEntity, limit, offset int, listId string, table string) *common.InlineKeyboard {
 	callbackDataBuilder := func(id string, offset int) string {
 		return common.CallInfo(id, strconv.Itoa(offset), table).String()
 	}
@@ -62,20 +62,20 @@ func buildListMarkup(entities []common.PaginatedEntity, limit, offset int, sourc
 
 	headerButtons := []*common.Button{
 		common.NewButton("↩️", common.CallCommands().String()),
-		common.NewButton("➕", common.CallAddItem(sourceId, table).String()),
+		common.NewButton("➕", common.CallAddItem(listId, table).String()),
 	}
 
 	if table == "wish" && len(entities) > 0 {
-		headerButtons = append(headerButtons, common.NewButton("🛜", common.CallShareWishList(sourceId).String()))
+		headerButtons = append(headerButtons, common.NewButton("🛜", common.CallShareWishList(listId).String()))
 	}
 
 	keyboard.AppendAsLine(headerButtons...)
 	keyboard.AppendAsStack(entityListAsButtons...)
 
-	common.AppendControlButtons(keyboard, len(entities), limit, offset, sourceId, table, common.CallList, LIST_START_OFFSET)
+	common.AppendControlButtons(keyboard, len(entities), limit, offset, listId, table, common.CallList, LIST_START_OFFSET)
 
-	if strings.Contains(sourceId, "-") {
-		keyboard.AppendAsLine(common.NewButton("⬅️к чату", common.CallChatInfo(sourceId).String()))
+	if strings.Contains(listId, "-") {
+		keyboard.AppendAsLine(common.NewButton("⬅️к чату", common.CallChatInfo(listId).String()))
 	}
 
 	return keyboard

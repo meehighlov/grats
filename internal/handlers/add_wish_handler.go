@@ -58,6 +58,15 @@ func SaveWish(ctx context.Context, event *common.Event) error {
 	userId := strconv.Itoa(message.From.Id)
 	wishListId := event.GetContext().GetTexts()[0]
 
+	if wishListId == "" {
+		event.Logger.Error(
+			"SaveWish",
+			"error", "wishListId is empty",
+			"userId", userId,
+		)
+		return nil
+	}
+
 	if len(message.Text) > WISH_NAME_MAX_LEN {
 		event.Reply(ctx, fmt.Sprintf("Слишком большое имя, максимум - %d символов, попробуйте снова", WISH_NAME_MAX_LEN))
 		return nil
