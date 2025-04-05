@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -37,7 +37,7 @@ func MustSetup(dsn string, lgr *slog.Logger, runMigrations bool) {
 		},
 	)
 
-	db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: gormLogger,
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,

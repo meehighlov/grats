@@ -13,11 +13,6 @@ func RegisterOrUpdateUser(ctx context.Context, event *common.Event) error {
 	err := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		message := event.GetMessage()
 
-		isAdmin := 0
-		if message.From.IsAdmin() {
-			isAdmin = 1
-		}
-
 		userId := strconv.Itoa(message.From.Id)
 
 		user := db.User{
@@ -27,7 +22,7 @@ func RegisterOrUpdateUser(ctx context.Context, event *common.Event) error {
 			TgId:       userId,
 			ChatId:     strconv.Itoa(message.Chat.Id),
 			Birthday:   "",
-			IsAdmin:    isAdmin,
+			IsAdmin:    message.From.IsAdmin(),
 		}
 
 		err := user.Save(ctx, tx)

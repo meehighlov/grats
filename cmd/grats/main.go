@@ -20,7 +20,7 @@ func main() {
 
 	logger := lib.MustSetupLogging("grats.log", true, cfg.ENV)
 
-	db.MustSetup("grats.db", logger, cfg.RunMigrations)
+	db.MustSetup(cfg.PGDSN, logger, cfg.RunMigrations)
 
 	go handlers.BirthdayNotifer(context.Background(), lib.MustSetupLogging("grats_job.log", false, cfg.ENV), cfg)
 

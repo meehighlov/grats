@@ -1,9 +1,9 @@
 .PHONY: migrate
 migrate:
-	goose -dir=migrations sqlite3 grats.db up
+	goose -dir=migrations postgres "host=localhost user=postgres password=postgres dbname=postgres port=5432 sslmode=disable" up
 
 downgrade:
-	goose -dir=migrations sqlite3 grats.db down
+	goose -dir=migrations postgres "host=localhost user=postgres password=postgres dbname=postgres port=5432 sslmode=disable" down
 
 .PHONY: run
 run:

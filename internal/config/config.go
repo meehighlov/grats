@@ -17,6 +17,7 @@ const (
 
 type Config struct {
 	ENV                   string `env:"ENV" env-default:"local"`
+	PGDSN                 string `env:"PG_DSN" env-required:"true"`
 	BotToken              string `env:"BOT_TOKEN" env-required:"true"`
 	BotName               string `env:"BOT_NAME" env-required:"true"`
 	Admins                string `env:"ADMINS" env-required:"true"`

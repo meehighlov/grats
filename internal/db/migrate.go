@@ -22,7 +22,7 @@ func migrateWithGoose(db *gorm.DB, logger *slog.Logger) error {
 
 	goose.SetLogger(&gooseLogger{logger: logger})
 
-	if err := goose.SetDialect("sqlite3"); err != nil {
+	if err := goose.SetDialect("postgres"); err != nil {
 		logger.Error("Failed to set Goose dialect", "error", err)
 		return err
 	}

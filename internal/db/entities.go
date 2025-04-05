@@ -76,7 +76,7 @@ type User struct {
 	TgUsername string `gorm:"not null;column:tg_username"`
 	ChatId     string `gorm:"column:chat_id;type:varchar"` // chatId - id of chat with user, bot uses it to send notification
 	Birthday   string `gorm:"column:birthday;type:varchar"`
-	IsAdmin    int    `gorm:"column:is_admin;type:int"`
+	IsAdmin    bool   `gorm:"column:is_admin;type:boolean"`
 
 	Friends []Friend `gorm:"foreignKey:UserId;references:ID"`
 }
@@ -90,7 +90,7 @@ func (user *User) GetUserId() string {
 }
 
 func (user *User) HasAdminAccess() bool {
-	return user.IsAdmin == 1
+	return user.IsAdmin
 }
 
 func (user *User) GetTGUserName() string {
@@ -410,8 +410,7 @@ type Chat struct {
 	ChatId           string `gorm:"uniqueIndex;not null;column:chat_id"`
 	GreetingTemplate string `gorm:"column:greeting_template;type:varchar"`
 
-	// 0 off, 1 on
-	SilentNotifications int
+	SilentNotifications bool `gorm:"column:silent_notifications;type:boolean"`
 }
 
 func (Chat) TableName() string {
@@ -423,17 +422,17 @@ func (chat *Chat) GetUserId() string {
 }
 
 func (chat *Chat) IsAlreadySilent() bool {
-	return chat.SilentNotifications == 1
+	return chat.SilentNotifications
 }
 
 func (chat *Chat) GetSilent() bool {
-	return chat.SilentNotifications == 1
+	return chat.SilentNotifications
 }
 
 func (chat *Chat) EnableSoundNotifications() {
-	chat.SilentNotifications = 0
+	chat.SilentNotifications = false
 }
 
 func (chat *Chat) DisableSoundNotifications() {
-	chat.SilentNotifications = 1
+	chat.SilentNotifications = true
 }
