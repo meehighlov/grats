@@ -205,7 +205,6 @@ func (tc *Client) EditMessageText(ctx context.Context, chatId, messageId, text s
 		return nil, err
 	}
 	q.Add("reply_markup", string(markup))
-	q.Add("parse_mode", "MarkDown")
 
 	data, err := tc.sendRequest(ctx, "editMessageText", q)
 	if err != nil {
