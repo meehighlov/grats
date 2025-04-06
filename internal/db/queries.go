@@ -457,6 +457,29 @@ func (w *Wish) Filter(ctx context.Context, tx *gorm.DB) ([]*Wish, error) {
 	return wishes, nil
 }
 
+func (w *Wish) GetWithLock(ctx context.Context, tx *gorm.DB) ([]*Wish, error) {
+	db := GetDB()
+	if tx != nil {
+		db = tx
+	} else {
+		db = db.WithContext(ctx)
+	}
+
+	var wishes []*Wish
+	query := db.Model(&Wish{}).Clauses(clause.Locking{Strength: "UPDATE"})
+
+	if w.ID != "" {
+		query = query.Where("id = ?", w.ID)
+	}
+
+	if err := query.Find(&wishes).Error; err != nil {
+		slog.Error("Error when getting wishes with lock: " + err.Error())
+		return nil, err
+	}
+
+	return wishes, nil
+}
+
 func (w *Wish) Save(ctx context.Context, tx *gorm.DB) error {
 	db := GetDB()
 	if tx != nil {

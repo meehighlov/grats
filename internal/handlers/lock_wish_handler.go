@@ -21,7 +21,7 @@ func ToggleWishLockHandler(ctx context.Context, event *common.Event) error {
 
 	err := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		baseFields := db.BaseFields{ID: wishId}
-		wishes, err := (&db.Wish{BaseFields: baseFields}).Filter(ctx, tx)
+		wishes, err := (&db.Wish{BaseFields: baseFields}).GetWithLock(ctx, tx)
 		if err != nil {
 			if _, err := event.ReplyCallbackQuery(ctx, common.ERROR_MESSAGE); err != nil {
 				return err
