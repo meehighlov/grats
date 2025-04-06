@@ -72,8 +72,8 @@ type User struct {
 	BaseFields
 
 	TgId       string `gorm:"uniqueIndex;not null;column:tg_id;type:varchar"` // id will be taken from telegram
-	Name       string `gorm:"not null;column:name"`
-	TgUsername string `gorm:"not null;column:tg_username"`
+	Name       string `gorm:"not null;column:name;type:varchar"`
+	TgUsername string `gorm:"not null;column:tg_username;type:varchar"`
 	ChatId     string `gorm:"column:chat_id;type:varchar"` // chatId - id of chat with user, bot uses it to send notification
 	Birthday   string `gorm:"column:birthday;type:varchar"`
 	IsAdmin    bool   `gorm:"column:is_admin;type:boolean"`
@@ -105,8 +105,8 @@ type Friend struct {
 
 	// todo store timezone in friend table or somewere in db - for user's specific timezone
 
-	Name     string `gorm:"not null;type:varchar"`
-	UserId   string `gorm:"not null;index;type:varchar"`
+	Name     string `gorm:"not null;column:name;type:varchar"`
+	UserId   string `gorm:"not null;index;column:user_id;type:varchar"`
 	BirthDay string `gorm:"column:birthday;type:varchar"`
 	ChatId   string `gorm:"column:chat_id;type:varchar"`
 	NotifyAt string `gorm:"column:notify_at;type:varchar"`
@@ -407,7 +407,7 @@ type Chat struct {
 	ChatType string `gorm:"column:chat_type;type:varchar"`
 
 	BotInvitedById   string `gorm:"column:bot_invited_by_id;type:varchar"`
-	ChatId           string `gorm:"uniqueIndex;not null;column:chat_id"`
+	ChatId           string `gorm:"uniqueIndex;not null;column:chat_id;type:varchar"`
 	GreetingTemplate string `gorm:"column:greeting_template;type:varchar"`
 
 	SilentNotifications bool `gorm:"column:silent_notifications;type:boolean"`
