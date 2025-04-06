@@ -53,15 +53,6 @@ func MustSetup(dsn string, lgr *slog.Logger, runMigrations bool) {
 		log.Fatal(err)
 	}
 
-	sqlDB, err := db.DB()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetConnMaxLifetime(time.Minute * 30)
-
 	if runMigrations {
 		if err := RunMigrations(context.Background(), lgr); err != nil {
 			log.Fatal("Migration error:", err)
