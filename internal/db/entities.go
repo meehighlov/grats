@@ -16,18 +16,18 @@ const (
 )
 
 type BaseFields struct {
-	ID        string `gorm:"primaryKey;type:string;column:id"`
-	CreatedAt string `gorm:"not null;column:created_at;type:varchar"`
-	UpdatedAt string `gorm:"not null;column:updated_at;type:varchar"`
+	ID        string    `gorm:"primaryKey;type:string;column:id"`
+	CreatedAt time.Time `gorm:"not null;column:created_at;type:timestamp with time zone"`
+	UpdatedAt time.Time `gorm:"not null;column:updated_at;type:timestamp with time zone"`
 }
 
-func (b *BaseFields) RefresTimestamps() (created string, updated string, _ error) {
+func (b *BaseFields) RefresTimestamps() (created time.Time, updated time.Time, _ error) {
 	location, err := time.LoadLocation(config.Cfg().Timezone)
 	if err != nil {
 		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " entityId: " + b.ID)
 	}
-	now := time.Now().In(location).Format("02.01.2006T15:04:05")
-	if b.CreatedAt == "" {
+	now := time.Now().In(location)
+	if b.CreatedAt.IsZero() {
 		b.CreatedAt = now
 	}
 	b.UpdatedAt = now
@@ -44,7 +44,7 @@ func NewBaseFields(shortId bool) BaseFields {
 	if err != nil {
 		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " NewEntityId: " + id)
 	}
-	now := time.Now().In(location).Format("02.01.2006T15:04:05")
+	now := time.Now().In(location)
 	return BaseFields{id, now, now}
 }
 
