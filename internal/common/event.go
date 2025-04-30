@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/meehighlov/grats/internal/config"
-	"github.com/meehighlov/grats/telegram"
+	"github.com/meehighlov/grats/pkg/telegram"
 )
 
 type Event struct {

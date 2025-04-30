@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/meehighlov/grats/internal/common"
-	"github.com/meehighlov/grats/telegram"
+	"github.com/meehighlov/grats/pkg/telegram"
 )
 
 const (

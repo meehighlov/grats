@@ -9,7 +9,7 @@ import (
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/db"
-	"github.com/meehighlov/grats/telegram"
+	"github.com/meehighlov/grats/pkg/telegram"
 	"gorm.io/gorm"
 )
 

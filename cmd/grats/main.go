@@ -12,7 +12,7 @@ import (
 	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/internal/handlers"
 	"github.com/meehighlov/grats/internal/lib"
-	"github.com/meehighlov/grats/telegram"
+	"github.com/meehighlov/grats/pkg/telegram"
 )
 
 func main() {
