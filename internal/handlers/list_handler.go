@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/meehighlov/grats/internal/common"
 	"github.com/meehighlov/grats/internal/db"
@@ -25,7 +24,7 @@ func ListItemsHandler(ctx context.Context, event *common.Event) error {
 	listId := callbackData.ListId
 	entity := callbackData.Entity
 
-	entities, err := db.NewEntity(entity).Search(ctx, nil, &common.SearchParams{
+	entities, err := db.CreateEntity(entity).Search(ctx, nil, &common.SearchParams{
 		ListId: listId,
 	})
 
@@ -74,10 +73,6 @@ func buildListMarkup(entities []common.PaginatedEntity, limit, offset int, listI
 
 	common.AppendControlButtons(keyboard, len(entities), limit, offset, listId, table, common.CallList, LIST_START_OFFSET)
 
-	if strings.Contains(listId, "-") {
-		keyboard.AppendAsLine(common.NewButton("⬅️к чату", common.CallChatInfo(listId).String()))
-	}
-
 	return keyboard
 }
 
@@ -90,10 +85,6 @@ func buildChatHeaderMessage(ctx context.Context, chatId string, event *common.Ev
 		userInfo, _ := event.GetChatMember(ctx, userId)
 		return fmt.Sprintf("✨Вишлист @%s", userInfo.Result.User.Username)
 	}
-	if strings.HasPrefix(chatId, "-") {
-		chatFullInfo, _ := event.GetChat(ctx, chatId)
-		return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY, "напоминаний о др в чате "+chatFullInfo.Title)
-	}
 
-	return fmt.Sprintf(HEADER_MESSAGE_LIST_NOT_EMPTY, "личных напоминаний о др")
+	return HEADER_MESSAGE_LIST_IS_EMPTY
 }

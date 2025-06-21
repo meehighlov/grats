@@ -4,66 +4,49 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/meehighlov/grats/internal/common"
-	"github.com/meehighlov/grats/internal/config"
-)
-
-const (
-	SHORT_ID_LENGTH = 6
 )
 
 type BaseFields struct {
-	ID        string    `gorm:"primaryKey;type:string;column:id"`
-	CreatedAt time.Time `gorm:"not null;column:created_at;type:timestamp with time zone"`
-	UpdatedAt time.Time `gorm:"not null;column:updated_at;type:timestamp with time zone"`
+	ID        string `gorm:"primaryKey;column:id;type:varchar(36);default:uuid_generate_v4()"`
+	CreatedAt string `gorm:"column:created_at;type:timestamp;default:now()"`
+	UpdatedAt string `gorm:"column:updated_at;type:timestamp;default:now()"`
 }
 
-func (b *BaseFields) RefresTimestamps() (created time.Time, updated time.Time, _ error) {
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " entityId: " + b.ID)
+func (b *BaseFields) RefresTimestamps() (string, string, string) {
+	if b.ID == "" {
+		b.ID = GenerateShortID(6)
 	}
-	now := time.Now().In(location)
-	if b.CreatedAt.IsZero() {
-		b.CreatedAt = now
-	}
-	b.UpdatedAt = now
+	b.CreatedAt = GetCurrentTimestamp()
+	b.UpdatedAt = GetCurrentTimestamp()
 
-	return b.CreatedAt, b.UpdatedAt, nil
+	return b.ID, b.CreatedAt, b.UpdatedAt
 }
 
-func NewBaseFields(shortId bool) BaseFields {
-	id := uuid.New().String()
-	if shortId {
-		id = GenerateShortID(SHORT_ID_LENGTH)
+func NewBaseFields(withoutId bool) BaseFields {
+	var id string
+	if !withoutId {
+		id = GenerateShortID(6)
 	}
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " NewEntityId: " + id)
+
+	return BaseFields{
+		ID:        id,
+		CreatedAt: GetCurrentTimestamp(),
+		UpdatedAt: GetCurrentTimestamp(),
 	}
-	now := time.Now().In(location)
-	return BaseFields{id, now, now}
 }
 
-func NewEntity(table string) common.PaginatedEntity {
-	if table == "user" {
+func CreateEntity(table string) common.PaginatedEntity {
+	switch table {
+	case "wish":
+		return &Wish{}
+	case "wish_list":
+		return &WishList{}
+	case "user":
 		return &User{}
 	}
-	if table == "friend" {
-		return &Friend{}
-	}
-	if table == "chat" {
-		return &Chat{}
-	}
-	if table == "wish" {
-		return &Wish{}
-	}
-	if table == "wish_list" {
-		return &WishList{}
-	}
+	slog.Error("CreateEntity", "unknown table", table)
 	return nil
 }
 
@@ -75,10 +58,7 @@ type User struct {
 	Name       string `gorm:"not null;column:name;type:varchar"`
 	TgUsername string `gorm:"not null;column:tg_username;type:varchar"`
 	ChatId     string `gorm:"column:chat_id;type:varchar"` // chatId - id of chat with user, bot uses it to send notification
-	Birthday   string `gorm:"column:birthday;type:varchar"`
 	IsAdmin    bool   `gorm:"column:is_admin;type:boolean"`
-
-	Friends []Friend `gorm:"foreignKey:UserId;references:ID"`
 }
 
 func (User) TableName() string {
@@ -98,30 +78,6 @@ func (user *User) GetTGUserName() string {
 		return "@" + user.TgUsername
 	}
 	return user.TgUsername
-}
-
-type Friend struct {
-	BaseFields
-
-	// todo store timezone in friend table or somewere in db - for user's specific timezone
-
-	Name     string `gorm:"not null;column:name;type:varchar"`
-	UserId   string `gorm:"not null;index;column:user_id;type:varchar"`
-	BirthDay string `gorm:"column:birthday;type:varchar"`
-	ChatId   string `gorm:"column:chat_id;type:varchar"`
-	NotifyAt string `gorm:"column:notify_at;type:varchar"`
-
-	FilterNotifyAt string `gorm:"-"`
-
-	User User `gorm:"foreignKey:UserId;references:ID"`
-}
-
-func (Friend) TableName() string {
-	return "friend"
-}
-
-func (friend *Friend) GetUserId() string {
-	return friend.UserId
 }
 
 type WishList struct {
@@ -145,13 +101,14 @@ func (wishList *WishList) GetUserId() string {
 type Wish struct {
 	BaseFields
 
-	ChatId     string `gorm:"column:chat_id;type:varchar"`
-	UserId     string `gorm:"not null;index;column:user_id;type:varchar"`
-	WishListId string `gorm:"column:wish_list_id;type:varchar"`
-	Link       string `gorm:"column:link;type:varchar"`
-	Price      string `gorm:"column:price;type:varchar"`
-	Name       string `gorm:"column:name;type:varchar"`
-	ExecutorId string `gorm:"column:executor_id;type:varchar"`
+	Name         string `gorm:"column:name;type:varchar"`
+	ChatId       string `gorm:"column:chat_id;type:varchar"`
+	UserId       string `gorm:"not null;index;column:user_id;type:varchar"`
+	Link         string `gorm:"column:link;type:varchar"`
+	ExecutorId   string `gorm:"column:executor_id;type:varchar"`
+	Price        string `gorm:"column:price;type:varchar"`
+	WishListId   string `gorm:"column:wish_list_id;type:varchar"`
+	WishListName string `gorm:"-"`
 
 	User     User     `gorm:"foreignKey:UserId;references:ID"`
 	WishList WishList `gorm:"foreignKey:WishListId;references:ID"`
@@ -163,44 +120,6 @@ func (Wish) TableName() string {
 
 func (wish *Wish) GetUserId() string {
 	return wish.UserId
-}
-
-func (wish *Wish) IsOzon() bool {
-	ozonPrefix1 := "https://ozon.ru/"
-	ozonPrefix2 := "https://www.ozon.ru/"
-	return strings.HasPrefix(wish.Link, ozonPrefix1) || strings.HasPrefix(wish.Link, ozonPrefix2)
-}
-
-func (wish *Wish) IsWildberries() bool {
-	wbPrefix1 := "https://wildberries.ru/"
-	wbPrefix2 := "https://www.wildberries.ru/"
-	return strings.HasPrefix(wish.Link, wbPrefix1) || strings.HasPrefix(wish.Link, wbPrefix2)
-}
-
-func (wish *Wish) IsYandexMarket() bool {
-	yandexMarketPrefix1 := "https://market.yandex.ru/"
-	yandexMarketPrefix2 := "https://www.market.yandex.ru/"
-	return strings.HasPrefix(wish.Link, yandexMarketPrefix1) || strings.HasPrefix(wish.Link, yandexMarketPrefix2)
-}
-
-func (wish *Wish) IsAvito() bool {
-	avitoPrefix1 := "https://avito.ru/"
-	avitoPrefix2 := "https://www.avito.ru/"
-	return strings.HasPrefix(wish.Link, avitoPrefix1) || strings.HasPrefix(wish.Link, avitoPrefix2)
-}
-
-func (wish *Wish) GetMarketplace() string {
-	switch {
-	case wish.IsOzon():
-		return "ozon"
-	case wish.IsWildberries():
-		return "wildberries"
-	case wish.IsYandexMarket():
-		return "yandex market"
-	case wish.IsAvito():
-		return "avito"
-	}
-	return "смотреть на сайте"
 }
 
 func (wish *Wish) Info(executorId string) string {
@@ -223,178 +142,8 @@ func (wish *Wish) Info(executorId string) string {
 	return strings.Join(msgLines, "\n\n")
 }
 
-func (friend *Friend) BirthDayAsObj(format string) (time.Time, error) {
-	parts := strings.Split(friend.BirthDay, ".")
-	birtday_wo_year := strings.Join(parts[:2], ".")
-
-	return time.Parse(format, birtday_wo_year)
-}
-
-func (friend *Friend) GetZodiacSign() (emoji, text string) {
-	format := "02.01" // day.month
-	birthday, err := friend.BirthDayAsObj(format)
-
-	if err != nil {
-		slog.Error("define zodiac sign error: cannot parse birthday: " + err.Error())
-		return "🌙", "это луна"
-	}
-
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone during zodiac sign defenition, error: " + err.Error() + " friendId: " + friend.ID)
-		return "🌙", "это луна"
-	}
-
-	border := func(month time.Month, day int) time.Time {
-		return time.Date(0, month, day, 0, 0, 0, 0, location)
-	}
-
-	if birthday.After(border(time.March, 21)) && birthday.Before(border(time.April, 20)) {
-		return "♈️", "овен"
-	}
-	if birthday.After(border(time.April, 20)) && birthday.Before(border(time.May, 21)) {
-		return "♉", "телец"
-	}
-	if birthday.After(border(time.May, 21)) && birthday.Before(border(time.June, 22)) {
-		return "♊", "близнецы"
-	}
-	if birthday.After(border(time.June, 22)) && birthday.Before(border(time.July, 23)) {
-		return "♋", "рак"
-	}
-	if birthday.After(border(time.July, 23)) && birthday.Before(border(time.August, 23)) {
-		return "♌", "лев"
-	}
-	if birthday.After(border(time.August, 23)) && birthday.Before(border(time.September, 23)) {
-		return "♍", "дева"
-	}
-	if birthday.After(border(time.September, 23)) && birthday.Before(border(time.October, 24)) {
-		return "♎", "весы"
-	}
-	if birthday.After(border(time.October, 24)) && birthday.Before(border(time.November, 22)) {
-		return "♏", "скорпион"
-	}
-	if birthday.After(border(time.November, 22)) && birthday.Before(border(time.December, 22)) {
-		return "♐", "стрелец"
-	}
-	if birthday.After(border(time.December, 22)) && birthday.Before(border(time.December, 31)) {
-		return "♑", "козерог"
-	}
-	if birthday.Equal(border(time.December, 31)) {
-		return "♑", "козерог"
-	}
-	if birthday.After(border(time.January, 1)) && birthday.Before(border(time.January, 20)) {
-		return "♑", "козерог"
-	}
-	if birthday.After(border(time.January, 20)) && birthday.Before(border(time.February, 19)) {
-		return "♒", "водолей"
-	}
-	if birthday.After(border(time.February, 19)) && birthday.Before(border(time.March, 21)) {
-		return "♓", "рыбы"
-	}
-
-	slog.Error("zodiac sign was not defined by birthday: " + friend.BirthDay)
-	return "🌙", "это луна"
-}
-
-func (friend *Friend) CountDaysToBirthday() int {
-	// todo store timezone in friend table or somewere in db - for user's specific timezone
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
-	}
-	now := time.Now().In(location)
-	notify, err := time.Parse("02.01.2006", *friend.GetNotifyAt())
-	if err != nil {
-		slog.Error("error parsing notify during count days to birthday: " + err.Error())
-		return -1
-	}
-
-	diff := now.Sub(notify)
-	diff_days := diff.Hours() / 24
-
-	return int(diff_days)
-}
-
-func (friend *Friend) IsThisMonthAfterToday() bool {
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
-	}
-	now := strings.Split(time.Now().In(location).Format("02.01.2006"), ".")
-	thisMonth := strings.Split(friend.BirthDay, ".")[1] == now[1]
-	afterToday := strings.Split(friend.BirthDay, ".")[0] > now[0]
-
-	return thisMonth && afterToday
-}
-
-func (friend *Friend) IsTodayBirthday() bool {
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
-	}
-	now := strings.Split(time.Now().In(location).Format("02.01.2006"), ".")
-	bd := strings.Split(friend.BirthDay, ".")
-
-	return now[0] == bd[0] && now[1] == bd[1]
-}
-
-func (friend *Friend) GetNotifyAt() *string {
-	return &friend.NotifyAt
-}
-
-func (friend *Friend) RenewNotifayAt() (string, error) {
-	format := "02.01" // day.month
-
-	birthday, err := friend.BirthDayAsObj(format)
-
-	if err != nil {
-		slog.Error("notify date creation: cannot parse birthday: " + err.Error())
-		return "", nil
-	}
-
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
-	}
-
-	today, err := time.Parse(format, time.Now().In(location).Format(format))
-
-	if err != nil {
-		slog.Error("notify date creation: cannot parse today date:" + err.Error())
-		return "", nil
-	}
-
-	year := time.Now().In(location).Year()
-	if today.After(birthday) || today.Equal(birthday) {
-		year += 1
-	}
-
-	*friend.GetNotifyAt() = fmt.Sprintf(birthday.Format(format)+".%d", year)
-
-	return *friend.GetNotifyAt(), nil
-}
-
-func (friend *Friend) UpdateNotifyAt() (string, error) {
-	format := "02.01.2006" // day.month.year
-	notifyAt, err := time.Parse(format, *friend.GetNotifyAt())
-
-	if err != nil {
-		slog.Error("error updating notfiy date: " + err.Error())
-		return *friend.GetNotifyAt(), err
-	}
-
-	location, err := time.LoadLocation(config.Cfg().Timezone)
-	if err != nil {
-		slog.Error("error loading location by timezone, using system timezone, error: " + err.Error() + " friendId: " + friend.ID)
-	}
-
-	// in case of duplicated call
-	if notifyAt.Year() != time.Now().In(location).Year() {
-		return *friend.GetNotifyAt(), nil
-	}
-
-	*friend.GetNotifyAt() = notifyAt.AddDate(1, 0, 0).Format(format)
-	return *friend.GetNotifyAt(), nil
+func (wish *Wish) GetMarketplace() string {
+	return "смотреть на сайте"
 }
 
 type Chat struct {
@@ -406,11 +155,8 @@ type Chat struct {
 	// todo enum
 	ChatType string `gorm:"column:chat_type;type:varchar"`
 
-	BotInvitedById   string `gorm:"column:bot_invited_by_id;type:varchar"`
-	ChatId           string `gorm:"uniqueIndex;not null;column:chat_id;type:varchar"`
-	GreetingTemplate string `gorm:"column:greeting_template;type:varchar"`
-
-	SilentNotifications bool `gorm:"column:silent_notifications;type:boolean"`
+	BotInvitedById string `gorm:"column:bot_invited_by_id;type:varchar"`
+	ChatId         string `gorm:"uniqueIndex;not null;column:chat_id;type:varchar"`
 }
 
 func (Chat) TableName() string {
@@ -419,20 +165,4 @@ func (Chat) TableName() string {
 
 func (chat *Chat) GetUserId() string {
 	return chat.BotInvitedById
-}
-
-func (chat *Chat) IsAlreadySilent() bool {
-	return chat.SilentNotifications
-}
-
-func (chat *Chat) GetSilent() bool {
-	return chat.SilentNotifications
-}
-
-func (chat *Chat) EnableSoundNotifications() {
-	chat.SilentNotifications = false
-}
-
-func (chat *Chat) DisableSoundNotifications() {
-	chat.SilentNotifications = true
 }

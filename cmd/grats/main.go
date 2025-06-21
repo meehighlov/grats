@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,18 +20,11 @@ func main() {
 
 	db.MustSetup(cfg.PGDSN, logger, cfg.RunMigrations)
 
-	go handlers.BirthdayNotifer(context.Background(), lib.MustSetupLogging("grats_job.log", false, cfg.ENV), cfg)
-
 	updateHandlers := map[string]common.HandlerType{
 		// user
 		"/start":                              handlers.StartHandler,
-		fmt.Sprintf("/start@%s", cfg.BotName): handlers.StartFromGroupHandler,
 
 		"/commands": handlers.CommandListHandler,
-
-		"add_to_friend":   handlers.AddToChatHandler,
-		"add_enter_bd":    handlers.EnterBirthday,
-		"add_save_friend": handlers.SaveFriend,
 
 		// wish handlers
 		"add_to_wish":         handlers.AddWishHandler,
@@ -61,24 +52,8 @@ func main() {
 		"send_support_response": handlers.SendSupportResponseToUserHandler,
 
 		// callback query handlers
-		"commands":                    handlers.CommandListHandler,
-		"list":                        handlers.ListItemsHandler,
-		"friend_info":                 handlers.FriendInfoCallbackQueryHandler,
-		"delete":                      handlers.DeleteFriendCallbackQueryHandler,
-		"confirm_delete":              handlers.ConfirmDeleteFriendCallbackQueryHandler,
-		"chat_info":                   handlers.GroupInfoHandler,
-		"chat_howto":                  handlers.GroupHowtoHandler,
-		"chat_list":                   handlers.GroupHandler,
-		"chat_birthdays":              handlers.ListItemsHandler,
-		"delete_chat":                 handlers.DeleteChatHandler,
-		"confirm_delete_chat":         handlers.ConfirmDeleteChatHandler,
-		"edit_greeting_template":      handlers.EditGreetingTemplateHandler,
-		"save_greeting_template":      handlers.SaveGreetingTemplateHandler,
-		"toggle_silent_notifications": handlers.ToggleSilentNotificationsHandler,
-		"edit_name":                   handlers.EditNameHandler,
-		"edit_birthday":               handlers.EditBirthdayHandler,
-		"save_edit_name":              handlers.SaveEditNameHandler,
-		"save_edit_birthday":          handlers.SaveEditBirthdayHandler,
+		"commands":            handlers.CommandListHandler,
+		"list":                handlers.ListItemsHandler,
 	}
 
 	rootHandler := common.CreateRootHandler(

@@ -21,27 +21,12 @@ func RegisterOrUpdateUser(ctx context.Context, event *common.Event) error {
 			TgUsername: message.From.Username,
 			TgId:       userId,
 			ChatId:     strconv.Itoa(message.Chat.Id),
-			Birthday:   "",
 			IsAdmin:    message.From.IsAdmin(),
 		}
 
 		err := user.Save(ctx, tx)
 		if err != nil {
 			event.Logger.Error("start error creating user", "chatId", message.GetChatIdStr(), "error", err.Error())
-			return err
-		}
-
-		chat := db.Chat{
-			BaseFields:       db.NewBaseFields(false),
-			ChatType:         "private",
-			ChatId:           event.GetMessage().GetChatIdStr(),
-			BotInvitedById:   userId,
-			GreetingTemplate: "🔔Сегодня день рождения празднует %s🥳",
-		}
-
-		err = chat.Save(ctx, tx)
-		if err != nil {
-			event.Logger.Error("start error creating chat", "chatId", message.GetChatIdStr(), "error", err.Error())
 			return err
 		}
 

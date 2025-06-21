@@ -24,10 +24,6 @@ func CallList(offset, direction, listId string, entity string) *CallbackDataMode
 	return newCallback("list", "", offset, direction, entity, listId)
 }
 
-func CallDelete(id, offset string) *CallbackDataModel {
-	return newCallback("delete", id, offset, "", "friend", "")
-}
-
 func CallInfo(id, offset, table string) *CallbackDataModel {
 	return newCallback(fmt.Sprintf("%s_info", table), id, offset, "", table, "")
 }
@@ -48,20 +44,12 @@ func CallChatHowto(id string) *CallbackDataModel {
 	return newCallback("chat_howto", id, "", "", "chat", "")
 }
 
-func CallEditGreetingTemplate(id string) *CallbackDataModel {
-	return newCallback("edit_greeting_template", id, "", "", "chat", "")
-}
-
 func CallDeleteChat(id string) *CallbackDataModel {
 	return newCallback("delete_chat", id, "", "", "chat", "")
 }
 
 func CallConfirmDeleteChat(id string) *CallbackDataModel {
 	return newCallback("confirm_delete_chat", id, "", "", "chat", "")
-}
-
-func CallToggleSilentNotifications(id string) *CallbackDataModel {
-	return newCallback("toggle_silent_notifications", id, "", "", "chat", "")
 }
 
 func CallShareWishList(chatId string) *CallbackDataModel {
@@ -102,18 +90,6 @@ func CallConfirmDeleteWish(id string) *CallbackDataModel {
 
 func CallCommands() *CallbackDataModel {
 	return newCallback("commands", "", "", "", "", "")
-}
-
-func CallConfirmDelete(id string) *CallbackDataModel {
-	return newCallback("confirm_delete", id, "", "", "friend", "")
-}
-
-func CallEditName(id string) *CallbackDataModel {
-	return newCallback("edit_name", id, "", "", "friend", "")
-}
-
-func CallEditBirthday(id string) *CallbackDataModel {
-	return newCallback("edit_birthday", id, "", "", "friend", "")
 }
 
 func CallEditWishName(id string) *CallbackDataModel {

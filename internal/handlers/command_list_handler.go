@@ -41,12 +41,10 @@ func CommandListHandler(ctx context.Context, event *common.Event) error {
 
 	wishListId := wishLists[0].ID
 
-	listButton := common.NewButton("🎂 Личные напоминания", common.CallList(fmt.Sprintf("%d", LIST_START_OFFSET), ">", chatId, "friend").String())
-	groupButton := common.NewButton("👥 Групповые чаты", common.CallChatList().String())
 	wishButton := common.NewButton("🎁 Список желаний", common.CallList(fmt.Sprintf("%d", LIST_START_OFFSET), ">", wishListId, "wish").String())
 	supportButton := common.NewButton("💬 Чат с поддержкой", common.CallSupport(chatId).String())
 
-	keyboard.AppendAsStack(listButton, groupButton, wishButton, supportButton)
+	keyboard.AppendAsStack(wishButton, supportButton)
 
 	if event.GetCallbackQuery().Id != "" {
 		if _, err := event.EditCalbackMessage(
