@@ -53,7 +53,7 @@ func New(
 		shutdownChan:  make(chan struct{}),
 		wgWebServer:   sync.WaitGroup{},
 		wgWorkerPool:  sync.WaitGroup{},
-		workerCount:   1,
+		workerCount:   cfg.TelegramPollingWorkers,
 		workerCtx:     context.Background(),
 		workerCancel:  func() {},
 	}

@@ -34,6 +34,7 @@ type Config struct {
 	TelegramWebhookTLSKeyFile  string `env:"TELEGRAM_WEBHOOK_TLS_KEY_FILE" env-default:""`
 	TelegramUseTLS             bool   `env:"TELEGRAM_USE_TLS" env-default:"false"`
 	TelegramHandlerTimeoutSec  int    `env:"TELEGRAM_HANDLER_TIMEOUT_SEC" env-default:"2"`
+	TelegramPollingWorkers     int    `env:"TELEGRAM_POLLING_WORKERS" env-default:"10"`
 
 	RunMigrations bool   `env:"RUN_MIGRATIONS" env-default:"false"`
 	MigrationsDir string `env:"MIGRATIONS_DIR" env-default:"grats-migrations"`
@@ -46,8 +47,6 @@ type Config struct {
 	LoggingFileName string `env:"LOGGING_FILE_NAME" env-default:"grats.log"`
 
 	ChatCacheExpirationMinutes int `env:"CHAT_CACHE_EXPIRATION_MINUTES" env-default:"10"`
-
-	ShowOwnedSharedList bool `env:"SHOW_OWNED_SHARED_LIST" env-default:"false"`
 
 	ListLimitLen int `env:"LIST_LIMIT_LEN" env-default:"5"`
 }
