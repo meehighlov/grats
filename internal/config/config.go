@@ -18,7 +18,6 @@ const (
 type Config struct {
 	ENV                   string `env:"ENV" env-default:"local"`
 	PGDSN                 string `env:"PG_DSN" env-required:"true"`
-	BotToken              string `env:"BOT_TOKEN" env-required:"true"`
 	BotName               string `env:"BOT_NAME" env-required:"true"`
 	Admins                string `env:"ADMINS" env-required:"true"`
 	ReportChatId          string `env:"REPORT_CHAT_ID" env-required:"true"`
@@ -26,17 +25,31 @@ type Config struct {
 	Timezone              string `env:"TIMEZONE" env-default:"Europe/Moscow"`
 	SupportChatId         string `env:"SUPPORT_CHAT_ID" env-required:"true"`
 
-	UseWebhook         bool   `env:"USE_WEBHOOK" env-default:"false"`
-	WebhookAddr        string `env:"WEBHOOK_ADDR" env-default:":8080"`
-	WebhookSecretToken string `env:"WEBHOOK_SECRET_TOKEN" env-default:""`
-	WebhookTlsOn       bool   `env:"WEBHOOK_TLS_ON" env-default:"false"`
-	WebhookTlsCertFile string `env:"WEBHOOK_TLS_CERT_FILE" env-default:""`
-	WebhookTlsKeyFile  string `env:"WEBHOOK_TLS_KEY_FILE" env-default:""`
-	WebhookTlsAddr     string `env:"WEBHOOK_TLS_ADDR" env-default:":443"`
+	TelegramToken              string `env:"TELEGRAM_TOKEN" env-required:"true"`
+	TelegramUseWebook          bool   `env:"TELEGRAM_USE_WEBHOOK" env-default:"false"`
+	TelegramWebhookToken       string `env:"TELEGRAM_WEBHOOK_TOKEN" env-default:""`
+	TelegramWebhookAddress     string `env:"TELEGRAM_WEBHOOK_ADDRESS" env-default:":8080"`
+	TelegramWebhookTLSAddress  string `env:"TELEGRAM_WEBHOOK_TLS_ADDRESS" env-default:":443"`
+	TelegramWebhookTLSCertFile string `env:"TELEGRAM_WEBHOOK_TLS_CERT_FILE" env-default:""`
+	TelegramWebhookTLSKeyFile  string `env:"TELEGRAM_WEBHOOK_TLS_KEY_FILE" env-default:""`
+	TelegramUseTLS             bool   `env:"TELEGRAM_USE_TLS" env-default:"false"`
+	TelegramHandlerTimeoutSec  int    `env:"TELEGRAM_HANDLER_TIMEOUT_SEC" env-default:"2"`
 
-	RunMigrations bool `env:"RUN_MIGRATIONS" env-default:"false"`
+	RunMigrations bool   `env:"RUN_MIGRATIONS" env-default:"false"`
+	MigrationsDir string `env:"MIGRATIONS_DIR" env-default:"grats-migrations"`
+	ShortIDLength int    `env:"SHORT_ID_LENGTH" env-default:"6"`
 
-	loaded bool `env-default:"false"`
+	RedisAddr     string `env:"REDIS_ADDR" env-default:"localhost:6379"`
+	RedisPassword string `env:"REDIS_PASSWORD" env-default:""`
+	RedisDB       int    `env:"REDIS_DB" env-default:"1"`
+
+	LoggingFileName string `env:"LOGGING_FILE_NAME" env-default:"grats.log"`
+
+	ChatCacheExpirationMinutes int `env:"CHAT_CACHE_EXPIRATION_MINUTES" env-default:"10"`
+
+	ShowOwnedSharedList bool `env:"SHOW_OWNED_SHARED_LIST" env-default:"false"`
+
+	ListLimitLen int `env:"LIST_LIMIT_LEN" env-default:"5"`
 }
 
 func (cfg *Config) AdminList() []string {
@@ -51,8 +64,6 @@ func (cfg *Config) IsProd() bool {
 	return cfg.ENV == PROD
 }
 
-var cfg Config
-
 // loads config from .env
 // also sets TZ env variable from according .env value
 func MustLoad() *Config {
@@ -60,22 +71,14 @@ func MustLoad() *Config {
 		log.Fatal("Not found .env file")
 	}
 
+	var cfg Config
+
 	err := cleanenv.ReadConfig("env/grats/.env", &cfg)
 	if err != nil {
 		log.Fatal("Failed to read envs:", err.Error())
 	}
 
 	os.Setenv("TZ", cfg.Timezone)
-
-	cfg.loaded = true
-
-	return &cfg
-}
-
-func Cfg() *Config {
-	if !cfg.loaded {
-		log.Fatal("Accessing not loaded config. Exiting.")
-	}
 
 	return &cfg
 }
