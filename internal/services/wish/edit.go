@@ -10,7 +10,6 @@ import (
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/entities"
-	"gorm.io/gorm"
 )
 
 func (s *Service) EditPriceHandler(ctx context.Context, update *telegram.Update) error {
@@ -81,8 +80,6 @@ func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Upda
 	params := s.builders.CallbackDataBuilder.FromString(texts[0])
 	wishId := params.ID
 
-	done := false
-
 	link := message.Text
 	if len(link) > s.constants.WISH_LINK_MAX_LEN {
 		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.constants.LINK_TOO_LONG_TEMPLATE, s.constants.WISH_LINK_MAX_LEN), update)
@@ -106,35 +103,23 @@ func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Upda
 
 	s.logger.Debug("certificate check", "info", info)
 
-	err = s.repositories.Wish.DB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		wish, err := s.repositories.Wish.Filter(ctx, tx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
-		if len(wish) == 0 || err != nil {
-			s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
-			return err
-		}
-		wish[0].Link = link
-		if err := s.repositories.Wish.Save(ctx, tx, wish[0]); err != nil {
-			return err
-		}
-
-		done = true
-
-		chatId := update.GetMessage().GetChatIdStr()
-
-		// delete message with link - it's too large
-		s.clients.Telegram.DeleteMessage(ctx, chatId, message.GetMessageIdStr())
-
-		return nil
-	})
-
-	if err != nil {
+	wish, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
+	if len(wish) == 0 || err != nil {
+		s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
+		return err
+	}
+	wish[0].Link = link
+	if err := s.repositories.Wish.Save(ctx, nil, wish[0]); err != nil {
 		return err
 	}
 
-	if done {
-		s.clients.Telegram.Reply(ctx, s.constants.LINK_SET, update)
-		s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
-	}
+	chatId := update.GetMessage().GetChatIdStr()
+
+	// delete message with link - it's too large
+	s.clients.Telegram.DeleteMessage(ctx, chatId, message.GetMessageIdStr())
+
+	s.clients.Telegram.Reply(ctx, s.constants.LINK_SET, update)
+	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
 
 	return nil
 }
@@ -161,8 +146,6 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 	params := s.builders.CallbackDataBuilder.FromString(texts[0])
 	wishId := params.ID
 
-	done := false
-
 	_, err = s.validateWishName(message.Text)
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_INVALID_CHARS, update)
@@ -170,37 +153,25 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 		return nil
 	}
 
-	err = s.repositories.Wish.DB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		wish, err := s.repositories.Wish.Filter(ctx, tx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
-		if err != nil {
-			s.logger.Error(
-				"SaveEditWishNameHandler",
-				"details", err.Error(),
-				"chatId", update.GetMessage().GetChatIdStr(),
-			)
-			s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
-			return err
-		}
+	wish, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
+	if err != nil {
+		s.logger.Error(
+			"SaveEditWishNameHandler",
+			"details", err.Error(),
+			"chatId", update.GetMessage().GetChatIdStr(),
+		)
+		s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
+		return err
+	}
 
-		wish[0].Name = message.Text
-		err = s.repositories.Wish.Save(ctx, tx, wish[0])
-		if err != nil {
-			return err
-		}
-
-		done = true
-
-		return nil
-	})
-
+	wish[0].Name = message.Text
+	err = s.repositories.Wish.Save(ctx, nil, wish[0])
 	if err != nil {
 		return err
 	}
 
-	if done {
-		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_CHANGED, update)
-		s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
-	}
+	s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_CHANGED, update)
+	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
 
 	return nil
 }
