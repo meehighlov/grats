@@ -70,6 +70,7 @@ func (r *Repository) List(ctx context.Context, tx *gorm.DB, filter *ListFilter) 
 	if filter.WishListID != "" {
 		query = query.Where("wish_list_id = ?", filter.WishListID)
 	}
+	query = query.Order("executor_id DESC")
 
 	if err := query.Find(&wishes).Error; err != nil {
 		r.logger.Error("Error when list wishes: " + err.Error())
