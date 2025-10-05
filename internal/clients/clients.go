@@ -16,7 +16,7 @@ type Clients struct {
 func New(cfg *config.Config, logger *slog.Logger) *Clients {
 	return &Clients{
 		Telegram: telegram.New(cfg, logger),
-		Cache: cache.New(cfg, logger),
+		Cache:    cache.New(cfg, logger),
 	}
 }
 

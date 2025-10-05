@@ -34,12 +34,12 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 		offset_ = s.constants.LIST_START_OFFSET
 	}
 
-	entities, err := s.repositories.Wish.List(ctx, nil, &wish.ListFilter{WishListID: listId, Limit: s.cfg.ListLimitLen, Offset: offset_})
+	entities, err := s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: listId, Limit: s.cfg.ListLimitLen, Offset: offset_})
 	if err != nil {
 		return err
 	}
 
-	count, err := s.repositories.Wish.Count(ctx, nil, &wish.CountFilter{WishListID: listId})
+	count, err := s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: listId})
 	if err != nil {
 		return err
 	}

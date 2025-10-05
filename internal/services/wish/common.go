@@ -10,7 +10,7 @@ import (
 
 func (s *Service) PickFirstWishList(ctx context.Context, userId string) (*entities.WishList, error) {
 	filter := entities.WishList{UserId: userId}
-	wishList, err := s.repositories.WishList.Filter(ctx, nil, &filter)
+	wishList, err := s.repositories.WishList.Filter(ctx, &filter)
 	if err != nil {
 		return nil, err
 	}

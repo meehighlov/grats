@@ -10,20 +10,23 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+type txContextKey string
+
 const (
 	PROD  = "prod"
 	LOCAL = "local"
 )
 
 type Config struct {
-	ENV                   string `env:"ENV" env-default:"local"`
-	PGDSN                 string `env:"PG_DSN" env-required:"true"`
-	BotName               string `env:"BOT_NAME" env-required:"true"`
-	Admins                string `env:"ADMINS" env-required:"true"`
-	ReportChatId          string `env:"REPORT_CHAT_ID" env-required:"true"`
-	HandlerExecTimeoutSec int    `env:"HANDLER_EXEC_TIMEOUT_SEC" env-default:"2"`
-	Timezone              string `env:"TIMEZONE" env-default:"Europe/Moscow"`
-	SupportChatId         string `env:"SUPPORT_CHAT_ID" env-required:"true"`
+	ENV                   string       `env:"ENV" env-default:"local"`
+	PGDSN                 string       `env:"PG_DSN" env-required:"true"`
+	BotName               string       `env:"BOT_NAME" env-required:"true"`
+	Admins                string       `env:"ADMINS" env-required:"true"`
+	ReportChatId          string       `env:"REPORT_CHAT_ID" env-required:"true"`
+	HandlerExecTimeoutSec int          `env:"HANDLER_EXEC_TIMEOUT_SEC" env-default:"2"`
+	Timezone              string       `env:"TIMEZONE" env-default:"Europe/Moscow"`
+	SupportChatId         string       `env:"SUPPORT_CHAT_ID" env-required:"true"`
+	TxKey                 txContextKey `env:"TX_KEY" env-default:"tx"`
 
 	TelegramToken              string `env:"TELEGRAM_TOKEN" env-required:"true"`
 	TelegramUseWebook          bool   `env:"TELEGRAM_USE_WEBHOOK" env-default:"false"`

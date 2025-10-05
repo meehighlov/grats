@@ -3,8 +3,8 @@ package clients
 import (
 	"log/slog"
 
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/clients/clients/cache"
+	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
 )
 

@@ -34,7 +34,7 @@ func (s *Service) SaveEditPriceHandler(ctx context.Context, update *telegram.Upd
 	params := s.builders.CallbackDataBuilder.FromString(texts[0])
 	wishId := params.ID
 
-	wish, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
+	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
 		return err
@@ -48,7 +48,7 @@ func (s *Service) SaveEditPriceHandler(ctx context.Context, update *telegram.Upd
 	}
 
 	wish[0].Price = message.Text
-	if err := s.repositories.Wish.Save(ctx, nil, wish[0]); err != nil {
+	if err := s.repositories.Wish.Save(ctx, wish[0]); err != nil {
 		return err
 	}
 
@@ -103,13 +103,13 @@ func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Upda
 
 	s.logger.Debug("certificate check", "info", info)
 
-	wish, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
+	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
 	if len(wish) == 0 || err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
 		return err
 	}
 	wish[0].Link = link
-	if err := s.repositories.Wish.Save(ctx, nil, wish[0]); err != nil {
+	if err := s.repositories.Wish.Save(ctx, wish[0]); err != nil {
 		return err
 	}
 
@@ -153,7 +153,7 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 		return nil
 	}
 
-	wish, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
+	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
 	if err != nil {
 		s.logger.Error(
 			"SaveEditWishNameHandler",
@@ -165,7 +165,7 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 	}
 
 	wish[0].Name = message.Text
-	err = s.repositories.Wish.Save(ctx, nil, wish[0])
+	err = s.repositories.Wish.Save(ctx, wish[0])
 	if err != nil {
 		return err
 	}

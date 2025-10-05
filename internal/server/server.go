@@ -27,7 +27,7 @@ type Server struct {
 	shutdownChan  chan struct{}
 	cfg           *config.Config
 
-	wgWorkerPool  sync.WaitGroup
+	wgWorkerPool sync.WaitGroup
 	workerCount  int
 	workerCtx    context.Context
 	workerCancel context.CancelFunc
