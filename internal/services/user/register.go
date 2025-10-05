@@ -27,12 +27,12 @@ func (s *Service) RegisterOrUpdateUser(ctx context.Context, update *telegram.Upd
 		IsAdmin:    message.From.IsAdmin(),
 	}
 
-	err = s.repositories.User.Save(ctx, nil, &user)
+	err = s.repositories.User.Save(ctx, &user)
 	if err != nil {
 		return err
 	}
 
-	wishLists, err := s.repositories.WishList.Filter(ctx, nil, &entities.WishList{UserId: userId})
+	wishLists, err := s.repositories.WishList.Filter(ctx, &entities.WishList{UserId: userId})
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (s *Service) RegisterOrUpdateUser(ctx context.Context, update *telegram.Upd
 			ChatId:     message.GetChatIdStr(),
 			UserId:     userId,
 		}
-		err = s.repositories.WishList.Save(ctx, nil, &wishList)
+		err = s.repositories.WishList.Save(ctx, &wishList)
 		if err != nil {
 			s.clients.Telegram.Reply(ctx, s.constants.WISHLIST_CREATION_ERROR, update)
 			return err

@@ -17,7 +17,7 @@ func (s *Service) ShareWishListHandler(ctx context.Context, update *telegram.Upd
 
 	wishListId := params.ID
 
-	wishlist, err := s.repositories.WishList.Filter(ctx, nil, &entities.WishList{BaseFields: entities.BaseFields{ID: wishListId}})
+	wishlist, err := s.repositories.WishList.Filter(ctx, &entities.WishList{BaseFields: entities.BaseFields{ID: wishListId}})
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (s *Service) ShowSharedWishlistHandler(ctx context.Context, update *telegra
 		}
 	}
 
-	wishes, err := s.repositories.Wish.List(ctx, nil, &wish.ListFilter{WishListID: wishlistId, Limit: s.cfg.ListLimitLen, Offset: offset})
+	wishes, err := s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: wishlistId, Limit: s.cfg.ListLimitLen, Offset: offset})
 	if err != nil {
 		s.logger.Error(
 			"StartHandler - Shared wishlist",
@@ -102,7 +102,7 @@ func (s *Service) ShowSharedWishlistHandler(ctx context.Context, update *telegra
 	}
 	header := fmt.Sprintf(s.constants.WISHLIST_HEADER_TEMPLATE, "@"+name)
 
-	count, err := s.repositories.Wish.Count(ctx, nil, &wish.CountFilter{WishListID: wishlistId})
+	count, err := s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: wishlistId})
 	if err != nil {
 		return err
 	}

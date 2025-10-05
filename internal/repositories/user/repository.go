@@ -4,19 +4,16 @@ import (
 	"log/slog"
 
 	"github.com/meehighlov/grats/internal/config"
-	"gorm.io/gorm"
 )
 
 type Repository struct {
-	db *gorm.DB
 	logger *slog.Logger
-	cfg *config.Config
+	cfg    *config.Config
 }
 
-func New(cfg *config.Config, logger *slog.Logger, db *gorm.DB) *Repository {
+func New(cfg *config.Config, logger *slog.Logger) *Repository {
 	return &Repository{
-		db: db,
 		logger: logger,
-		cfg: cfg,
+		cfg:    cfg,
 	}
 }

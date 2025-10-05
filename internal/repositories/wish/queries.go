@@ -2,6 +2,7 @@ package wish
 
 import (
 	"context"
+	"errors"
 
 	"github.com/meehighlov/grats/internal/repositories/entities"
 	"gorm.io/gorm"
@@ -19,12 +20,10 @@ type CountFilter struct {
 	WishListID string
 }
 
-func (r *Repository) Filter(ctx context.Context, tx *gorm.DB, w *entities.Wish) ([]*entities.Wish, error) {
-	db := r.db
-	if tx != nil {
-		db = tx
-	} else {
-		db = db.WithContext(ctx)
+func (r *Repository) Filter(ctx context.Context, w *entities.Wish) ([]*entities.Wish, error) {
+	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
+	if !ok {
+		return nil, errors.New("not found transaction in context")
 	}
 
 	var wishes []*entities.Wish
@@ -51,12 +50,10 @@ func (r *Repository) Filter(ctx context.Context, tx *gorm.DB, w *entities.Wish) 
 	return wishes, nil
 }
 
-func (r *Repository) List(ctx context.Context, tx *gorm.DB, filter *ListFilter) ([]*entities.Wish, error) {
-	db := r.db
-	if tx != nil {
-		db = tx
-	} else {
-		db = db.WithContext(ctx)
+func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*entities.Wish, error) {
+	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
+	if !ok {
+		return nil, errors.New("not found transaction in context")
 	}
 
 	var wishes []*entities.Wish
@@ -80,12 +77,10 @@ func (r *Repository) List(ctx context.Context, tx *gorm.DB, filter *ListFilter) 
 	return wishes, nil
 }
 
-func (r *Repository) Count(ctx context.Context, tx *gorm.DB, filter *CountFilter) (int64, error) {
-	db := r.db
-	if tx != nil {
-		db = tx
-	} else {
-		db = db.WithContext(ctx)
+func (r *Repository) Count(ctx context.Context, filter *CountFilter) (int64, error) {
+	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
+	if !ok {
+		return 0, errors.New("not found transaction in context")
 	}
 
 	var count int64
@@ -103,12 +98,10 @@ func (r *Repository) Count(ctx context.Context, tx *gorm.DB, filter *CountFilter
 	return count, nil
 }
 
-func (r *Repository) GetWithLock(ctx context.Context, tx *gorm.DB, w *entities.Wish) ([]*entities.Wish, error) {
-	db := r.db
-	if tx != nil {
-		db = tx
-	} else {
-		db = db.WithContext(ctx)
+func (r *Repository) GetWithLock(ctx context.Context, w *entities.Wish) ([]*entities.Wish, error) {
+	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
+	if !ok {
+		return nil, errors.New("not found transaction in context")
 	}
 
 	var wishes []*entities.Wish
@@ -126,12 +119,10 @@ func (r *Repository) GetWithLock(ctx context.Context, tx *gorm.DB, w *entities.W
 	return wishes, nil
 }
 
-func (r *Repository) Save(ctx context.Context, tx *gorm.DB, w *entities.Wish) error {
-	db := r.db
-	if tx != nil {
-		db = tx
-	} else {
-		db = db.WithContext(ctx)
+func (r *Repository) Save(ctx context.Context, w *entities.Wish) error {
+	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
+	if !ok {
+		return errors.New("not found transaction in context")
 	}
 
 	db = db.Session(&gorm.Session{
@@ -153,12 +144,10 @@ func (r *Repository) Save(ctx context.Context, tx *gorm.DB, w *entities.Wish) er
 	return nil
 }
 
-func (r *Repository) Delete(ctx context.Context, tx *gorm.DB, w *entities.Wish) error {
-	db := r.db
-	if tx != nil {
-		db = tx
-	} else {
-		db = db.WithContext(ctx)
+func (r *Repository) Delete(ctx context.Context, w *entities.Wish) error {
+	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
+	if !ok {
+		return errors.New("not found transaction in context")
 	}
 
 	db = db.Session(&gorm.Session{

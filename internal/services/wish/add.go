@@ -22,7 +22,7 @@ func (s *Service) AddWishHandler(ctx context.Context, update *telegram.Update) e
 	userId = strconv.Itoa(update.GetMessage().From.Id)
 	wishListId = s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data).ID
 
-	wishes, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{UserId: userId})
+	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{UserId: userId})
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.ERROR_MESSAGE, update)
 		return err
@@ -93,7 +93,7 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 		WishListId: wishListId,
 	}
 
-	err = s.repositories.Wish.Save(ctx, nil, &wish)
+	err = s.repositories.Wish.Save(ctx, &wish)
 	if err != nil {
 		return err
 	}

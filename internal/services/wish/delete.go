@@ -14,7 +14,7 @@ func (s *Service) DeleteWishCallbackQueryHandler(ctx context.Context, update *te
 	wishId := params.ID
 
 	baseFields := entities.BaseFields{ID: wishId}
-	wishes, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: baseFields})
+	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: baseFields})
 
 	if err != nil {
 		if _, err := s.clients.Telegram.Reply(ctx, s.constants.ERROR_MESSAGE, update); err != nil {
@@ -53,7 +53,7 @@ func (s *Service) ConfirmDeleteWishCallbackQueryHandler(ctx context.Context, upd
 	wishId := params.ID
 
 	baseFields := entities.BaseFields{ID: wishId}
-	wishes, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: baseFields})
+	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: baseFields})
 
 	if err != nil {
 		if _, err := s.clients.Telegram.Reply(ctx, s.constants.ERROR_MESSAGE, update); err != nil {
@@ -68,7 +68,7 @@ func (s *Service) ConfirmDeleteWishCallbackQueryHandler(ctx context.Context, upd
 
 	wish = wishes[0]
 
-	err = s.repositories.Wish.Delete(ctx, nil, wish)
+	err = s.repositories.Wish.Delete(ctx, wish)
 	if err != nil {
 		return err
 	}

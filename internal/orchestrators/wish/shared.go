@@ -4,21 +4,29 @@ import (
 	"context"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
+	"gorm.io/gorm"
 )
 
 func (o *Orchestrator) ShareWishListHandler(ctx context.Context, update *telegram.Update) error {
-	return o.services.Wish.ShareWishListHandler(ctx, update)
+	return o.db.Transaction(func(tx *gorm.DB) error {
+		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
+		return o.services.Wish.ShareWishListHandler(ctx, update)
+	})
 }
 
 func (o *Orchestrator) ShowSharedWishlistHandler(ctx context.Context, update *telegram.Update) error {
-	// case when called from /start or comes from link
-	is_from_start_option := !update.IsCallback()
+	return o.db.Transaction(func(tx *gorm.DB) error {
+		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
 
-	if is_from_start_option {
-		if err := o.services.User.RegisterOrUpdateUser(ctx, update); err != nil {
-			return err
+		// case when called from /start or comes from link
+		isFromStartOption := !update.IsCallback()
+
+		if isFromStartOption {
+			if err := o.services.User.RegisterOrUpdateUser(ctx, update); err != nil {
+				return err
+			}
 		}
-	}
 
-	return o.services.Wish.ShowSharedWishlistHandler(ctx, update)
+		return o.services.Wish.ShowSharedWishlistHandler(ctx, update)
+	})
 }

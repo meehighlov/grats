@@ -15,7 +15,7 @@ func (s *Service) WishInfoHandler(ctx context.Context, update *telegram.Update) 
 	params := s.builders.CallbackDataBuilder.FromString(callbackQuery.Data)
 
 	baseFields := entities.BaseFields{ID: params.ID}
-	wishes, err := s.repositories.Wish.Filter(ctx, nil, &entities.Wish{BaseFields: baseFields})
+	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: baseFields})
 	if err != nil {
 		return err
 	}
