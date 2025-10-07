@@ -8,14 +8,14 @@ import (
 )
 
 func (o *Orchestrator) ShareWishListHandler(ctx context.Context, update *telegram.Update) error {
-	return o.db.Transaction(func(tx *gorm.DB) error {
+	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
 		return o.services.Wish.ShareWishListHandler(ctx, update)
 	})
 }
 
 func (o *Orchestrator) ShowSharedWishlistHandler(ctx context.Context, update *telegram.Update) error {
-	return o.db.Transaction(func(tx *gorm.DB) error {
+	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
 
 		// case when called from /start or comes from link
