@@ -28,18 +28,6 @@ func (s *Service) ToggleWishLockHandler(ctx context.Context, update *telegram.Up
 	// wish info was opened too long and expired
 	// and owner deleted it
 	if len(wishes) == 0 {
-		err := s.refreshWishInfo(
-			ctx,
-			update,
-			wish,
-			offset,
-			wish.WishListId,
-			viewerId,
-		)
-		if err != nil {
-			return err
-		}
-
 		if _, err := s.clients.Telegram.Reply(ctx, s.constants.WISH_REMOVED_TRY_REFRESH, update); err != nil {
 			return err
 		}
