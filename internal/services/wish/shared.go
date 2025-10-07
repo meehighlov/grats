@@ -83,6 +83,7 @@ func (s *Service) ShowSharedWishlistHandler(ctx context.Context, update *telegra
 
 	if len(wishes) == 0 {
 		// TODO: update message when user list is empty
+		s.logger.Debug("Not found wishes to share")
 		return nil
 	}
 
