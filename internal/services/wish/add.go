@@ -37,7 +37,6 @@ func (s *Service) AddWishHandler(ctx context.Context, update *telegram.Update) e
 	}
 
 	msg := s.constants.ENTER_WISH_NAME
-	msg += fmt.Sprintf(s.constants.WISH_LIMIT_INFO_TEMPLATE, s.constants.WISH_LIMIT_FOR_USER)
 
 	if _, err := s.clients.Telegram.Reply(ctx, msg, update); err != nil {
 		return err
