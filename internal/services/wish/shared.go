@@ -160,7 +160,7 @@ func (s *Service) buildSharedWishInfoKeyboard(
 	keyboard := inlinekeyboard.New()
 
 	if wish.Link != "" {
-		keyboard.AppendAsLine(keyboard.NewURLButton(wish.GetMarketplace(), wish.Link))
+		keyboard.AppendAsLine(keyboard.NewURLButton(wish.GetMarketplace(s.GetSiteName), wish.Link))
 	}
 
 	if wish.ExecutorId != "" {

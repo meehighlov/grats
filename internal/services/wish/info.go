@@ -57,7 +57,7 @@ func (s *Service) buildWishInfoKeyboard(wish *entities.Wish, offset string) *inl
 	)
 
 	if wish.Link != "" {
-		keyboard.AppendAsLine(keyboard.NewURLButton(wish.GetMarketplace(), wish.Link))
+		keyboard.AppendAsLine(keyboard.NewURLButton(wish.GetMarketplace(s.GetSiteName), wish.Link))
 	}
 
 	keyboard.AppendAsStack(
