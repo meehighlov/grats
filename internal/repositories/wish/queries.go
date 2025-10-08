@@ -119,6 +119,23 @@ func (r *Repository) GetWithLock(ctx context.Context, w *entities.Wish) ([]*enti
 	return wishes, nil
 }
 
+func (r *Repository) Get(ctx context.Context, wishId string) (*entities.Wish, error) {
+	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
+	if !ok {
+		return nil, errors.New("not found transaction in context")
+	}
+
+	var wish entities.Wish
+	query := db.Model(&entities.Wish{}).Where("id = ?", wishId)
+
+	if err := query.First(&wish).Error; err != nil {
+		r.logger.Error("Error when getting wish: " + err.Error())
+		return nil, err
+	}
+
+	return &wish, nil
+}
+
 func (r *Repository) Save(ctx context.Context, w *entities.Wish) error {
 	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
 	if !ok {

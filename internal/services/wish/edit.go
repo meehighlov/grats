@@ -3,6 +3,7 @@ package wish
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -59,7 +60,26 @@ func (s *Service) SaveEditPriceHandler(ctx context.Context, update *telegram.Upd
 }
 
 func (s *Service) EditLinkHandler(ctx context.Context, update *telegram.Update) error {
-	s.clients.Telegram.Reply(ctx, s.constants.ENTER_LINK, update)
+	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+	wish, err := s.repositories.Wish.Get(ctx, params.ID)
+	if err != nil {
+		return err
+	}
+	if wish.Link != "" {
+		keyboard := s.builders.KeyboardBuilder.NewKeyboard()
+		btnCallback := s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_DELETE_LINK, params.Offset)
+		keyboard.AppendAsLine(
+			keyboard.NewButton(s.constants.BTN_DELETE_LINK, btnCallback.String()),
+		)
+		s.clients.Telegram.Reply(
+			ctx,
+			s.constants.ENTER_LINK,
+			update,
+			telegram.WithReplyMurkup(keyboard.Murkup()),
+		)
+	} else {
+		s.clients.Telegram.Reply(ctx, s.constants.ENTER_LINK, update)
+	}
 
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
 
@@ -124,6 +144,24 @@ func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Upda
 	return nil
 }
 
+func (s *Service) DeleteLinkHandler(ctx context.Context, update *telegram.Update) error {
+	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+	wish, err := s.repositories.Wish.Get(ctx, params.ID)
+	if err != nil {
+		return err
+	}
+	wish.Link = ""
+
+	err = s.repositories.Wish.Save(ctx, wish)
+	if err != nil {
+		return err
+	}
+
+	s.clients.Telegram.Edit(ctx, s.constants.LINK_DELETED, update)
+
+	return nil
+}
+
 func (s *Service) EditWishNameHandler(ctx context.Context, update *telegram.Update) error {
 	s.clients.Telegram.Reply(ctx, s.constants.ENTER_NEW_WISH_NAME, update)
 
@@ -176,14 +214,14 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 	return nil
 }
 
-func (s *Service) getCertificateInfo(urlStr string) (string, error) {
+func (s *Service) getCertificateInfo(urlStr string) (*x509.Certificate, error) {
 	if !strings.HasPrefix(urlStr, s.constants.HTTPS_PREFIX) {
-		return "", fmt.Errorf("URL должен начинаться с https://")
+		return nil, fmt.Errorf("URL must begun with https://")
 	}
 
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	host := parsedURL.Host
@@ -195,18 +233,18 @@ func (s *Service) getCertificateInfo(urlStr string) (string, error) {
 		InsecureSkipVerify: false,
 	})
 	if err != nil {
-		return "", fmt.Errorf("ошибка соединения TLS: %v", err)
+		return nil, fmt.Errorf("TLS connect error: %v", err)
 	}
 	defer conn.Close()
 
 	certs := conn.ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return "", fmt.Errorf("сертификаты не найдены")
+		return nil, fmt.Errorf("no certs found")
 	}
 
 	cert := certs[0]
 
-	certInfo := fmt.Sprintf(
+	_ = fmt.Sprintf(
 		"Субъект: %s\nИздатель: %s\nДействителен с: %s\nДействителен до: %s\nSAN: %v",
 		cert.Subject,
 		cert.Issuer,
@@ -215,5 +253,25 @@ func (s *Service) getCertificateInfo(urlStr string) (string, error) {
 		cert.DNSNames,
 	)
 
-	return certInfo, nil
+	return cert, nil
+}
+
+func (s *Service) GetSiteName(link string) (string, error) {
+	parsedURL, err := url.Parse(link)
+	if err != nil {
+		return "", err
+	}
+
+	host := parsedURL.Host
+	if host == "" {
+		return "", fmt.Errorf("cannot get hostname from link")
+	}
+
+	if colonIndex := strings.Index(host, ":"); colonIndex != -1 {
+		host = host[:colonIndex]
+	}
+
+	host = strings.TrimPrefix(host, "www.")
+
+	return host, nil
 }

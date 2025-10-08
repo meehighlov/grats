@@ -114,6 +114,8 @@ func (s *Server) handle(ctx context.Context, update *telegram.Update, command st
 		return s.orchestrators.Wish.SaveEditPriceHandler(ctx, update)
 	case s.constants.CMD_EDIT_LINK_SAVE:
 		return s.orchestrators.Wish.SaveEditLinkHandler(ctx, update)
+	case s.constants.CMD_DELETE_LINK:
+		return s.orchestrators.Wish.DeleteLinkHandler(ctx, update)
 	case s.constants.CMD_EDIT_WISH_NAME:
 		return s.orchestrators.Wish.EditWishNameHandler(ctx, update)
 	case s.constants.CMD_EDIT_WISH_NAME_SAVE:
@@ -137,7 +139,6 @@ func (s *Server) handle(ctx context.Context, update *telegram.Update, command st
 	case s.constants.CMD_SUPPORT_SEND:
 		return s.orchestrators.Support.SendMessageHandler(ctx, update)
 
-	// callback query handlers
 	case s.constants.CMD_LIST:
 		return s.orchestrators.Wish.List(ctx, update)
 	default:

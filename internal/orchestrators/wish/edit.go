@@ -48,3 +48,10 @@ func (o *Orchestrator) SaveEditWishNameHandler(ctx context.Context, update *tele
 		return o.services.Wish.SaveEditWishNameHandler(ctx, update)
 	})
 }
+
+func (o *Orchestrator) DeleteLinkHandler(ctx context.Context, update *telegram.Update) error {
+	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
+		return o.services.Wish.DeleteLinkHandler(ctx, update)
+	})
+}

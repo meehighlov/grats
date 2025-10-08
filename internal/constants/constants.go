@@ -34,6 +34,7 @@ type Constants struct {
 	LINK_INVALID_FORMAT    string
 	LINK_UNTRUSTED_SITE    string
 	LINK_SET               string
+	LINK_DELETED           string
 
 	// Name editing
 	ENTER_NEW_WISH_NAME string
@@ -68,6 +69,7 @@ type Constants struct {
 	BTN_SHARE_LIST       string
 	BTN_WRITE            string
 	BTN_CANCEL           string
+	BTN_DELETE_LINK      string
 
 	// Status messages
 	STATUS_WISH_AVAILABLE       string
@@ -113,6 +115,7 @@ type Constants struct {
 	CMD_WISH_LIST           string
 	CMD_SUPPORT_WRITE       string
 	CMD_SUPPORT_CANCEL      string
+	CMD_DELETE_LINK         string
 
 	// Handler commands
 	CMD_ADD_SAVE_WISH       string
@@ -166,6 +169,7 @@ func New(cfg *config.Config) *Constants {
 		LINK_INVALID_FORMAT:    "Не могу распознать ссылку, введите ссылку в формате https://example.com",
 		LINK_UNTRUSTED_SITE:    "Я не доверяю этому сайту😔 попробуй другую ссылку",
 		LINK_SET:               "Ссылка установлена 💾",
+		LINK_DELETED:           "ссылка удалена",
 
 		// Name editing
 		ENTER_NEW_WISH_NAME: "Введите новое название желания",
@@ -200,6 +204,7 @@ func New(cfg *config.Config) *Constants {
 		BTN_PREVIOUS:         "⬅️",
 		BTN_WRITE:            "✍️ написать",
 		BTN_CANCEL:           "❌ отмена",
+		BTN_DELETE_LINK:      "удалить ссылку 🗑️",
 
 		// Status messages
 		STATUS_WISH_AVAILABLE:       "🟢 желание пока не выбрали",
@@ -245,6 +250,7 @@ func New(cfg *config.Config) *Constants {
 		CMD_WISH_LIST:           "wish_list",
 		CMD_SUPPORT_WRITE:       "support_write",
 		CMD_SUPPORT_CANCEL:      "support_cancel",
+		CMD_DELETE_LINK:         "delete_link",
 
 		// Handler commands
 		CMD_ADD_SAVE_WISH:       "add_save_wish",
