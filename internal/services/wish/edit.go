@@ -159,6 +159,8 @@ func (s *Service) DeleteLinkHandler(ctx context.Context, update *telegram.Update
 
 	s.clients.Telegram.Edit(ctx, s.constants.LINK_DELETED, update)
 
+	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
+
 	return nil
 }
 
