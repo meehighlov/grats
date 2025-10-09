@@ -112,7 +112,6 @@ type Constants struct {
 	CMD_SHARE_WISH_LIST     string
 	CMD_SHOW_SWL            string
 	CMD_SHOW_SWI            string
-	CMD_WISH_LIST           string
 	CMD_SUPPORT_WRITE       string
 	CMD_SUPPORT_CANCEL      string
 	CMD_DELETE_LINK         string
@@ -247,7 +246,6 @@ func New(cfg *config.Config) *Constants {
 		CMD_SHARE_WISH_LIST:     "share_wish_list",
 		CMD_SHOW_SWL:            "show_swl",
 		CMD_SHOW_SWI:            "show_swi",
-		CMD_WISH_LIST:           "wish_list",
 		CMD_SUPPORT_WRITE:       "support_write",
 		CMD_SUPPORT_CANCEL:      "support_cancel",
 		CMD_DELETE_LINK:         "delete_link",

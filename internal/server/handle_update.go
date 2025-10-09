@@ -98,7 +98,7 @@ func (s *Server) handle(ctx context.Context, update *telegram.Update, command st
 		return s.orchestrators.Wish.AddWishHandler(ctx, update)
 	case s.constants.CMD_ADD_SAVE_WISH:
 		return s.orchestrators.Wish.SaveWish(ctx, update)
-	case s.constants.CMD_WISH_LIST, s.constants.CMD_WISHLIST:
+	case s.constants.CMD_WISHLIST, s.constants.CMD_LIST:
 		return s.orchestrators.Wish.List(ctx, update)
 	case s.constants.CMD_WISH_INFO:
 		return s.orchestrators.Wish.WishInfoHandler(ctx, update)
@@ -138,9 +138,6 @@ func (s *Server) handle(ctx context.Context, update *telegram.Update, command st
 		return s.orchestrators.Support.CancelHandler(ctx, update)
 	case s.constants.CMD_SUPPORT_SEND:
 		return s.orchestrators.Support.SendMessageHandler(ctx, update)
-
-	case s.constants.CMD_LIST:
-		return s.orchestrators.Wish.List(ctx, update)
 	default:
 		if strings.HasPrefix(command, s.constants.CMD_START) {
 			idForCommand := strings.TrimSpace(strings.TrimPrefix(command, s.constants.CMD_START))
