@@ -155,3 +155,10 @@ func (s *Server) handle(ctx context.Context, update *telegram.Update, command st
 
 	return nil
 }
+
+// btn_edit_link:
+// edit_link_handler on error -> nil
+// edit_link_handler on nil -> edit_link_save_handler
+// edit_link_save_handler on error -> nil
+// edit_link_save_handler on validation_error -> edit_link_save_handler
+// edit_link_save_handler on nil -> nil
