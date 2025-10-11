@@ -156,9 +156,15 @@ func (s *Server) handle(ctx context.Context, update *telegram.Update, command st
 	return nil
 }
 
-// btn_edit_link:
-// edit_link_handler on error -> nil
-// edit_link_handler on nil -> edit_link_save_handler
-// edit_link_save_handler on error -> nil
-// edit_link_save_handler on validation_error -> edit_link_save_handler
-// edit_link_save_handler on nil -> nil
+// s.Register(
+//   "edit_link",
+//    s.orchestators.EditLink,
+//    fsm.Next("edit_link_save"),
+//    fsm.OnError(error, "stop"),
+//)
+// s.Register(
+//   "edit_link_save",
+//   s.orchestators.EditLinkSave,
+//   fsm.Next("stop"),
+//   fsm.OnErrorNext(validation_error, "edit_link_save"),
+//)
