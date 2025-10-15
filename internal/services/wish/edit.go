@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
+	"github.com/meehighlov/grats/internal/errs"
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
@@ -20,8 +21,6 @@ func (s *Service) EditPriceHandler(ctx context.Context, update *telegram.Update)
 
 	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
-
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_PRICE_SAVE)
 
 	return nil
 }
@@ -44,8 +43,7 @@ func (s *Service) SaveEditPriceHandler(ctx context.Context, update *telegram.Upd
 	price, err := strconv.ParseFloat(message.Text, 64)
 	if err != nil || price <= 0 {
 		s.clients.Telegram.Reply(ctx, s.constants.PRICE_INVALID_FORMAT, update)
-		s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_PRICE_SAVE)
-		return nil
+		return errs.ErrEditPriceValidation
 	}
 
 	wish[0].Price = message.Text
@@ -54,7 +52,6 @@ func (s *Service) SaveEditPriceHandler(ctx context.Context, update *telegram.Upd
 	}
 
 	s.clients.Telegram.Reply(ctx, s.constants.PRICE_SET, update)
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
 
 	return nil
 }
@@ -86,8 +83,6 @@ func (s *Service) EditLinkHandler(ctx context.Context, update *telegram.Update) 
 	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
 
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_LINK_SAVE)
-
 	return nil
 }
 
@@ -103,22 +98,19 @@ func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Upda
 	link := message.Text
 	if len(link) > s.constants.WISH_LINK_MAX_LEN {
 		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.constants.LINK_TOO_LONG_TEMPLATE, s.constants.WISH_LINK_MAX_LEN), update)
-		s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_LINK_SAVE)
-		return nil
+		return errs.ErrSaveEditLinkValidation
 	}
 
 	parsedURL, err := url.Parse(link)
 	if err != nil || parsedURL.Host == "" {
 		s.clients.Telegram.Reply(ctx, s.constants.LINK_INVALID_FORMAT, update)
-		s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_LINK_SAVE)
-		return nil
+		return errs.ErrSaveEditLinkValidation
 	}
 
 	info, err := s.getCertificateInfo(link)
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.LINK_UNTRUSTED_SITE, update)
-		s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_LINK_SAVE)
-		return nil
+		return errs.ErrSaveEditLinkValidation
 	}
 
 	s.logger.Debug("certificate check", "info", info)
@@ -139,7 +131,6 @@ func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Upda
 	s.clients.Telegram.DeleteMessage(ctx, chatId, message.GetMessageIdStr())
 
 	s.clients.Telegram.Reply(ctx, s.constants.LINK_SET, update)
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
 
 	return nil
 }
@@ -159,8 +150,6 @@ func (s *Service) DeleteLinkHandler(ctx context.Context, update *telegram.Update
 
 	s.clients.Telegram.Edit(ctx, s.constants.LINK_DELETED, update)
 
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
-
 	return nil
 }
 
@@ -171,8 +160,6 @@ func (s *Service) EditWishNameHandler(ctx context.Context, update *telegram.Upda
 
 	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
-
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_WISH_NAME_SAVE)
 
 	return nil
 }
@@ -189,8 +176,7 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 	_, err = s.validateWishName(message.Text)
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_INVALID_CHARS, update)
-		s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_EDIT_WISH_NAME_SAVE)
-		return nil
+		return errs.ErrEditWishNameValidation
 	}
 
 	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
@@ -211,7 +197,6 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 	}
 
 	s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_CHANGED, update)
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
 
 	return nil
 }

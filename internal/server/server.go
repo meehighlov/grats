@@ -11,14 +11,12 @@ import (
 	"github.com/meehighlov/grats/internal/clients"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/constants"
-	"github.com/meehighlov/grats/internal/orchestrators"
 )
 
 type Server struct {
 	logger        *slog.Logger
 	handleTimeout time.Duration
 	constants     *constants.Constants
-	orchestrators *orchestrators.Orchestrators
 	clients       *clients.Clients
 	builders      *builders.Builders
 	allowedUsers  []string
@@ -26,6 +24,7 @@ type Server struct {
 	wgWebServer   sync.WaitGroup
 	shutdownChan  chan struct{}
 	cfg           *config.Config
+	updateHandler UpdateHandler
 
 	wgWorkerPool sync.WaitGroup
 	workerCount  int
@@ -36,14 +35,13 @@ type Server struct {
 func New(
 	cfg *config.Config,
 	logger *slog.Logger,
-	orchestrators *orchestrators.Orchestrators,
 	clients *clients.Clients,
 	constants *constants.Constants,
 	builders *builders.Builders,
+	updateHandler UpdateHandler,
 ) *Server {
 	return &Server{
 		logger:        logger,
-		orchestrators: orchestrators,
 		clients:       clients,
 		constants:     constants,
 		builders:      builders,
@@ -56,5 +54,6 @@ func New(
 		workerCount:   cfg.TelegramPollingWorkers,
 		workerCtx:     context.Background(),
 		workerCancel:  func() {},
+		updateHandler: updateHandler,
 	}
 }

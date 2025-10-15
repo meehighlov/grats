@@ -6,6 +6,7 @@ import (
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/constants"
 	"github.com/meehighlov/grats/internal/db"
+	"github.com/meehighlov/grats/internal/fsm"
 	"github.com/meehighlov/grats/internal/orchestrators"
 	"github.com/meehighlov/grats/internal/pagination"
 	"github.com/meehighlov/grats/internal/repositories"
@@ -26,6 +27,9 @@ func Run() {
 	services := services.New(cfg, logger, repositories, clients, builders, constants, pagination)
 	orchestrators := orchestrators.New(cfg, logger, db, services)
 
-	server := server.New(cfg, logger, orchestrators, clients, constants, builders)
+	fsm := fsm.New(logger, clients.Cache)
+	RegisterStates(fsm, orchestrators, constants, cfg, clients)
+
+	server := server.New(cfg, logger, clients, constants, builders, fsm)
 	server.Serve()
 }

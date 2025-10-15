@@ -36,8 +36,6 @@ func (s *Service) WriteHandler(ctx context.Context, update *telegram.Update) err
 		return err
 	}
 
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_SUPPORT_SEND)
-
 	return nil
 }
 
@@ -83,8 +81,6 @@ func (s *Service) SendMessageHandler(ctx context.Context, update *telegram.Updat
 	if _, err := s.clients.Telegram.Reply(ctx, s.constants.SUPPORT_MESSAGE_SENT, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
-
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
 
 	return nil
 }
