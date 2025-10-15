@@ -348,7 +348,12 @@ func (tc *Client) EditMessageText(ctx context.Context, chatId, messageId, text s
 	return &model, err
 }
 
-func (tc *Client) AnswerCallbackQuery(ctx context.Context, queryId string) error {
+func (tc *Client) AnswerCallbackQuery(ctx context.Context, update *Update) error {
+	queryId := update.CallbackQuery.Id
+	if queryId == "" {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
 

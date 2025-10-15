@@ -112,7 +112,6 @@ type Constants struct {
 	CMD_SHARE_WISH_LIST     string
 	CMD_SHOW_SWL            string
 	CMD_SHOW_SWI            string
-	CMD_WISH_LIST           string
 	CMD_SUPPORT_WRITE       string
 	CMD_SUPPORT_CANCEL      string
 	CMD_DELETE_LINK         string
@@ -238,25 +237,24 @@ func New(cfg *config.Config) *Constants {
 		CMD_LIST:                "list",
 		CMD_WISH_INFO:           "wish_info",
 		CMD_ADD_TO_WISH:         "add_to_wish",
-		CMD_DELETE_WISH:         "delete_wish",
-		CMD_CONFIRM_DELETE_WISH: "confirm_delete_wish",
-		CMD_EDIT_WISH_NAME:      "edit_wish_name",
-		CMD_EDIT_LINK:           "edit_link",
-		CMD_EDIT_PRICE:          "edit_price",
+		CMD_DELETE_WISH:         "d_wish",
+		CMD_CONFIRM_DELETE_WISH: "c_delete_wish",
+		CMD_EDIT_WISH_NAME:      "ewn",
+		CMD_EDIT_LINK:           "ewl",
+		CMD_EDIT_PRICE:          "ewp",
 		CMD_TOGGLE_WISH_LOCK:    "toggle_wish_lock",
-		CMD_SHARE_WISH_LIST:     "share_wish_list",
+		CMD_SHARE_WISH_LIST:     "share_wl",
 		CMD_SHOW_SWL:            "show_swl",
 		CMD_SHOW_SWI:            "show_swi",
-		CMD_WISH_LIST:           "wish_list",
 		CMD_SUPPORT_WRITE:       "support_write",
 		CMD_SUPPORT_CANCEL:      "support_cancel",
 		CMD_DELETE_LINK:         "delete_link",
 
 		// Handler commands
 		CMD_ADD_SAVE_WISH:       "add_save_wish",
-		CMD_EDIT_PRICE_SAVE:     "edit_price_save",
-		CMD_EDIT_LINK_SAVE:      "edit_link_save",
-		CMD_EDIT_WISH_NAME_SAVE: "edit_wish_name_save",
+		CMD_EDIT_PRICE_SAVE:     "ewp_save",
+		CMD_EDIT_LINK_SAVE:      "ewl_save",
+		CMD_EDIT_WISH_NAME_SAVE: "ewn_save",
 		CMD_SUPPORT_SEND:        "support_send",
 
 		// Bot commands

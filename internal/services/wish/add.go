@@ -10,6 +10,7 @@ import (
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
+	"github.com/meehighlov/grats/internal/errs"
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
@@ -44,8 +45,6 @@ func (s *Service) AddWishHandler(ctx context.Context, update *telegram.Update) e
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), wishListId)
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), userId)
 
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), s.constants.CMD_ADD_SAVE_WISH)
-
 	return nil
 }
 
@@ -70,13 +69,13 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 
 	if len(message.Text) > s.constants.WISH_NAME_MAX_LEN {
 		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.constants.WISH_NAME_TOO_LONG_TEMPLATE, s.constants.WISH_NAME_MAX_LEN), update)
-		return nil
+		return errs.ErrSaveWishValidation
 	}
 
 	validatedName, err := s.validateWishName(message.Text)
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_INVALID_CHARS, update)
-		return nil
+		return errs.ErrSaveWishValidation
 	}
 
 	bf, err := entities.NewBaseFields(false, s.cfg.Timezone)
@@ -102,8 +101,6 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 	if _, err := s.clients.Telegram.Reply(ctx, msg, update, telegram.WithReplyMurkup(s.buildWishNavigationMarkup(wish.ID, wishListId).Murkup())); err != nil {
 		return err
 	}
-
-	s.clients.Cache.SetNextHandler(ctx, update.GetChatIdStr(), "")
 
 	return nil
 }
