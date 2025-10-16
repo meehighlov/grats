@@ -42,13 +42,13 @@ func RegisterStates(
 		o.Support.WriteHandler,
 		when.CallbackDataContains(c.CMD_SUPPORT_WRITE),
 		with.Transition(nil, c.CMD_SUPPORT_SEND),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
 		o.Support.SendMessageHandler,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_SUPPORT_SEND),
+		with.ActivationOnlyAfter(c.CMD_SUPPORT_SEND),
 	)
 
 	f.Activate(
@@ -65,13 +65,13 @@ func RegisterStates(
 		o.Wish.AddWishHandler,
 		when.CallbackDataContains(c.CMD_ADD_TO_WISH),
 		with.Transition(nil, c.CMD_ADD_SAVE_WISH),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
 		o.Wish.SaveWish,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_ADD_SAVE_WISH),
+		with.ActivationOnlyAfter(c.CMD_ADD_SAVE_WISH),
 		with.Transition(errs.ErrSaveWishValidation, c.CMD_ADD_SAVE_WISH),
 	)
 
@@ -104,13 +104,14 @@ func RegisterStates(
 		o.Wish.EditWishNameHandler,
 		when.CallbackDataContains(c.CMD_EDIT_WISH_NAME),
 		with.Transition(nil, c.CMD_EDIT_WISH_NAME_SAVE),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
 		o.Wish.SaveEditWishNameHandler,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_EDIT_WISH_NAME_SAVE),
+		with.ActivationOnlyAfter(c.CMD_EDIT_WISH_NAME),
+		with.ActivationOnlyAfter(c.CMD_EDIT_WISH_NAME_SAVE),
 		with.Transition(errs.ErrEditWishNameValidation, c.CMD_EDIT_WISH_NAME_SAVE),
 	)
 
@@ -118,13 +119,13 @@ func RegisterStates(
 		o.Wish.EditLinkHandler,
 		when.CallbackDataContains(c.CMD_EDIT_LINK),
 		with.Transition(nil, c.CMD_EDIT_LINK_SAVE),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
 		o.Wish.SaveEditLinkHandler,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_EDIT_LINK_SAVE),
+		with.ActivationOnlyAfter(c.CMD_EDIT_LINK_SAVE),
 		with.Transition(errs.ErrSaveEditLinkValidation, c.CMD_EDIT_LINK_SAVE),
 	)
 
@@ -132,13 +133,13 @@ func RegisterStates(
 		o.Wish.EditPriceHandler,
 		when.CallbackDataContains(c.CMD_EDIT_PRICE),
 		with.Transition(nil, c.CMD_EDIT_PRICE_SAVE),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
 		o.Wish.SaveEditPriceHandler,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_EDIT_PRICE_SAVE),
+		with.ActivationOnlyAfter(c.CMD_EDIT_PRICE_SAVE),
 		with.Transition(errs.ErrEditPriceValidation, c.CMD_EDIT_PRICE_SAVE),
 	)
 

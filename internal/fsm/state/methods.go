@@ -2,57 +2,61 @@ package state
 
 import (
 	"context"
+	"slices"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
+	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
-	"github.com/meehighlov/grats/internal/fsm/handler"
 )
 
 func (s *State) Next(err error) string {
 	for _, transition := range s.transitions {
-		if transition.HandlerError == err {
-			return transition.Status
+		if transition.ActionError == err {
+			return transition.StateId
 		}
 	}
 
-	// no transition found - flow is done,
-	// machine is ready
 	return READY
 }
 
 func (s *State) Activate(ctx context.Context, update *telegram.Update) error {
-	for _, beforeHandler := range s.beforeHandler {
-		if err := beforeHandler(ctx, update); err != nil {
+	for _, beforeAction := range s.beforeAction {
+		if err := beforeAction(ctx, update); err != nil {
 			return err
 		}
 	}
-	return s.handler(ctx, update)
+	return s.action(ctx, update)
 }
 
 func (s *State) Condition() condition.Condition {
 	return s.condition
 }
 
-func (s *State) IsActivationAllowed(status string) bool {
-	return s.allowedActivationStatus == status || s.allowedActivationStatus == ANY
+func (s *State) IsActivationAllowed(stateId string) bool {
+	fromAnyState := len(s.activationOnlyAfterStates) == 0
+	if fromAnyState {
+		return true
+	}
+
+	return slices.Contains(s.activationOnlyAfterStates, stateId)
 }
 
 func (s *State) AddTransition(transition *Transition) {
 	s.transitions = append(s.transitions, transition)
 }
 
-func (s *State) SetBeforeHandler(beforeHandler handler.HandlerType) {
-	s.beforeHandler = append(s.beforeHandler, beforeHandler)
+func (s *State) SetBeforeAction(beforeAction action.Action) {
+	s.beforeAction = append(s.beforeAction, beforeAction)
 }
 
-func (s *State) SetHandler(handler handler.HandlerType) {
-	s.handler = handler
+func (s *State) SetAction(action action.Action) {
+	s.action = action
 }
 
 func (s *State) SetCondition(condition condition.Condition) {
 	s.condition = condition
 }
 
-func (s *State) SetAllowedActivationStatus(status string) {
-	s.allowedActivationStatus = status
+func (s *State) ActivationOnlyAfter(stateId string) {
+	s.activationOnlyAfterStates = append(s.activationOnlyAfterStates, stateId)
 }

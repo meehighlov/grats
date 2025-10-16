@@ -1,8 +1,9 @@
 package state
 
 import (
+	"github.com/google/uuid"
+	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
-	"github.com/meehighlov/grats/internal/fsm/handler"
 )
 
 const (
@@ -13,24 +14,27 @@ const (
 type StateOption func(*State) error
 
 type Transition struct {
-	HandlerError error
-	Status       string
+	ActionError error
+	StateId     string
 }
 
 type State struct {
-	beforeHandler           []handler.HandlerType
-	handler                 handler.HandlerType
-	condition               condition.Condition
-	allowedActivationStatus string
+	ID           string
+	beforeAction []action.Action
+	action       action.Action
+	condition    condition.Condition
+
+	activationOnlyAfterStates []string
 
 	transitions []*Transition
 }
 
-func New(handler handler.HandlerType, condition condition.Condition) *State {
+func New(action action.Action, condition condition.Condition) *State {
 	return &State{
-		handler:                 handler,
-		condition:               condition,
-		transitions:             []*Transition{},
-		allowedActivationStatus: ANY,
+		ID:           uuid.NewString(),
+		beforeAction: nil,
+		action:       action,
+		condition:    condition,
+		transitions:  []*Transition{},
 	}
 }

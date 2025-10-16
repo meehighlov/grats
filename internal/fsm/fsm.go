@@ -3,7 +3,7 @@ package fsm
 import (
 	"log/slog"
 
-	"github.com/meehighlov/grats/internal/fsm/handler"
+	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/state"
 	"github.com/meehighlov/grats/internal/fsm/store"
 )
@@ -12,7 +12,7 @@ type FSM struct {
 	states      []*state.State
 	logger      *slog.Logger
 	stateStore  store.StateStore
-	middlewares []handler.HandlerType
+	middlewares []action.Action
 }
 
 func New(logger *slog.Logger, stateStore store.StateStore) *FSM {
@@ -20,6 +20,6 @@ func New(logger *slog.Logger, stateStore store.StateStore) *FSM {
 		states:      []*state.State{},
 		logger:      logger,
 		stateStore:  stateStore,
-		middlewares: []handler.HandlerType{},
+		middlewares: []action.Action{},
 	}
 }
