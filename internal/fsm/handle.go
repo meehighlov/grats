@@ -53,7 +53,7 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 	cerr := f.stateStore.SetState(
 		ctx,
 		update.GetChatIdStr(),
-		s.Next(err),
+		s.DoTransition(err),
 	)
 
 	return errors.Join(err, cerr)

@@ -5,16 +5,6 @@ import (
 	"github.com/meehighlov/grats/internal/fsm/state"
 )
 
-func Transition(err error, stateId string) state.StateOption {
-	return func(s *state.State) error {
-		s.AddTransition(&state.Transition{
-			ActionError: err,
-			StateId:     stateId,
-		})
-		return nil
-	}
-}
-
 func BeforeAction(beforeAction action.Action) state.StateOption {
 	return func(s *state.State) error {
 		if beforeAction != nil {
@@ -24,16 +14,28 @@ func BeforeAction(beforeAction action.Action) state.StateOption {
 	}
 }
 
-func ActivationOnlyAfter(stateId string) state.StateOption {
+func InputState(stateId string) state.StateOption {
 	return func(s *state.State) error {
-		s.ActivationOnlyAfter(stateId)
+		s.AddInputState(&state.InputState{
+			FromStateId: stateId,
+		})
+		return nil
+	}
+}
+
+func OutputState(err error, stateId string) state.StateOption {
+	return func(s *state.State) error {
+		s.AddOutputState(&state.OutputState{
+			ActionError: err,
+			ToStateId:     stateId,
+		})
 		return nil
 	}
 }
 
 func ID(stateId string) state.StateOption {
 	return func(s *state.State) error {
-		s.ID = stateId
+		s.SetID(stateId)
 		return nil
 	}
 }

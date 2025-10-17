@@ -13,28 +13,32 @@ const (
 
 type StateOption func(*State) error
 
-type Transition struct {
+type InputState struct {
+	FromStateId string
+}
+
+type OutputState struct {
 	ActionError error
-	StateId     string
+	ToStateId string
 }
 
 type State struct {
-	ID           string
+	id           string
 	beforeAction []action.Action
 	action       action.Action
 	condition    condition.Condition
 
-	activationOnlyAfterStates []string
-
-	transitions []*Transition
+	inputStates  []*InputState
+	outputStates []*OutputState
 }
 
 func New(action action.Action, condition condition.Condition) *State {
 	return &State{
-		ID:           uuid.NewString(),
+		id:           uuid.NewString(),
 		beforeAction: nil,
 		action:       action,
 		condition:    condition,
-		transitions:  []*Transition{},
+		inputStates:  []*InputState{},
+		outputStates: []*OutputState{},
 	}
 }

@@ -2,17 +2,16 @@ package state
 
 import (
 	"context"
-	"slices"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
 )
 
-func (s *State) Next(err error) string {
-	for _, transition := range s.transitions {
-		if transition.ActionError == err {
-			return transition.StateId
+func (s *State) DoTransition(err error) string {
+	for _, outputState := range s.outputStates {
+		if outputState.ActionError == err {
+			return outputState.ToStateId
 		}
 	}
 
@@ -33,16 +32,22 @@ func (s *State) Condition() condition.Condition {
 }
 
 func (s *State) IsActivationAllowed(stateId string) bool {
-	fromAnyState := len(s.activationOnlyAfterStates) == 0
-	if fromAnyState {
+	allowActivationFromAnyState := len(s.inputStates) == 0
+	if allowActivationFromAnyState {
 		return true
 	}
 
-	return slices.Contains(s.activationOnlyAfterStates, stateId)
+	for _, inputState := range s.inputStates {
+		if inputState.FromStateId == stateId {
+			return true
+		}
+	}
+
+	return false
 }
 
-func (s *State) AddTransition(transition *Transition) {
-	s.transitions = append(s.transitions, transition)
+func (s *State) AddInputState(inputState *InputState) {
+	s.inputStates = append(s.inputStates, inputState)
 }
 
 func (s *State) SetBeforeAction(beforeAction action.Action) {
@@ -57,6 +62,10 @@ func (s *State) SetCondition(condition condition.Condition) {
 	s.condition = condition
 }
 
-func (s *State) ActivationOnlyAfter(stateId string) {
-	s.activationOnlyAfterStates = append(s.activationOnlyAfterStates, stateId)
+func (s *State) AddOutputState(outputState *OutputState) {
+	s.outputStates = append(s.outputStates, outputState)
+}
+
+func (s *State) SetID(stateId string) {
+	s.id = stateId
 }

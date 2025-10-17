@@ -17,5 +17,11 @@ func (f *FSM) Activate(
 		opt(s)
 	}
 
+	if f.switchMode == WhenReady {
+		s.AddInputState(&state.InputState{
+			FromStateId: state.READY,
+		})
+	}
+
 	f.states = append(f.states, s)
 }

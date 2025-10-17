@@ -27,7 +27,7 @@ func Run() {
 	services := services.New(cfg, logger, repositories, clients, builders, constants, pagination)
 	orchestrators := orchestrators.New(cfg, logger, db, services)
 
-	fsm := fsm.New(logger, clients.Cache)
+	fsm := fsm.New(logger, clients.Cache, fsm.FromAnyState)
 	RegisterStates(fsm, orchestrators, constants, cfg, clients)
 
 	server := server.New(cfg, logger, clients, constants, builders, fsm)
