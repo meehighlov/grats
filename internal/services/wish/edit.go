@@ -14,7 +14,7 @@ import (
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
-func (s *Service) EditPriceHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) EditPrice(ctx context.Context, update *telegram.Update) error {
 	s.clients.Telegram.Reply(ctx, s.constants.ENTER_PRICE, update)
 
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
@@ -25,7 +25,7 @@ func (s *Service) EditPriceHandler(ctx context.Context, update *telegram.Update)
 	return nil
 }
 
-func (s *Service) SaveEditPriceHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 	texts, err := s.clients.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
@@ -56,7 +56,7 @@ func (s *Service) SaveEditPriceHandler(ctx context.Context, update *telegram.Upd
 	return nil
 }
 
-func (s *Service) EditLinkHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 	wish, err := s.repositories.Wish.Get(ctx, params.ID)
 	if err != nil {
@@ -86,7 +86,7 @@ func (s *Service) EditLinkHandler(ctx context.Context, update *telegram.Update) 
 	return nil
 }
 
-func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 	texts, err := s.clients.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *Service) SaveEditLinkHandler(ctx context.Context, update *telegram.Upda
 	return nil
 }
 
-func (s *Service) DeleteLinkHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) DeleteLink(ctx context.Context, update *telegram.Update) error {
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 	wish, err := s.repositories.Wish.Get(ctx, params.ID)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *Service) DeleteLinkHandler(ctx context.Context, update *telegram.Update
 	return nil
 }
 
-func (s *Service) EditWishNameHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) EditWishName(ctx context.Context, update *telegram.Update) error {
 	s.clients.Telegram.Reply(ctx, s.constants.ENTER_NEW_WISH_NAME, update)
 
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
@@ -164,7 +164,7 @@ func (s *Service) EditWishNameHandler(ctx context.Context, update *telegram.Upda
 	return nil
 }
 
-func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 	texts, err := s.clients.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
@@ -182,7 +182,7 @@ func (s *Service) SaveEditWishNameHandler(ctx context.Context, update *telegram.
 	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
 	if err != nil {
 		s.logger.Error(
-			"SaveEditWishNameHandler",
+			"SaveEditWishName",
 			"details", err.Error(),
 			"chatId", update.GetMessage().GetChatIdStr(),
 		)

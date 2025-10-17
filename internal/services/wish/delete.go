@@ -8,7 +8,7 @@ import (
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
-func (s *Service) DeleteWishCallbackQueryHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) DeleteWish(ctx context.Context, update *telegram.Update) error {
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 
 	wishId := params.ID
@@ -43,7 +43,7 @@ func (s *Service) DeleteWishCallbackQueryHandler(ctx context.Context, update *te
 	return nil
 }
 
-func (s *Service) ConfirmDeleteWishCallbackQueryHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ConfirmDeleteWish(ctx context.Context, update *telegram.Update) error {
 	var (
 		wish *entities.Wish
 	)

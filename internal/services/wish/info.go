@@ -9,7 +9,7 @@ import (
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
-func (s *Service) WishInfoHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
 	callbackQuery := update.CallbackQuery
 
 	params := s.builders.CallbackDataBuilder.FromString(callbackQuery.Data)

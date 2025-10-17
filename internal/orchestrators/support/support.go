@@ -6,22 +6,22 @@ import (
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 )
 
-func (o *Orchestrator) SupportHandler(ctx context.Context, update *telegram.Update) error {
-	return o.services.Support.SupportHandler(ctx, update)
+func (o *Orchestrator) Support(ctx context.Context, update *telegram.Update) error {
+	return o.services.Support.Support(ctx, update)
 }
 
-func (o *Orchestrator) WriteHandler(ctx context.Context, update *telegram.Update) error {
-	return o.services.Support.WriteHandler(ctx, update)
+func (o *Orchestrator) SupportWrite(ctx context.Context, update *telegram.Update) error {
+	return o.services.Support.SupportWrite(ctx, update)
 }
 
-func (o *Orchestrator) CancelHandler(ctx context.Context, update *telegram.Update) error {
-	return o.services.Support.CancelHandler(ctx, update)
+func (o *Orchestrator) CancelSupportCall(ctx context.Context, update *telegram.Update) error {
+	return o.services.Support.CancelSupportCall(ctx, update)
 }
 
-func (o *Orchestrator) SendMessageHandler(ctx context.Context, update *telegram.Update) error {
-	return o.services.Support.SendMessageHandler(ctx, update)
+func (o *Orchestrator) SendSupportMessage(ctx context.Context, update *telegram.Update) error {
+	return o.services.Support.SendSupportMessage(ctx, update)
 }
 
-func (o *Orchestrator) HandleSupportReply(ctx context.Context, update *telegram.Update) error {
-	return o.services.Support.HandleSupportReply(ctx, update)
+func (o *Orchestrator) ProcessSupportReply(ctx context.Context, update *telegram.Update) error {
+	return o.services.Support.ProcessSupportReply(ctx, update)
 }
