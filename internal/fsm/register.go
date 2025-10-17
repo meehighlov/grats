@@ -1,6 +1,8 @@
 package fsm
 
 import (
+	"log"
+
 	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
 	"github.com/meehighlov/grats/internal/fsm/state"
@@ -13,6 +15,11 @@ func (f *FSM) Activate(
 ) {
 	s := state.New(action, condition)
 
+	_, found := f.states[s.GetID()]
+	if found {
+		log.Fatal("state with id " + s.GetID() + " already registered")
+	}
+
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -23,5 +30,5 @@ func (f *FSM) Activate(
 		})
 	}
 
-	f.states = append(f.states, s)
+	f.states[s.GetID()] = s
 }

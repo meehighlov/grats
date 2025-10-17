@@ -16,7 +16,7 @@ const (
 )
 
 type FSM struct {
-	states      []*state.State
+	states      map[string]*state.State
 	logger      *slog.Logger
 	stateStore  store.StateStore
 	middlewares []action.Action
@@ -25,7 +25,7 @@ type FSM struct {
 
 func New(logger *slog.Logger, stateStore store.StateStore, switchMode switchStateMode) *FSM {
 	return &FSM{
-		states:      []*state.State{},
+		states:      make(map[string]*state.State),
 		logger:      logger,
 		stateStore:  stateStore,
 		middlewares: []action.Action{},

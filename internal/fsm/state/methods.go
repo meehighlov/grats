@@ -69,3 +69,7 @@ func (s *State) AddOutputState(outputState *OutputState) {
 func (s *State) SetID(stateId string) {
 	s.id = stateId
 }
+
+func (s *State) GetID() string {
+	return s.id
+}
