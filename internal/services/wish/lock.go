@@ -8,7 +8,7 @@ import (
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
-func (s *Service) ToggleWishLockHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ToggleWishLock(ctx context.Context, update *telegram.Update) error {
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 	wishId := params.ID
 	offset := params.Offset

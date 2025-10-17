@@ -7,14 +7,14 @@ import (
 	"gorm.io/gorm"
 )
 
-func (o *Orchestrator) ShareWishListHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) ShareWishList(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.ShareWishListHandler(ctx, update)
+		return o.services.Wish.ShareWishList(ctx, update)
 	})
 }
 
-func (o *Orchestrator) ShowSharedWishlistHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) ShowSharedWishlist(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
 
@@ -27,6 +27,6 @@ func (o *Orchestrator) ShowSharedWishlistHandler(ctx context.Context, update *te
 			}
 		}
 
-		return o.services.Wish.ShowSharedWishlistHandler(ctx, update)
+		return o.services.Wish.ShowSharedWishlist(ctx, update)
 	})
 }

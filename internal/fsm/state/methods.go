@@ -15,7 +15,7 @@ func (s *State) DoTransition(err error) string {
 		}
 	}
 
-	return READY
+	return READY.String()
 }
 
 func (s *State) Activate(ctx context.Context, update *telegram.Update) error {
@@ -47,7 +47,7 @@ func (s *State) IsActivationAllowed(stateId string) bool {
 }
 
 func (s *State) AddInputState(inputState *InputState) {
-	s.inputStates = append(s.inputStates, inputState)
+	s.inputStates[inputState.FromStateId] = inputState
 }
 
 func (s *State) SetBeforeAction(beforeAction action.Action) {
@@ -63,7 +63,7 @@ func (s *State) SetCondition(condition condition.Condition) {
 }
 
 func (s *State) AddOutputState(outputState *OutputState) {
-	s.outputStates = append(s.outputStates, outputState)
+	s.outputStates[outputState.ToStateId] = outputState
 }
 
 func (s *State) SetID(stateId string) {

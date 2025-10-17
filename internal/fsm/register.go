@@ -15,19 +15,12 @@ func (f *FSM) Activate(
 ) {
 	s := state.New(action, condition)
 
-	_, found := f.states[s.GetID()]
-	if found {
-		log.Fatal("state with id " + s.GetID() + " already registered")
+	if _, exists := f.states[s.GetID()]; exists {
+		log.Fatalf("state with id %s already registered", s.GetID())
 	}
 
 	for _, opt := range opts {
 		opt(s)
-	}
-
-	if f.switchMode == WhenReady {
-		s.AddInputState(&state.InputState{
-			FromStateId: state.READY,
-		})
 	}
 
 	f.states[s.GetID()] = s

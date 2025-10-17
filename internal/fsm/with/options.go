@@ -33,6 +33,29 @@ func OutputState(err error, stateId string) state.StateOption {
 	}
 }
 
+func Retry(err error) state.StateOption {
+	return func(s *state.State) error {
+		s.AddInputState(&state.InputState{
+			FromStateId: s.GetID(),
+		})
+		s.AddOutputState(&state.OutputState{
+			ActionError: err,
+			ToStateId:   s.GetID(),
+		})
+		return nil
+	}
+}
+
+func SuccessOutput(stateId string) state.StateOption {
+	return func(s *state.State) error {
+		s.AddOutputState(&state.OutputState{
+			ActionError: nil,
+			ToStateId:   stateId,
+		})
+		return nil
+	}
+}
+
 func ID(stateId string) state.StateOption {
 	return func(s *state.State) error {
 		s.SetID(stateId)

@@ -6,10 +6,15 @@ import (
 	"github.com/meehighlov/grats/internal/fsm/condition"
 )
 
+type initialState string
+
 const (
-	READY = "ready"
-	ANY   = "any"
+	READY initialState = "ready"
 )
+
+func (s initialState) String() string {
+	return string(s)
+}
 
 type StateOption func(*State) error
 
@@ -28,8 +33,8 @@ type State struct {
 	action       action.Action
 	condition    condition.Condition
 
-	inputStates  []*InputState
-	outputStates []*OutputState
+	inputStates  map[string]*InputState
+	outputStates map[string]*OutputState
 }
 
 func New(action action.Action, condition condition.Condition) *State {
@@ -38,7 +43,7 @@ func New(action action.Action, condition condition.Condition) *State {
 		beforeAction: nil,
 		action:       action,
 		condition:    condition,
-		inputStates:  []*InputState{},
-		outputStates: []*OutputState{},
+		inputStates:  make(map[string]*InputState),
+		outputStates: make(map[string]*OutputState),
 	}
 }
