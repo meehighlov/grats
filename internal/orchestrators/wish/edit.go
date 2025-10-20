@@ -7,51 +7,51 @@ import (
 	"gorm.io/gorm"
 )
 
-func (o *Orchestrator) EditPriceHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) EditPrice(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.EditPriceHandler(ctx, update)
+		return o.services.Wish.EditPrice(ctx, update)
 	})
 }
 
-func (o *Orchestrator) SaveEditPriceHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) SaveEditPrice(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.SaveEditPriceHandler(ctx, update)
+		return o.services.Wish.SaveEditPrice(ctx, update)
 	})
 }
 
-func (o *Orchestrator) EditLinkHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) EditLink(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.EditLinkHandler(ctx, update)
+		return o.services.Wish.EditLink(ctx, update)
 	})
 }
 
-func (o *Orchestrator) SaveEditLinkHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) SaveEditLink(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.SaveEditLinkHandler(ctx, update)
+		return o.services.Wish.SaveEditLink(ctx, update)
 	})
 }
 
-func (o *Orchestrator) EditWishNameHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) EditWishName(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.EditWishNameHandler(ctx, update)
+		return o.services.Wish.EditWishName(ctx, update)
 	})
 }
 
-func (o *Orchestrator) SaveEditWishNameHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) SaveEditWishName(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.SaveEditWishNameHandler(ctx, update)
+		return o.services.Wish.SaveEditWishName(ctx, update)
 	})
 }
 
-func (o *Orchestrator) DeleteLinkHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) DeleteLink(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.DeleteLinkHandler(ctx, update)
+		return o.services.Wish.DeleteLink(ctx, update)
 	})
 }

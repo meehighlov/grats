@@ -8,7 +8,6 @@ import (
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/constants"
-	"github.com/meehighlov/grats/internal/errs"
 	"github.com/meehighlov/grats/internal/fsm"
 	"github.com/meehighlov/grats/internal/fsm/when"
 	"github.com/meehighlov/grats/internal/fsm/with"
@@ -33,46 +32,47 @@ func RegisterStates(
 		when.Command(c.CMD_START),
 	)
 
+	// ------------------------ support --------------------------------
+
 	f.Activate(
-		o.Support.SupportHandler,
+		o.Support.Support,
 		when.Command(c.CMD_SUPPORT),
 	)
 
-	f.Activate(
-		o.Support.WriteHandler,
+	supportWrite := f.Activate(
+		o.Support.SupportWrite,
 		when.CallbackDataContains(c.CMD_SUPPORT_WRITE),
-		with.Transition(nil, c.CMD_SUPPORT_SEND),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Support.SendMessageHandler,
+		o.Support.SendSupportMessage,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_SUPPORT_SEND),
+		with.AcceptFrom(supportWrite),
 	)
 
 	f.Activate(
-		o.Support.CancelHandler,
+		o.Support.CancelSupportCall,
 		when.CallbackDataContains(c.CMD_SUPPORT_CANCEL),
 	)
 
 	f.Activate(
-		o.Support.HandleSupportReply,
+		o.Support.ProcessSupportReply,
 		appconditions.SupportReplyCondition(cfg.SupportChatId),
 	)
 
-	f.Activate(
-		o.Wish.AddWishHandler,
+	// ------------------------ wishlist --------------------------------
+
+	addWish := f.Activate(
+		o.Wish.AddWish,
 		when.CallbackDataContains(c.CMD_ADD_TO_WISH),
-		with.Transition(nil, c.CMD_ADD_SAVE_WISH),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
 		o.Wish.SaveWish,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_ADD_SAVE_WISH),
-		with.Transition(errs.ErrSaveWishValidation, c.CMD_ADD_SAVE_WISH),
+		with.AcceptFrom(addWish),
 	)
 
 	f.Activate(
@@ -86,89 +86,94 @@ func RegisterStates(
 	)
 
 	f.Activate(
-		o.Wish.WishInfoHandler,
+		o.Wish.WishInfo,
 		when.CallbackDataContains(c.CMD_WISH_INFO),
 	)
 
 	f.Activate(
-		o.Wish.DeleteWishCallbackQueryHandler,
+		o.Wish.DeleteWish,
 		when.CallbackDataContains(c.CMD_DELETE_WISH),
 	)
 
 	f.Activate(
-		o.Wish.ConfirmDeleteWishCallbackQueryHandler,
+		o.Wish.ConfirmDeleteWish,
 		when.CallbackDataContains(c.CMD_CONFIRM_DELETE_WISH),
 	)
 
-	f.Activate(
-		o.Wish.EditWishNameHandler,
+	editWishName := f.Activate(
+		o.Wish.EditWishName,
 		when.CallbackDataContains(c.CMD_EDIT_WISH_NAME),
-		with.Transition(nil, c.CMD_EDIT_WISH_NAME_SAVE),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Wish.SaveEditWishNameHandler,
+		o.Wish.SaveEditWishName,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_EDIT_WISH_NAME_SAVE),
-		with.Transition(errs.ErrEditWishNameValidation, c.CMD_EDIT_WISH_NAME_SAVE),
+		with.AcceptFrom(editWishName),
 	)
 
-	f.Activate(
-		o.Wish.EditLinkHandler,
+	editWishLink := f.Activate(
+		o.Wish.EditLink,
 		when.CallbackDataContains(c.CMD_EDIT_LINK),
-		with.Transition(nil, c.CMD_EDIT_LINK_SAVE),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Wish.SaveEditLinkHandler,
+		o.Wish.SaveEditLink,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_EDIT_LINK_SAVE),
-		with.Transition(errs.ErrSaveEditLinkValidation, c.CMD_EDIT_LINK_SAVE),
+		with.AcceptFrom(editWishLink),
 	)
 
-	f.Activate(
-		o.Wish.EditPriceHandler,
+	editWishPrice := f.Activate(
+		o.Wish.EditPrice,
 		when.CallbackDataContains(c.CMD_EDIT_PRICE),
-		with.Transition(nil, c.CMD_EDIT_PRICE_SAVE),
-		with.BeforeHandler(resetUserCache),
+		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Wish.SaveEditPriceHandler,
+		o.Wish.SaveEditPrice,
 		when.UpdateHasOnlyText(),
-		with.AllowedActivationStatus(c.CMD_EDIT_PRICE_SAVE),
-		with.Transition(errs.ErrEditPriceValidation, c.CMD_EDIT_PRICE_SAVE),
+		with.AcceptFrom(editWishPrice),
 	)
 
 	f.Activate(
-		o.Wish.DeleteLinkHandler,
+		o.Wish.DeleteLink,
 		when.CallbackDataContains(c.CMD_DELETE_LINK),
+		with.AcceptFrom(editWishLink),
 	)
 
 	f.Activate(
-		o.Wish.ShareWishListHandler,
+		o.Wish.ShareWishList,
 		when.CallbackDataContains(c.CMD_SHARE_WISH_LIST),
 	)
 
 	f.Activate(
-		o.Wish.ToggleWishLockHandler,
+		o.Wish.ToggleWishLock,
 		when.CallbackDataContains(c.CMD_TOGGLE_WISH_LOCK),
 	)
 
 	f.Activate(
-		o.Wish.ShowSharedWishlistHandler,
+		o.Wish.ShowSharedWishlist,
 		appconditions.ShowSharedListCondition(),
 	)
 
 	f.Activate(
-		o.Wish.WishInfoHandler,
+		o.Wish.WishInfo,
 		when.CallbackDataContains(c.CMD_SHOW_SWI),
 	)
 
 	f.Activate(
-		o.Wish.ShowSharedWishlistHandler,
+		o.Wish.ShowSharedWishlist,
 		when.CallbackDataContains(c.CMD_SHOW_SWL),
+	)
+
+	f.Reset(
+		when.Command(c.CMD_CANCEL),
+		with.BeforeAction(resetUserCache),
+		with.AcceptFrom(supportWrite),
+		with.AcceptFrom(editWishName),
+		with.AcceptFrom(editWishLink),
+		with.AcceptFrom(editWishPrice),
+		with.AcceptFrom(addWish),
 	)
 }

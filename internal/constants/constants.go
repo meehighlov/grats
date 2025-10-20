@@ -127,6 +127,7 @@ type Constants struct {
 	CMD_START    string
 	CMD_WISHLIST string
 	CMD_SUPPORT  string
+	CMD_CANCEL   string
 
 	// Numeric constants
 	WISH_LIMIT_FOR_USER int
@@ -261,6 +262,7 @@ func New(cfg *config.Config) *Constants {
 		CMD_START:    "/start",
 		CMD_WISHLIST: "/wishlist",
 		CMD_SUPPORT:  "/support",
+		CMD_CANCEL:   "/cancel",
 
 		// Numeric constants
 		WISH_LIMIT_FOR_USER: 50,

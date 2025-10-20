@@ -1,36 +1,38 @@
 package state
 
 import (
+	"github.com/google/uuid"
+	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
-	"github.com/meehighlov/grats/internal/fsm/handler"
 )
 
+type initialState string
+
 const (
-	READY = "ready"
-	ANY   = "any"
+	READY initialState = ""
 )
+
+func (s initialState) String() string {
+	return string(s)
+}
 
 type StateOption func(*State) error
 
-type Transition struct {
-	HandlerError error
-	Status       string
-}
-
 type State struct {
-	beforeHandler           []handler.HandlerType
-	handler                 handler.HandlerType
-	condition               condition.Condition
-	allowedActivationStatus string
+	id           string
+	beforeAction []action.Action
+	action       action.Action
+	condition    condition.Condition
 
-	transitions []*Transition
+	transitions []*State
 }
 
-func New(handler handler.HandlerType, condition condition.Condition) *State {
+func New(action action.Action, condition condition.Condition) *State {
 	return &State{
-		handler:                 handler,
-		condition:               condition,
-		transitions:             []*Transition{},
-		allowedActivationStatus: ANY,
+		id:           uuid.NewString(),
+		beforeAction: nil,
+		action:       action,
+		condition:    condition,
+		transitions:  make([]*State, 0),
 	}
 }

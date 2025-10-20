@@ -12,7 +12,7 @@ import (
 	"github.com/meehighlov/grats/internal/repositories/wish"
 )
 
-func (s *Service) ShareWishListHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) error {
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 
 	wishListId := params.ID
@@ -52,7 +52,7 @@ func (s *Service) ShareWishListHandler(ctx context.Context, update *telegram.Upd
 	return nil
 }
 
-func (s *Service) ShowSharedWishlistHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 
 	listPrefix := s.constants.CMD_START + " " + s.constants.SHARED_LIST_ID_PREFIX
