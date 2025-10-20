@@ -47,7 +47,7 @@ func RegisterStates(
 
 	f.Activate(
 		o.Support.SendSupportMessage,
-		when.UpdateHasOnlyText(),
+		when.MessageHasText(),
 		with.AcceptFrom(supportWrite),
 	)
 
@@ -71,7 +71,7 @@ func RegisterStates(
 
 	f.Activate(
 		o.Wish.SaveWish,
-		when.UpdateHasOnlyText(),
+		when.MessageHasText(),
 		with.AcceptFrom(addWish),
 	)
 
@@ -108,7 +108,7 @@ func RegisterStates(
 
 	f.Activate(
 		o.Wish.SaveEditWishName,
-		when.UpdateHasOnlyText(),
+		when.MessageHasText(),
 		with.AcceptFrom(editWishName),
 	)
 
@@ -120,7 +120,7 @@ func RegisterStates(
 
 	f.Activate(
 		o.Wish.SaveEditLink,
-		when.UpdateHasOnlyText(),
+		when.MessageHasText(),
 		with.AcceptFrom(editWishLink),
 	)
 
@@ -132,7 +132,7 @@ func RegisterStates(
 
 	f.Activate(
 		o.Wish.SaveEditPrice,
-		when.UpdateHasOnlyText(),
+		when.MessageHasText(),
 		with.AcceptFrom(editWishPrice),
 	)
 
