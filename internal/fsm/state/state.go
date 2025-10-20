@@ -1,7 +1,6 @@
 package state
 
 import (
-	"github.com/google/uuid"
 	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
 )
@@ -27,9 +26,9 @@ type State struct {
 	transitions []*State
 }
 
-func New(action action.Action, condition condition.Condition) *State {
+func New(id string, action action.Action, condition condition.Condition) *State {
 	return &State{
-		id:           uuid.NewString(),
+		id:           id,
 		beforeAction: nil,
 		action:       action,
 		condition:    condition,

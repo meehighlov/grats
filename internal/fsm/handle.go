@@ -45,7 +45,7 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 	}
 
 	if s == nil {
-		return fmt.Errorf("not found handler for state %s", currentStateId)
+		return fmt.Errorf("not found action for state %s", currentStateId)
 	}
 
 	err = s.Activate(ctx, update)

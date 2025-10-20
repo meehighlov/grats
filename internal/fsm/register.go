@@ -1,6 +1,9 @@
 package fsm
 
 import (
+	"log"
+	"strconv"
+
 	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
 	"github.com/meehighlov/grats/internal/fsm/state"
@@ -11,10 +14,16 @@ func (f *FSM) Activate(
 	condition condition.Condition,
 	opts ...state.StateOption,
 ) *state.State {
-	s := state.New(action, condition)
+	stateId := strconv.Itoa(len(f.states) + 1)
+
+	s := state.New(stateId, action, condition)
 
 	for _, opt := range opts {
 		opt(s)
+	}
+
+	if _, exists := f.states[s.GetID()]; exists {
+		log.Fatalf("state with id %s already exists", s.GetID())
 	}
 
 	f.states[s.GetID()] = s
@@ -33,7 +42,7 @@ func (f *FSM) Reset(
 
 // only root states have to be reachable from READY state
 func (f *FSM) setRootStates() {
-	ready := state.New(nil, nil)
+	ready := state.New("0", nil, nil)
 
 	delete(f.states, state.READY.String())
 
