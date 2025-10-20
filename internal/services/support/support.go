@@ -10,7 +10,7 @@ import (
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 )
 
-func (s *Service) SupportHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) Support(ctx context.Context, update *telegram.Update) error {
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsStack(
@@ -25,7 +25,7 @@ func (s *Service) SupportHandler(ctx context.Context, update *telegram.Update) e
 	return nil
 }
 
-func (s *Service) WriteHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SupportWrite(ctx context.Context, update *telegram.Update) error {
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsStack(
@@ -39,7 +39,7 @@ func (s *Service) WriteHandler(ctx context.Context, update *telegram.Update) err
 	return nil
 }
 
-func (s *Service) CancelHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) CancelSupportCall(ctx context.Context, update *telegram.Update) error {
 	s.clients.Cache.Reset(ctx, update.GetChatIdStr())
 
 	if err := s.clients.Telegram.DeleteMessage(ctx, update.GetChatIdStr(), strconv.Itoa(update.CallbackQuery.Message.MessageId)); err != nil {
@@ -50,7 +50,7 @@ func (s *Service) CancelHandler(ctx context.Context, update *telegram.Update) er
 	return nil
 }
 
-func (s *Service) SendMessageHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SendSupportMessage(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 
 	if len(message.Text) > 2000 {
@@ -90,7 +90,7 @@ func (s *Service) buildBackToMenuKeyboard() *inlinekeyboard.Builder {
 	return keyboard
 }
 
-func (s *Service) HandleSupportReply(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ProcessSupportReply(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 
 	if message.GetChatIdStr() != s.cfg.SupportChatId {

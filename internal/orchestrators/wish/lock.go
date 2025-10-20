@@ -7,9 +7,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func (o *Orchestrator) ToggleWishLockHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) ToggleWishLock(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.ToggleWishLockHandler(ctx, update)
+		return o.services.Wish.ToggleWishLock(ctx, update)
 	})
 }

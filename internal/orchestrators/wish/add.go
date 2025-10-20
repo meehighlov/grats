@@ -7,10 +7,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func (o *Orchestrator) AddWishHandler(ctx context.Context, update *telegram.Update) error {
+func (o *Orchestrator) AddWish(ctx context.Context, update *telegram.Update) error {
 	return o.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		ctx = context.WithValue(ctx, o.cfg.TxKey, tx)
-		return o.services.Wish.AddWishHandler(ctx, update)
+		return o.services.Wish.AddWish(ctx, update)
 	})
 }
 

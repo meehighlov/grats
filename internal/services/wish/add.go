@@ -14,7 +14,7 @@ import (
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
-func (s *Service) AddWishHandler(ctx context.Context, update *telegram.Update) error {
+func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
 	var (
 		wishListId string
 		userId     string

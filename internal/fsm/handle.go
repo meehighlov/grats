@@ -14,7 +14,7 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 		r := recover()
 		if r != nil {
 			critical := fmt.Errorf("recover from panic: %v", r)
-			err := f.stateStore.SetState(ctx, update.GetChatIdStr(), state.READY)
+			err := f.stateStore.SetState(ctx, update.GetChatIdStr(), state.READY.String())
 			return errors.Join(critical, err)
 		}
 		return nil
@@ -26,26 +26,26 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 		}
 	}
 
-	status, err := f.stateStore.GetState(ctx, update.GetChatIdStr())
+	currentStateId, err := f.stateStore.GetState(ctx, update.GetChatIdStr())
 	if err != nil {
 		return err
 	}
 
 	var s *state.State
-	for _, state := range f.states {
+	for _, state := range f.states[currentStateId].GetTransitions() {
 		ok, err := state.Condition().Check(ctx, update)
 		if err != nil {
 			return err
 		}
 
-		if ok && state.IsActivationAllowed(status) {
+		if ok {
 			s = state
 			break
 		}
 	}
 
 	if s == nil {
-		return fmt.Errorf("not found handler for update: %v", update)
+		return fmt.Errorf("not found handler for state %s", currentStateId)
 	}
 
 	err = s.Activate(ctx, update)
@@ -53,8 +53,12 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 	cerr := f.stateStore.SetState(
 		ctx,
 		update.GetChatIdStr(),
-		s.Next(err),
+		s.Done(err, currentStateId),
 	)
 
 	return errors.Join(err, cerr)
+}
+
+func (f *FSM) reset(ctx context.Context, update *telegram.Update) error {
+	return f.stateStore.SetState(ctx, update.GetChatIdStr(), state.READY.String())
 }

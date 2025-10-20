@@ -4,55 +4,66 @@ import (
 	"context"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
+	"github.com/meehighlov/grats/internal/fsm/action"
 	"github.com/meehighlov/grats/internal/fsm/condition"
-	"github.com/meehighlov/grats/internal/fsm/handler"
 )
 
-func (s *State) Next(err error) string {
-	for _, transition := range s.transitions {
-		if transition.HandlerError == err {
-			return transition.Status
-		}
-	}
-
-	// no transition found - flow is done,
-	// machine is ready
-	return READY
-}
-
 func (s *State) Activate(ctx context.Context, update *telegram.Update) error {
-	for _, beforeHandler := range s.beforeHandler {
-		if err := beforeHandler(ctx, update); err != nil {
+	for _, beforeAction := range s.beforeAction {
+		if err := beforeAction(ctx, update); err != nil {
 			return err
 		}
 	}
-	return s.handler(ctx, update)
+	return s.action(ctx, update)
 }
 
 func (s *State) Condition() condition.Condition {
 	return s.condition
 }
 
-func (s *State) IsActivationAllowed(status string) bool {
-	return s.allowedActivationStatus == status || s.allowedActivationStatus == ANY
+func (s *State) IsActivationAllowed(stateId string) bool {
+	allowActivationFromAnyState := len(s.transitions) == 0
+	if allowActivationFromAnyState {
+		return true
+	}
+
+	return s.GetID() == stateId
 }
 
-func (s *State) AddTransition(transition *Transition) {
+func (s *State) AddTransition(transition *State) {
 	s.transitions = append(s.transitions, transition)
 }
 
-func (s *State) SetBeforeHandler(beforeHandler handler.HandlerType) {
-	s.beforeHandler = append(s.beforeHandler, beforeHandler)
+func (s *State) SetBeforeAction(beforeAction action.Action) {
+	s.beforeAction = append(s.beforeAction, beforeAction)
 }
 
-func (s *State) SetHandler(handler handler.HandlerType) {
-	s.handler = handler
+func (s *State) SetAction(action action.Action) {
+	s.action = action
 }
 
 func (s *State) SetCondition(condition condition.Condition) {
 	s.condition = condition
 }
 
-func (s *State) SetAllowedActivationStatus(status string) {
-	s.allowedActivationStatus = status
+func (s *State) SetID(stateId string) {
+	s.id = stateId
+}
+
+func (s *State) GetID() string {
+	return s.id
+}
+
+func (s *State) GetTransitions() []*State {
+	return s.transitions
+}
+
+func (s *State) Done(err error, currentStateId string) string {
+	if err != nil {
+		return currentStateId
+	}
+	if len(s.transitions) == 0 {
+		return READY.String()
+	}
+	return s.GetID()
 }
