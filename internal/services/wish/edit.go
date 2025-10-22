@@ -4,13 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/errs"
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
@@ -43,7 +43,7 @@ func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) er
 	price, err := strconv.ParseFloat(message.Text, 64)
 	if err != nil || price <= 0 {
 		s.clients.Telegram.Reply(ctx, s.constants.PRICE_INVALID_FORMAT, update)
-		return errs.ErrEditPriceValidation
+		return errors.New("price is invalid format")
 	}
 
 	wish[0].Price = message.Text
@@ -98,19 +98,19 @@ func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) err
 	link := message.Text
 	if len(link) > s.constants.WISH_LINK_MAX_LEN {
 		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.constants.LINK_TOO_LONG_TEMPLATE, s.constants.WISH_LINK_MAX_LEN), update)
-		return errs.ErrSaveEditLinkValidation
+		return errors.New("link is too long")
 	}
 
 	parsedURL, err := url.Parse(link)
 	if err != nil || parsedURL.Host == "" {
 		s.clients.Telegram.Reply(ctx, s.constants.LINK_INVALID_FORMAT, update)
-		return errs.ErrSaveEditLinkValidation
+		return errors.New("link is invalid format")
 	}
 
 	info, err := s.getCertificateInfo(link)
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.LINK_UNTRUSTED_SITE, update)
-		return errs.ErrSaveEditLinkValidation
+		return errors.New("link is untrusted site")
 	}
 
 	s.logger.Debug("certificate check", "info", info)
@@ -176,7 +176,7 @@ func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update)
 	_, err = s.validateWishName(message.Text)
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_INVALID_CHARS, update)
-		return errs.ErrEditWishNameValidation
+		return errors.New("wish name contains invalid characters")
 	}
 
 	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})

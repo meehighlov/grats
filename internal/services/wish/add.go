@@ -2,6 +2,7 @@ package wish
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"regexp"
@@ -10,7 +11,6 @@ import (
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/errs"
 	"github.com/meehighlov/grats/internal/repositories/entities"
 )
 
@@ -69,13 +69,13 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 
 	if len(message.Text) > s.constants.WISH_NAME_MAX_LEN {
 		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.constants.WISH_NAME_TOO_LONG_TEMPLATE, s.constants.WISH_NAME_MAX_LEN), update)
-		return errs.ErrSaveWishValidation
+		return errors.New("wish name is too long")
 	}
 
 	validatedName, err := s.validateWishName(message.Text)
 	if err != nil {
 		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_INVALID_CHARS, update)
-		return errs.ErrSaveWishValidation
+		return errors.New("wish name contains invalid characters")
 	}
 
 	bf, err := entities.NewBaseFields(false, s.cfg.Timezone)
