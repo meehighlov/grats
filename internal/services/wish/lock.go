@@ -19,7 +19,7 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *telegram.Update) e
 	baseFields := entities.BaseFields{ID: wishId}
 	wishes, err := s.repositories.Wish.GetWithLock(ctx, &entities.Wish{BaseFields: baseFields})
 	if err != nil {
-		if _, err := s.clients.Telegram.Reply(ctx, s.constants.ERROR_MESSAGE, update); err != nil {
+		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update); err != nil {
 			return err
 		}
 		return err
@@ -28,7 +28,7 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *telegram.Update) e
 	// wish info was opened too long and expired
 	// and owner deleted it
 	if len(wishes) == 0 {
-		if _, err := s.clients.Telegram.Reply(ctx, s.constants.WISH_REMOVED_TRY_REFRESH, update); err != nil {
+		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_REMOVED_TRY_REFRESH, update); err != nil {
 			return err
 		}
 		return nil
@@ -50,7 +50,7 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *telegram.Update) e
 		if err != nil {
 			return err
 		}
-		if _, err := s.clients.Telegram.Reply(ctx, s.constants.WISH_ALREADY_BOOKED, update); err != nil {
+		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_ALREADY_BOOKED, update); err != nil {
 			return err
 		}
 		return nil

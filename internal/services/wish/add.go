@@ -25,19 +25,19 @@ func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
 
 	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{UserId: userId})
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.constants.ERROR_MESSAGE, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
 		return err
 	}
 
-	if len(wishes) >= s.constants.WISH_LIMIT_FOR_USER {
+	if len(wishes) >= s.cfg.Constants.WISH_LIMIT_FOR_USER {
 		s.clients.Telegram.Reply(ctx, fmt.Sprintf(
-			s.constants.WISH_LIMIT_REACHED_TEMPLATE,
-			s.constants.WISH_LIMIT_FOR_USER,
+			s.cfg.Constants.WISH_LIMIT_REACHED_TEMPLATE,
+			s.cfg.Constants.WISH_LIMIT_FOR_USER,
 		), update)
 		return nil
 	}
 
-	msg := s.constants.ENTER_WISH_NAME
+	msg := s.cfg.Constants.ENTER_WISH_NAME
 
 	if _, err := s.clients.Telegram.Reply(ctx, msg, update); err != nil {
 		return err
@@ -67,14 +67,14 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 		return nil
 	}
 
-	if len(message.Text) > s.constants.WISH_NAME_MAX_LEN {
-		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.constants.WISH_NAME_TOO_LONG_TEMPLATE, s.constants.WISH_NAME_MAX_LEN), update)
+	if len(message.Text) > s.cfg.Constants.WISH_NAME_MAX_LEN {
+		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.cfg.Constants.WISH_NAME_TOO_LONG_TEMPLATE, s.cfg.Constants.WISH_NAME_MAX_LEN), update)
 		return errors.New("wish name is too long")
 	}
 
 	validatedName, err := s.validateWishName(message.Text)
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_INVALID_CHARS, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NAME_INVALID_CHARS, update)
 		return errors.New("wish name contains invalid characters")
 	}
 
@@ -96,7 +96,7 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 		return err
 	}
 
-	msg := s.constants.WISH_ADDED
+	msg := s.cfg.Constants.WISH_ADDED
 
 	if _, err := s.clients.Telegram.Reply(ctx, msg, update, telegram.WithReplyMurkup(s.buildWishNavigationMarkup(wish.ID, wishListId).Murkup())); err != nil {
 		return err
@@ -109,9 +109,9 @@ func (s *Service) buildWishNavigationMarkup(wishId, wishListId string) *inlineke
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsStack(
-		keyboard.NewButton(s.constants.BTN_OPEN_WISH, s.builders.CallbackDataBuilder.Build(wishId, s.constants.CMD_WISH_INFO, s.constants.LIST_DEFAULT_OFFSET).String()),
-		keyboard.NewButton(s.constants.BTN_NEW_WISH, s.builders.CallbackDataBuilder.Build(wishListId, s.constants.CMD_ADD_TO_WISH, s.constants.LIST_DEFAULT_OFFSET).String()),
-		keyboard.NewButton(s.constants.BTN_WISH_LIST, s.builders.CallbackDataBuilder.Build(wishListId, s.constants.CMD_LIST, s.constants.LIST_DEFAULT_OFFSET).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_OPEN_WISH, s.builders.CallbackDataBuilder.Build(wishId, s.cfg.Constants.CMD_WISH_INFO, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_NEW_WISH, s.builders.CallbackDataBuilder.Build(wishListId, s.cfg.Constants.CMD_ADD_TO_WISH, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_WISH_LIST, s.builders.CallbackDataBuilder.Build(wishListId, s.cfg.Constants.CMD_LIST, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
 	)
 
 	return keyboard
@@ -119,8 +119,8 @@ func (s *Service) buildWishNavigationMarkup(wishId, wishListId string) *inlineke
 
 func (s *Service) validateWishName(name string) (string, error) {
 	trimmedName := strings.TrimSpace(name)
-	if len(trimmedName) > s.constants.WISH_NAME_MAX_LEN {
-		return "", fmt.Errorf("название желания не должно превышать %d символов", s.constants.WISH_NAME_MAX_LEN)
+	if len(trimmedName) > s.cfg.Constants.WISH_NAME_MAX_LEN {
+		return "", fmt.Errorf("название желания не должно превышать %d символов", s.cfg.Constants.WISH_NAME_MAX_LEN)
 	}
 
 	sanitizedName := html.EscapeString(trimmedName)

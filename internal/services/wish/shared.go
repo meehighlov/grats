@@ -27,18 +27,18 @@ func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) er
 	}
 
 	botName := s.cfg.BotName
-	shareLink := fmt.Sprintf(s.constants.SHARE_WISHLIST_LINK_TEMPLATE, botName, wishlist[0].ID)
+	shareLink := fmt.Sprintf(s.cfg.Constants.SHARE_WISHLIST_LINK_TEMPLATE, botName, wishlist[0].ID)
 
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 	keyboard.AppendAsLine(
-		keyboard.NewShareLinkButton(s.constants.BTN_SHARE, shareLink, s.constants.MY_WISHLIST_SHARE_TITLE),
-		keyboard.NewCopyButton(s.constants.BTN_COPY_LINK, shareLink),
+		keyboard.NewShareLinkButton(s.cfg.Constants.BTN_SHARE, shareLink, s.cfg.Constants.MY_WISHLIST_SHARE_TITLE),
+		keyboard.NewCopyButton(s.cfg.Constants.BTN_COPY_LINK, shareLink),
 	)
 	keyboard.AppendAsLine(
-		keyboard.NewButton(s.constants.BTN_BACK_TO_WISHLIST, s.builders.CallbackDataBuilder.Build(wishlist[0].ID, s.constants.CMD_LIST, s.constants.LIST_DEFAULT_OFFSET).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_BACK_TO_WISHLIST, s.builders.CallbackDataBuilder.Build(wishlist[0].ID, s.cfg.Constants.CMD_LIST, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
 	)
 
-	shareMessage := s.constants.SHARE_WISHLIST_MESSAGE
+	shareMessage := s.cfg.Constants.SHARE_WISHLIST_MESSAGE
 
 	if _, err := s.clients.Telegram.Edit(
 		ctx,
@@ -55,16 +55,16 @@ func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) er
 func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 
-	listPrefix := s.constants.CMD_START + " " + s.constants.SHARED_LIST_ID_PREFIX
+	listPrefix := s.cfg.Constants.CMD_START + " " + s.cfg.Constants.SHARED_LIST_ID_PREFIX
 
 	wishlistId := strings.TrimPrefix(message.Text, listPrefix)
-	offset := s.constants.LIST_START_OFFSET
+	offset := s.cfg.Constants.LIST_START_OFFSET
 	if update.IsCallback() {
 		params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 		wishlistId = params.ID
 		offset, _ = strconv.Atoi(params.Offset)
 		if offset == 0 {
-			offset = s.constants.LIST_START_OFFSET
+			offset = s.cfg.Constants.LIST_START_OFFSET
 		}
 	}
 
@@ -77,7 +77,7 @@ func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Updat
 			"wl_id", wishlistId,
 			"chatId", message.GetChatIdStr(),
 		)
-		s.clients.Telegram.Reply(ctx, s.constants.FAILED_TO_LOAD_WISHES, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.FAILED_TO_LOAD_WISHES, update)
 		return err
 	}
 
@@ -91,7 +91,7 @@ func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Updat
 	// just send greeting
 	if s.cfg.IsProd() {
 		if wishes[0].UserId == strconv.Itoa(message.From.Id) {
-			s.clients.Telegram.Reply(ctx, s.constants.HELLO_AGAIN, update)
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.HELLO_AGAIN, update)
 			return nil
 		}
 	}
@@ -101,7 +101,7 @@ func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Updat
 	if name == "" {
 		name = userInfo.Result.User.FirstName
 	}
-	header := fmt.Sprintf(s.constants.WISHLIST_HEADER_TEMPLATE, "@"+name)
+	header := fmt.Sprintf(s.cfg.Constants.WISHLIST_HEADER_TEMPLATE, "@"+name)
 
 	count, err := s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: wishlistId})
 	if err != nil {
@@ -139,13 +139,13 @@ func (s *Service) buildSharedWishlistMarkup(wishes []*entities.Wish, totalEntiti
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsLine(
-		keyboard.NewButton(s.constants.BTN_REFRESH, s.builders.CallbackDataBuilder.Build(sourceId, s.constants.CMD_SHOW_SWL, strconv.Itoa(offset)).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_REFRESH, s.builders.CallbackDataBuilder.Build(sourceId, s.cfg.Constants.CMD_SHOW_SWL, strconv.Itoa(offset)).String()),
 	).Append(
 		s.BuildEntityButtons(wishes, offset, func(id string, offset int) string {
-			return s.builders.CallbackDataBuilder.Build(id, s.constants.CMD_SHOW_SWI, strconv.Itoa(offset)).String()
+			return s.builders.CallbackDataBuilder.Build(id, s.cfg.Constants.CMD_SHOW_SWI, strconv.Itoa(offset)).String()
 		}),
 	).Append(
-		s.pagination.BuildControls(totalEntities, s.constants.CMD_SHOW_SWL, sourceId, offset),
+		s.builders.PaginationBuilder.BuildControls(totalEntities, s.cfg.Constants.CMD_SHOW_SWL, sourceId, offset),
 	)
 
 	return keyboard
@@ -165,15 +165,15 @@ func (s *Service) buildSharedWishInfoKeyboard(
 
 	if wish.ExecutorId != "" {
 		if wish.ExecutorId == viewerId {
-			keyboard.AppendAsLine(keyboard.NewButton(s.constants.BTN_CANCEL_BOOKING, s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_TOGGLE_WISH_LOCK, offset).String()))
+			keyboard.AppendAsLine(keyboard.NewButton(s.cfg.Constants.BTN_CANCEL_BOOKING, s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_TOGGLE_WISH_LOCK, offset).String()))
 		}
 		// has executor but it's not viewer - not show lock button
 	} else {
-		keyboard.AppendAsLine(keyboard.NewButton(s.constants.BTN_BOOK_WISH, s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_TOGGLE_WISH_LOCK, offset).String()))
+		keyboard.AppendAsLine(keyboard.NewButton(s.cfg.Constants.BTN_BOOK_WISH, s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_TOGGLE_WISH_LOCK, offset).String()))
 	}
 
 	keyboard.AppendAsStack(
-		keyboard.NewButton(s.constants.BTN_BACK_TO_WISHLIST, s.builders.CallbackDataBuilder.Build(sourceId, s.constants.CMD_SHOW_SWL, offset).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_BACK_TO_WISHLIST, s.builders.CallbackDataBuilder.Build(sourceId, s.cfg.Constants.CMD_SHOW_SWL, offset).String()),
 	)
 
 	return keyboard

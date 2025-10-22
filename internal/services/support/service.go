@@ -6,8 +6,6 @@ import (
 	"github.com/meehighlov/grats/internal/builders"
 	"github.com/meehighlov/grats/internal/clients"
 	"github.com/meehighlov/grats/internal/config"
-	"github.com/meehighlov/grats/internal/constants"
-	"github.com/meehighlov/grats/internal/pagination"
 	"github.com/meehighlov/grats/internal/repositories"
 )
 
@@ -17,8 +15,6 @@ type Service struct {
 	repositories *repositories.Repositories
 	clients      *clients.Clients
 	builders     *builders.Builders
-	constants    *constants.Constants
-	pagination   *pagination.Pagination
 }
 
 func New(
@@ -27,8 +23,6 @@ func New(
 	repositories *repositories.Repositories,
 	clients *clients.Clients,
 	builders *builders.Builders,
-	constants *constants.Constants,
-	pagination *pagination.Pagination,
 ) *Service {
 	return &Service{
 		cfg:          cfg,
@@ -36,7 +30,5 @@ func New(
 		repositories: repositories,
 		clients:      clients,
 		builders:     builders,
-		constants:    constants,
-		pagination:   pagination,
 	}
 }

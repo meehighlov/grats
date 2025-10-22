@@ -14,11 +14,11 @@ func (s *Service) Support(ctx context.Context, update *telegram.Update) error {
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsStack(
-		keyboard.NewButton(s.constants.BTN_WRITE, s.builders.CallbackDataBuilder.Build("", s.constants.CMD_SUPPORT_WRITE, "").String()),
-		keyboard.NewButton(s.constants.BTN_CANCEL, s.builders.CallbackDataBuilder.Build("", s.constants.CMD_SUPPORT_CANCEL, "").String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_WRITE, s.builders.CallbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_WRITE, "").String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_CANCEL, s.builders.CallbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_CANCEL, "").String()),
 	)
 
-	if _, err := s.clients.Telegram.Reply(ctx, s.constants.SUPPORT_REQUEST_MESSAGE, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.SUPPORT_REQUEST_MESSAGE, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 
@@ -29,10 +29,10 @@ func (s *Service) SupportWrite(ctx context.Context, update *telegram.Update) err
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsStack(
-		keyboard.NewButton(s.constants.BTN_CANCEL, s.builders.CallbackDataBuilder.Build("", s.constants.CMD_SUPPORT_CANCEL, "").String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_CANCEL, s.builders.CallbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_CANCEL, "").String()),
 	)
 
-	if _, err := s.clients.Telegram.Edit(ctx, s.constants.SUPPORT_SEND_MESSAGE, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := s.clients.Telegram.Edit(ctx, s.cfg.Constants.SUPPORT_SEND_MESSAGE, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 
@@ -54,7 +54,7 @@ func (s *Service) SendSupportMessage(ctx context.Context, update *telegram.Updat
 	message := update.GetMessage()
 
 	if len(message.Text) > 2000 {
-		s.clients.Telegram.Reply(ctx, s.constants.SUPPORT_MESSAGE_TOO_LONG, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.SUPPORT_MESSAGE_TOO_LONG, update)
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func (s *Service) SendSupportMessage(ctx context.Context, update *telegram.Updat
 	}
 
 	supportMessage := fmt.Sprintf(
-		s.constants.SUPPORT_MESSAGE_TEMPLATE,
+		s.cfg.Constants.SUPPORT_MESSAGE_TEMPLATE,
 		message.GetChatIdStr(),
 		username,
 		strconv.Itoa(message.From.Id),
@@ -73,12 +73,12 @@ func (s *Service) SendSupportMessage(ctx context.Context, update *telegram.Updat
 
 	if _, err := s.clients.Telegram.SendMessage(ctx, s.cfg.SupportChatId, supportMessage); err != nil {
 		s.logger.Error("Failed to send support message", "error", err)
-		s.clients.Telegram.Reply(ctx, s.constants.ERROR_MESSAGE, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
 		return err
 	}
 
 	keyboard := s.buildBackToMenuKeyboard()
-	if _, err := s.clients.Telegram.Reply(ctx, s.constants.SUPPORT_MESSAGE_SENT, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.SUPPORT_MESSAGE_SENT, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 
@@ -107,7 +107,7 @@ func (s *Service) ProcessSupportReply(ctx context.Context, update *telegram.Upda
 		return nil
 	}
 
-	replyMessage := fmt.Sprintf(s.constants.SUPPORT_REPLY_TEMPLATE, message.Text)
+	replyMessage := fmt.Sprintf(s.cfg.Constants.SUPPORT_REPLY_TEMPLATE, message.Text)
 
 	if _, err := s.clients.Telegram.SendMessage(ctx, chatId, replyMessage); err != nil {
 		s.logger.Error("Failed to send reply to user", "error", err, "chatId", chatId)
@@ -120,7 +120,7 @@ func (s *Service) ProcessSupportReply(ctx context.Context, update *telegram.Upda
 }
 
 func (s *Service) parseChatIdFromMessage(text string) string {
-	chatIdPrefix := s.constants.SUPPORT_CHAT_ID_PREFIX
+	chatIdPrefix := s.cfg.Constants.SUPPORT_CHAT_ID_PREFIX
 	lines := strings.Split(text, "\n")
 	if len(lines) == 0 {
 		return ""

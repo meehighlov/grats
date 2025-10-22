@@ -21,7 +21,7 @@ func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
 	}
 
 	if len(wishes) == 0 {
-		if _, err := s.clients.Telegram.Reply(ctx, s.constants.WISH_WAS_DELETED, update); err != nil {
+		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_WAS_DELETED, update); err != nil {
 			return err
 		}
 		return nil
@@ -34,7 +34,7 @@ func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
 
 	viewerId := strconv.Itoa(update.CallbackQuery.From.Id)
 
-	if params.Command == s.constants.CMD_SHOW_SWI {
+	if params.Command == s.cfg.Constants.CMD_SHOW_SWI {
 		if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, telegram.WithReplyMurkup(s.buildSharedWishInfoKeyboard(wish, offset, sourceId, viewerId).Murkup())); err != nil {
 			return err
 		}
@@ -51,9 +51,9 @@ func (s *Service) buildWishInfoKeyboard(wish *entities.Wish, offset string) *inl
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsLine(
-		keyboard.NewButton(s.constants.BTN_EDIT_NAME, s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_EDIT_WISH_NAME, offset).String()),
-		keyboard.NewButton(s.constants.BTN_EDIT_LINK, s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_EDIT_LINK, offset).String()),
-		keyboard.NewButton(s.constants.BTN_EDIT_PRICE, s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_EDIT_PRICE, offset).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_EDIT_NAME, s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_EDIT_WISH_NAME, offset).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_EDIT_LINK, s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_EDIT_LINK, offset).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_EDIT_PRICE, s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_EDIT_PRICE, offset).String()),
 	)
 
 	if wish.Link != "" {
@@ -61,8 +61,8 @@ func (s *Service) buildWishInfoKeyboard(wish *entities.Wish, offset string) *inl
 	}
 
 	keyboard.AppendAsStack(
-		keyboard.NewButton(s.constants.BTN_DELETE, s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_DELETE_WISH, offset).String()),
-		keyboard.NewButton(s.constants.BTN_BACK_TO_WISHLIST, s.builders.CallbackDataBuilder.Build(wish.WishListId, s.constants.CMD_LIST, offset).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_DELETE, s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_DELETE_WISH, offset).String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_BACK_TO_WISHLIST, s.builders.CallbackDataBuilder.Build(wish.WishListId, s.cfg.Constants.CMD_LIST, offset).String()),
 	)
 
 	return keyboard
