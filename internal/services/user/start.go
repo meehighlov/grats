@@ -19,12 +19,12 @@ func (s *Service) Start(ctx context.Context, update *telegram.Update) error {
 	if username == "" {
 		username = message.From.FirstName
 		if username == "" {
-			username = s.constants.GREETING_FRIEND
+			username = s.cfg.Constants.GREETING_FRIEND
 		}
 	}
 
 	hello := fmt.Sprintf(
-		s.constants.GREETING_TEMPLATE,
+		s.cfg.Constants.GREETING_TEMPLATE,
 		username,
 	)
 

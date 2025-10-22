@@ -24,7 +24,7 @@ func (s *Server) HandleUpdate(ctx context.Context, update *telegram.Update) erro
 
 			chatId := update.GetChatIdStr()
 			if chatId != "" {
-				s.clients.Telegram.Reply(ctx, s.constants.ERROR_MESSAGE, update)
+				s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
 				return
 			}
 

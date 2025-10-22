@@ -6,11 +6,11 @@ import (
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 )
 
-func (p *Pagination) BuildControls(total int, command, chat_id string, offset int) *inlinekeyboard.Builder {
+func (p *Builder) BuildControls(total int, command, chat_id string, offset int) *inlinekeyboard.Builder {
 	limit := p.Limit
 	baseOffset := p.BaseOffset
-	callback_data_builder := p.builders.CallbackDataBuilder
-	keyboard := p.builders.KeyboardBuilder.NewKeyboard()
+	callback_data_builder := p.callbackDataBuilder
+	keyboard := p.keyboardBuilder.NewKeyboard()
 
 	if total <= limit {
 		return keyboard

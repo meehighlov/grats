@@ -45,13 +45,13 @@ func (s *Service) RegisterOrUpdateUser(ctx context.Context, update *telegram.Upd
 	if len(wishLists) == 0 {
 		wishList := entities.WishList{
 			BaseFields: bf,
-			Name:       s.constants.DEFAULT_WISHLIST_NAME,
+			Name:       s.cfg.Constants.DEFAULT_WISHLIST_NAME,
 			ChatId:     message.GetChatIdStr(),
 			UserId:     userId,
 		}
 		err = s.repositories.WishList.Save(ctx, &wishList)
 		if err != nil {
-			s.clients.Telegram.Reply(ctx, s.constants.WISHLIST_CREATION_ERROR, update)
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISHLIST_CREATION_ERROR, update)
 			return err
 		}
 	}

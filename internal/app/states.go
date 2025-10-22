@@ -7,7 +7,6 @@ import (
 	"github.com/meehighlov/grats/internal/clients"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
-	"github.com/meehighlov/grats/internal/constants"
 	"github.com/meehighlov/grats/internal/fsm"
 	"github.com/meehighlov/grats/internal/fsm/when"
 	"github.com/meehighlov/grats/internal/fsm/with"
@@ -17,10 +16,11 @@ import (
 func RegisterStates(
 	f *fsm.FSM,
 	o *orchestrators.Orchestrators,
-	c *constants.Constants,
 	cfg *config.Config,
 	clients *clients.Clients,
 ) {
+	c := cfg.Constants
+
 	resetUserCache := func(ctx context.Context, update *telegram.Update) error {
 		return clients.Cache.Reset(ctx, update.GetChatIdStr())
 	}

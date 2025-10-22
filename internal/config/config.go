@@ -52,6 +52,8 @@ type Config struct {
 	ChatCacheExpirationMinutes int `env:"CHAT_CACHE_EXPIRATION_MINUTES" env-default:"10"`
 
 	ListLimitLen int `env:"LIST_LIMIT_LEN" env-default:"5"`
+
+	Constants Constants
 }
 
 func (cfg *Config) AdminList() []string {

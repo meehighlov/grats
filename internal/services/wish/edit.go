@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Service) EditPrice(ctx context.Context, update *telegram.Update) error {
-	s.clients.Telegram.Reply(ctx, s.constants.ENTER_PRICE, update)
+	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_PRICE, update)
 
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
 
@@ -36,13 +36,13 @@ func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) er
 
 	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
 		return err
 	}
 
 	price, err := strconv.ParseFloat(message.Text, 64)
 	if err != nil || price <= 0 {
-		s.clients.Telegram.Reply(ctx, s.constants.PRICE_INVALID_FORMAT, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.PRICE_INVALID_FORMAT, update)
 		return errors.New("price is invalid format")
 	}
 
@@ -51,7 +51,7 @@ func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) er
 		return err
 	}
 
-	s.clients.Telegram.Reply(ctx, s.constants.PRICE_SET, update)
+	s.clients.Telegram.Reply(ctx, s.cfg.Constants.PRICE_SET, update)
 
 	return nil
 }
@@ -64,18 +64,18 @@ func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
 	}
 	if wish.Link != "" {
 		keyboard := s.builders.KeyboardBuilder.NewKeyboard()
-		btnCallback := s.builders.CallbackDataBuilder.Build(wish.ID, s.constants.CMD_DELETE_LINK, params.Offset)
+		btnCallback := s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_DELETE_LINK, params.Offset)
 		keyboard.AppendAsLine(
-			keyboard.NewButton(s.constants.BTN_DELETE_LINK, btnCallback.String()),
+			keyboard.NewButton(s.cfg.Constants.BTN_DELETE_LINK, btnCallback.String()),
 		)
 		s.clients.Telegram.Reply(
 			ctx,
-			s.constants.ENTER_LINK,
+			s.cfg.Constants.ENTER_LINK,
 			update,
 			telegram.WithReplyMurkup(keyboard.Murkup()),
 		)
 	} else {
-		s.clients.Telegram.Reply(ctx, s.constants.ENTER_LINK, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_LINK, update)
 	}
 
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
@@ -96,20 +96,20 @@ func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) err
 	wishId := params.ID
 
 	link := message.Text
-	if len(link) > s.constants.WISH_LINK_MAX_LEN {
-		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.constants.LINK_TOO_LONG_TEMPLATE, s.constants.WISH_LINK_MAX_LEN), update)
+	if len(link) > s.cfg.Constants.WISH_LINK_MAX_LEN {
+		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.cfg.Constants.LINK_TOO_LONG_TEMPLATE, s.cfg.Constants.WISH_LINK_MAX_LEN), update)
 		return errors.New("link is too long")
 	}
 
 	parsedURL, err := url.Parse(link)
 	if err != nil || parsedURL.Host == "" {
-		s.clients.Telegram.Reply(ctx, s.constants.LINK_INVALID_FORMAT, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.LINK_INVALID_FORMAT, update)
 		return errors.New("link is invalid format")
 	}
 
 	info, err := s.getCertificateInfo(link)
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.constants.LINK_UNTRUSTED_SITE, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.LINK_UNTRUSTED_SITE, update)
 		return errors.New("link is untrusted site")
 	}
 
@@ -117,7 +117,7 @@ func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) err
 
 	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
 	if len(wish) == 0 || err != nil {
-		s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
 		return err
 	}
 	wish[0].Link = link
@@ -130,7 +130,7 @@ func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) err
 	// delete message with link - it's too large
 	s.clients.Telegram.DeleteMessage(ctx, chatId, message.GetMessageIdStr())
 
-	s.clients.Telegram.Reply(ctx, s.constants.LINK_SET, update)
+	s.clients.Telegram.Reply(ctx, s.cfg.Constants.LINK_SET, update)
 
 	return nil
 }
@@ -148,13 +148,13 @@ func (s *Service) DeleteLink(ctx context.Context, update *telegram.Update) error
 		return err
 	}
 
-	s.clients.Telegram.Edit(ctx, s.constants.LINK_DELETED, update)
+	s.clients.Telegram.Edit(ctx, s.cfg.Constants.LINK_DELETED, update)
 
 	return nil
 }
 
 func (s *Service) EditWishName(ctx context.Context, update *telegram.Update) error {
-	s.clients.Telegram.Reply(ctx, s.constants.ENTER_NEW_WISH_NAME, update)
+	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_NEW_WISH_NAME, update)
 
 	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
 
@@ -175,7 +175,7 @@ func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update)
 
 	_, err = s.validateWishName(message.Text)
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_INVALID_CHARS, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NAME_INVALID_CHARS, update)
 		return errors.New("wish name contains invalid characters")
 	}
 
@@ -186,7 +186,7 @@ func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update)
 			"details", err.Error(),
 			"chatId", update.GetMessage().GetChatIdStr(),
 		)
-		s.clients.Telegram.Reply(ctx, s.constants.WISH_NOT_FOUND, update)
+		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
 		return err
 	}
 
@@ -196,13 +196,13 @@ func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update)
 		return err
 	}
 
-	s.clients.Telegram.Reply(ctx, s.constants.WISH_NAME_CHANGED, update)
+	s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NAME_CHANGED, update)
 
 	return nil
 }
 
 func (s *Service) getCertificateInfo(urlStr string) (*x509.Certificate, error) {
-	if !strings.HasPrefix(urlStr, s.constants.HTTPS_PREFIX) {
+	if !strings.HasPrefix(urlStr, s.cfg.Constants.HTTPS_PREFIX) {
 		return nil, fmt.Errorf("URL must begun with https://")
 	}
 
