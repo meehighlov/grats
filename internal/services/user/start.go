@@ -10,7 +10,7 @@ import (
 func (s *Service) Start(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 
-	err := s.RegisterOrUpdateUser(ctx, update)
+	err := s.common.RegisterOrUpdateUser(ctx, update)
 	if err != nil {
 		return err
 	}

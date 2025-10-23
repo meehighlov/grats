@@ -7,6 +7,7 @@ import (
 	"github.com/meehighlov/grats/internal/clients"
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/repositories"
+	"github.com/meehighlov/grats/internal/services/common"
 	"github.com/meehighlov/grats/internal/services/support"
 	"github.com/meehighlov/grats/internal/services/user"
 	"github.com/meehighlov/grats/internal/services/wish"
@@ -27,9 +28,10 @@ func New(
 	clients *clients.Clients,
 	builders *builders.Builders,
 ) *Services {
+	common := common.New(cfg, logger, repositories, clients, builders)
 	return &Services{
-		User:     user.New(cfg, logger, repositories, clients, builders),
-		Wish:     wish.New(cfg, logger, repositories, clients, builders),
+		User:     user.New(cfg, logger, repositories, clients, builders, common),
+		Wish:     wish.New(cfg, logger, repositories, clients, builders, common),
 		WishList: wishlist.New(cfg, logger, repositories, clients, builders),
 		Support:  support.New(cfg, logger, repositories, clients, builders),
 	}

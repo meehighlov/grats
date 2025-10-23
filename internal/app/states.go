@@ -7,17 +7,19 @@ import (
 	"github.com/meehighlov/grats/internal/clients"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
+	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/internal/fsm"
 	"github.com/meehighlov/grats/internal/fsm/when"
 	"github.com/meehighlov/grats/internal/fsm/with"
-	"github.com/meehighlov/grats/internal/orchestrators"
+	"github.com/meehighlov/grats/internal/services"
 )
 
 func RegisterStates(
 	f *fsm.FSM,
-	o *orchestrators.Orchestrators,
+	s *services.Services,
 	cfg *config.Config,
 	clients *clients.Clients,
+	t *db.Tx,
 ) {
 	c := cfg.Constants
 
@@ -28,142 +30,142 @@ func RegisterStates(
 	f.AddMiddleware(clients.Telegram.AnswerCallbackQuery)
 
 	f.Activate(
-		o.User.Start,
+		t.Wrap(s.User.Start),
 		when.Command(c.CMD_START),
 	)
 
 	// ------------------------ support --------------------------------
 
 	f.Activate(
-		o.Support.Support,
+		s.Support.Support,
 		when.Command(c.CMD_SUPPORT),
 	)
 
 	supportWrite := f.Activate(
-		o.Support.SupportWrite,
+		s.Support.SupportWrite,
 		when.CallbackDataContains(c.CMD_SUPPORT_WRITE),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Support.SendSupportMessage,
+		s.Support.SendSupportMessage,
 		when.MessageHasText(),
 		with.AcceptFrom(supportWrite),
 	)
 
 	f.Activate(
-		o.Support.CancelSupportCall,
+		s.Support.CancelSupportCall,
 		when.CallbackDataContains(c.CMD_SUPPORT_CANCEL),
 	)
 
 	f.Activate(
-		o.Support.ProcessSupportReply,
+		s.Support.ProcessSupportReply,
 		appconditions.SupportReplyCondition(cfg.SupportChatId),
 	)
 
 	// ------------------------ wishlist --------------------------------
 
 	addWish := f.Activate(
-		o.Wish.AddWish,
+		t.Wrap(s.Wish.AddWish),
 		when.CallbackDataContains(c.CMD_ADD_TO_WISH),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Wish.SaveWish,
+		t.Wrap(s.Wish.SaveWish),
 		when.MessageHasText(),
 		with.AcceptFrom(addWish),
 	)
 
 	f.Activate(
-		o.Wish.List,
+		t.Wrap(s.Wish.List),
 		when.Command(c.CMD_WISHLIST),
 	)
 
 	f.Activate(
-		o.Wish.List,
+		t.Wrap(s.Wish.List),
 		when.CallbackDataContains(c.CMD_LIST),
 	)
 
 	f.Activate(
-		o.Wish.WishInfo,
+		t.Wrap(s.Wish.WishInfo),
 		when.CallbackDataContains(c.CMD_WISH_INFO),
 	)
 
 	f.Activate(
-		o.Wish.DeleteWish,
+		t.Wrap(s.Wish.DeleteWish),
 		when.CallbackDataContains(c.CMD_DELETE_WISH),
 	)
 
 	f.Activate(
-		o.Wish.ConfirmDeleteWish,
+		t.Wrap(s.Wish.ConfirmDeleteWish),
 		when.CallbackDataContains(c.CMD_CONFIRM_DELETE_WISH),
 	)
 
 	editWishName := f.Activate(
-		o.Wish.EditWishName,
+		t.Wrap(s.Wish.EditWishName),
 		when.CallbackDataContains(c.CMD_EDIT_WISH_NAME),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Wish.SaveEditWishName,
+		t.Wrap(s.Wish.SaveEditWishName),
 		when.MessageHasText(),
 		with.AcceptFrom(editWishName),
 	)
 
 	editWishLink := f.Activate(
-		o.Wish.EditLink,
+		t.Wrap(s.Wish.EditLink),
 		when.CallbackDataContains(c.CMD_EDIT_LINK),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Wish.SaveEditLink,
+		t.Wrap(s.Wish.SaveEditLink),
 		when.MessageHasText(),
 		with.AcceptFrom(editWishLink),
 	)
 
 	editWishPrice := f.Activate(
-		o.Wish.EditPrice,
+		t.Wrap(s.Wish.EditPrice),
 		when.CallbackDataContains(c.CMD_EDIT_PRICE),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		o.Wish.SaveEditPrice,
+		t.Wrap(s.Wish.SaveEditPrice),
 		when.MessageHasText(),
 		with.AcceptFrom(editWishPrice),
 	)
 
 	f.Activate(
-		o.Wish.DeleteLink,
+		t.Wrap(s.Wish.DeleteLink),
 		when.CallbackDataContains(c.CMD_DELETE_LINK),
 		with.AcceptFrom(editWishLink),
 	)
 
 	f.Activate(
-		o.Wish.ShareWishList,
+		t.Wrap(s.Wish.ShareWishList),
 		when.CallbackDataContains(c.CMD_SHARE_WISH_LIST),
 	)
 
 	f.Activate(
-		o.Wish.ToggleWishLock,
+		t.Wrap(s.Wish.ToggleWishLock),
 		when.CallbackDataContains(c.CMD_TOGGLE_WISH_LOCK),
 	)
 
 	f.Activate(
-		o.Wish.ShowSharedWishlist,
+		t.Wrap(s.Wish.ShowSharedWishlist),
 		appconditions.ShowSharedListCondition(),
 	)
 
 	f.Activate(
-		o.Wish.WishInfo,
+		t.Wrap(s.Wish.WishInfo),
 		when.CallbackDataContains(c.CMD_SHOW_SWI),
 	)
 
 	f.Activate(
-		o.Wish.ShowSharedWishlist,
+		t.Wrap(s.Wish.ShowSharedWishlist),
 		when.CallbackDataContains(c.CMD_SHOW_SWL),
 	)
 
