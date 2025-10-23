@@ -53,6 +53,15 @@ func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) er
 }
 
 func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Update) error {
+	// case when called from /start or comes from link
+	isFromStartOption := !update.IsCallback()
+
+	if isFromStartOption {
+		if err := s.common.RegisterOrUpdateUser(ctx, update); err != nil {
+			return err
+		}
+	}
+
 	message := update.GetMessage()
 
 	listPrefix := s.cfg.Constants.CMD_START + " " + s.cfg.Constants.SHARED_LIST_ID_PREFIX
