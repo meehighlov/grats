@@ -17,17 +17,17 @@ import (
 func (s *Service) EditPrice(ctx context.Context, update *telegram.Update) error {
 	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_PRICE, update)
 
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
 
 	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
 
 	return nil
 }
 
 func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
-	texts, err := s.clients.Cache.GetTexts(ctx, update.GetChatIdStr())
+	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
 		return err
 	}
@@ -78,17 +78,17 @@ func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
 		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_LINK, update)
 	}
 
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
 
 	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
 
 	return nil
 }
 
 func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
-	texts, err := s.clients.Cache.GetTexts(ctx, update.GetChatIdStr())
+	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
 		return err
 	}
@@ -156,17 +156,17 @@ func (s *Service) DeleteLink(ctx context.Context, update *telegram.Update) error
 func (s *Service) EditWishName(ctx context.Context, update *telegram.Update) error {
 	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_NEW_WISH_NAME, update)
 
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
 
 	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
 
 	return nil
 }
 
 func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
-	texts, err := s.clients.Cache.GetTexts(ctx, update.GetChatIdStr())
+	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
 		return err
 	}

@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/meehighlov/grats/internal/builders"
-	"github.com/meehighlov/grats/internal/clients"
+	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
 )
 
 type Server struct {
 	logger        *slog.Logger
 	handleTimeout time.Duration
-	clients       *clients.Clients
+	telegram      *telegram.Client
 	builders      *builders.Builders
 	allowedUsers  []string
 	webServer     *http.Server
@@ -33,13 +33,12 @@ type Server struct {
 func New(
 	cfg *config.Config,
 	logger *slog.Logger,
-	clients *clients.Clients,
 	builders *builders.Builders,
+	telegram *telegram.Client,
 	updateHandler UpdateHandler,
 ) *Server {
 	return &Server{
 		logger:        logger,
-		clients:       clients,
 		builders:      builders,
 		handleTimeout: time.Duration(cfg.TelegramHandlerTimeoutSec) * time.Second,
 		allowedUsers:  cfg.AdminList(),

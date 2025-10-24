@@ -7,10 +7,11 @@ import (
 	"github.com/meehighlov/grats/internal/clients"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
-	"github.com/meehighlov/grats/internal/db"
 	"github.com/meehighlov/grats/internal/fsm"
 	"github.com/meehighlov/grats/internal/fsm/when"
 	"github.com/meehighlov/grats/internal/fsm/with"
+	"github.com/meehighlov/grats/internal/infra/postgres"
+	"github.com/meehighlov/grats/internal/repositories"
 	"github.com/meehighlov/grats/internal/services"
 )
 
@@ -19,12 +20,13 @@ func RegisterStates(
 	s *services.Services,
 	cfg *config.Config,
 	clients *clients.Clients,
-	t *db.Tx,
+	repositories *repositories.Repositories,
+	t *postgres.Tx,
 ) {
 	c := cfg.Constants
 
 	resetUserCache := func(ctx context.Context, update *telegram.Update) error {
-		return clients.Cache.Reset(ctx, update.GetChatIdStr())
+		return repositories.Cache.Reset(ctx, update.GetChatIdStr())
 	}
 
 	f.AddMiddleware(clients.Telegram.AnswerCallbackQuery)

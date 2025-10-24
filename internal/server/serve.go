@@ -92,11 +92,6 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Stop() error {
-	if err := s.clients.Close(); err != nil {
-		s.logger.Error("Error closing clients", "error", err)
-	} else {
-		s.logger.Info("Successfully closed all client connections")
-	}
 	if s.webServer != nil {
 		s.logger.Info("Stopping webhook server")
 
@@ -134,7 +129,7 @@ func (s *Server) Polling() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	updates := s.clients.Telegram.GetUpdatesChannel(ctx)
+	updates := s.telegram.GetUpdatesChannel(ctx)
 
 	s.logger.Info("Starting polling mode with worker pool", "workers", s.workerCount)
 
