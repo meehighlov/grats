@@ -9,25 +9,27 @@ import (
 )
 
 func (s *Service) DeleteWish(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *entities.Wish
+	)
+
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 
 	wishId := params.ID
 
-	baseFields := entities.BaseFields{ID: wishId}
-	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: baseFields})
-
+	err := s.tx.Atomic(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, wishId)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update); err != nil {
 			return err
 		}
 		return err
 	}
-
-	if len(wishes) == 0 {
-		return nil
-	}
-
-	wish := wishes[0]
 
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
@@ -52,23 +54,22 @@ func (s *Service) ConfirmDeleteWish(ctx context.Context, update *telegram.Update
 
 	wishId := params.ID
 
-	baseFields := entities.BaseFields{ID: wishId}
-	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: baseFields})
+	err := s.tx.Atomic(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, wishId)
 
-	if err != nil {
-		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update); err != nil {
+		if err != nil {
+			if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update); err != nil {
+				return err
+			}
 			return err
 		}
-		return err
-	}
 
-	if len(wishes) == 0 {
+		err = s.repositories.Wish.Delete(ctx, wish)
+		if err != nil {
+			return err
+		}
 		return nil
-	}
-
-	wish = wishes[0]
-
-	err = s.repositories.Wish.Delete(ctx, wish)
+	})
 	if err != nil {
 		return err
 	}

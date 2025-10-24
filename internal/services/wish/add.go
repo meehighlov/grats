@@ -18,14 +18,22 @@ func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
 	var (
 		wishListId string
 		userId     string
+		wishes     []*entities.Wish
 	)
 
 	userId = strconv.Itoa(update.GetMessage().From.Id)
 	wishListId = s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data).ID
 
-	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{UserId: userId})
+	err := s.tx.Atomic(ctx, func(ctx context.Context) error {
+		var err error
+		wishes, err = s.repositories.Wish.Filter(ctx, &entities.Wish{UserId: userId})
+		if err != nil {
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
 		return err
 	}
 
@@ -91,7 +99,9 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 		WishListId: wishListId,
 	}
 
-	err = s.repositories.Wish.Save(ctx, &wish)
+	err = s.tx.Atomic(ctx, func(ctx context.Context) error {
+		return s.repositories.Wish.Save(ctx, &wish)
+	})
 	if err != nil {
 		return err
 	}

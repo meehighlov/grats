@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 
 	"github.com/meehighlov/grats/internal/repositories/entities"
 	"gorm.io/gorm"
@@ -10,9 +9,9 @@ import (
 )
 
 func (r *Repository) Save(ctx context.Context, user *entities.User) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
 	db = db.Session(&gorm.Session{

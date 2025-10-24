@@ -8,6 +8,7 @@ import (
 	"github.com/meehighlov/grats/internal/clients"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
+	"github.com/meehighlov/grats/internal/infra/postgres"
 	"github.com/meehighlov/grats/internal/repositories"
 )
 
@@ -18,6 +19,7 @@ type Common interface {
 type Service struct {
 	common       Common
 	logger       *slog.Logger
+	tx           *postgres.Tx
 	repositories *repositories.Repositories
 	clients      *clients.Clients
 	builders     *builders.Builders
@@ -27,6 +29,7 @@ type Service struct {
 func New(
 	cfg *config.Config,
 	logger *slog.Logger,
+	tx *postgres.Tx,
 	repositories *repositories.Repositories,
 	clients *clients.Clients,
 	builders *builders.Builders,
@@ -35,6 +38,7 @@ func New(
 	return &Service{
 		common:       common,
 		logger:       logger,
+		tx:           tx,
 		repositories: repositories,
 		clients:      clients,
 		builders:     builders,

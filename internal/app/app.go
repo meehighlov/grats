@@ -17,17 +17,16 @@ func Run() {
 	logger := MustSetupLogging(cfg)
 
 	db := postgres.New(cfg, logger)
-	tx := postgres.TransactionWrapper(cfg, db)
 
 	redis := redis.New(cfg, logger)
 
 	repositories := repositories.New(cfg, logger, db, redis)
 	clients := clients.New(cfg, logger)
 	builders := builders.New(cfg, logger)
-	services := services.New(cfg, logger, repositories, clients, builders)
+	services := services.New(cfg, logger, repositories, clients, builders, db)
 
 	fsm := fsm.New(logger, repositories.State)
-	RegisterStates(fsm, services, cfg, clients, repositories, tx)
+	RegisterStates(fsm, services, cfg, clients, repositories, db)
 
 	server := server.New(cfg, logger, builders, clients.Telegram, fsm)
 	server.Serve()

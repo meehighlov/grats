@@ -12,9 +12,11 @@ import (
 
 func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 	var (
-		listId string
-		userId string
-		offset string = s.cfg.Constants.LIST_DEFAULT_OFFSET
+		listId   string
+		userId   string
+		offset   string = s.cfg.Constants.LIST_DEFAULT_OFFSET
+		entities []*entities.Wish
+		count    int64
 	)
 	userId = strconv.Itoa(update.GetMessage().From.Id)
 	if update.IsCallback() {
@@ -34,12 +36,19 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 		offset_ = s.cfg.Constants.LIST_START_OFFSET
 	}
 
-	entities, err := s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: listId, Limit: s.cfg.ListLimitLen, Offset: offset_})
-	if err != nil {
-		return err
-	}
+	err := s.tx.Atomic(ctx, func(ctx context.Context) (err error) {
+		entities, err = s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: listId, Limit: s.cfg.ListLimitLen, Offset: offset_})
+		if err != nil {
+			return err
+		}
 
-	count, err := s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: listId})
+		count, err = s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: listId})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
