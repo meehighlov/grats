@@ -10,24 +10,20 @@ import (
 )
 
 func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *entities.Wish
+	)
 	callbackQuery := update.CallbackQuery
 
 	params := s.builders.CallbackDataBuilder.FromString(callbackQuery.Data)
 
-	baseFields := entities.BaseFields{ID: params.ID}
-	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: baseFields})
+	err := s.tx.Atomic(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, params.ID)
+		return err
+	})
 	if err != nil {
 		return err
 	}
-
-	if len(wishes) == 0 {
-		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_WAS_DELETED, update); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	wish := wishes[0]
 
 	offset := params.Offset
 	sourceId := wish.WishListId

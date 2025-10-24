@@ -2,7 +2,6 @@ package wish
 
 import (
 	"context"
-	"errors"
 
 	"github.com/meehighlov/grats/internal/repositories/entities"
 	"gorm.io/gorm"
@@ -21,9 +20,9 @@ type CountFilter struct {
 }
 
 func (r *Repository) Filter(ctx context.Context, w *entities.Wish) ([]*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	var wishes []*entities.Wish
@@ -51,9 +50,9 @@ func (r *Repository) Filter(ctx context.Context, w *entities.Wish) ([]*entities.
 }
 
 func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	var wishes []*entities.Wish
@@ -78,9 +77,9 @@ func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*entities.
 }
 
 func (r *Repository) Count(ctx context.Context, filter *CountFilter) (int64, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return 0, errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return 0, err
 	}
 
 	var count int64
@@ -99,9 +98,9 @@ func (r *Repository) Count(ctx context.Context, filter *CountFilter) (int64, err
 }
 
 func (r *Repository) GetWithLock(ctx context.Context, w *entities.Wish) ([]*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	var wishes []*entities.Wish
@@ -120,9 +119,9 @@ func (r *Repository) GetWithLock(ctx context.Context, w *entities.Wish) ([]*enti
 }
 
 func (r *Repository) Get(ctx context.Context, wishId string) (*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	var wish entities.Wish
@@ -137,9 +136,9 @@ func (r *Repository) Get(ctx context.Context, wishId string) (*entities.Wish, er
 }
 
 func (r *Repository) Save(ctx context.Context, w *entities.Wish) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
 	db = db.Session(&gorm.Session{
@@ -162,9 +161,9 @@ func (r *Repository) Save(ctx context.Context, w *entities.Wish) error {
 }
 
 func (r *Repository) Delete(ctx context.Context, w *entities.Wish) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+	db, err := r.tx.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
 	db = db.Session(&gorm.Session{
