@@ -14,7 +14,8 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 		r := recover()
 		if r != nil {
 			critical := fmt.Errorf("recover from panic: %v", r)
-			err := f.stateStore.SetState(ctx, update.GetChatIdStr(), state.READY.String())
+			key := update.GetChatIdStr() + ":state"
+			err := f.stateStore.SetState(ctx, key, state.READY.String())
 			return errors.Join(critical, err)
 		}
 		return nil
@@ -26,7 +27,9 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 		}
 	}
 
-	currentStateId, err := f.stateStore.GetState(ctx, update.GetChatIdStr())
+	key := update.GetChatIdStr() + ":state"
+
+	currentStateId, err := f.stateStore.GetState(ctx, key)
 	if err != nil {
 		return err
 	}
@@ -52,7 +55,7 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 
 	cerr := f.stateStore.SetState(
 		ctx,
-		update.GetChatIdStr(),
+		key,
 		s.Done(err, currentStateId),
 	)
 
@@ -60,5 +63,6 @@ func (f *FSM) Handle(ctx context.Context, update *telegram.Update) error {
 }
 
 func (f *FSM) reset(ctx context.Context, update *telegram.Update) error {
-	return f.stateStore.SetState(ctx, update.GetChatIdStr(), state.READY.String())
+	key := update.GetChatIdStr() + ":state"
+	return f.stateStore.SetState(ctx, key, state.READY.String())
 }

@@ -42,8 +42,8 @@ func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
 	if _, err := s.clients.Telegram.Reply(ctx, msg, update); err != nil {
 		return err
 	}
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), wishListId)
-	s.clients.Cache.AppendText(ctx, update.GetChatIdStr(), userId)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), wishListId)
+	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), userId)
 
 	return nil
 }
@@ -51,7 +51,7 @@ func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
 func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 	userId := strconv.Itoa(message.From.Id)
-	texts, err := s.clients.Cache.GetTexts(ctx, update.GetChatIdStr())
+	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
 		return err
 	}

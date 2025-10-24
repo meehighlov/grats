@@ -40,7 +40,7 @@ func (s *Service) SupportWrite(ctx context.Context, update *telegram.Update) err
 }
 
 func (s *Service) CancelSupportCall(ctx context.Context, update *telegram.Update) error {
-	s.clients.Cache.Reset(ctx, update.GetChatIdStr())
+	s.repositories.Cache.Reset(ctx, update.GetChatIdStr())
 
 	if err := s.clients.Telegram.DeleteMessage(ctx, update.GetChatIdStr(), strconv.Itoa(update.CallbackQuery.Message.MessageId)); err != nil {
 		s.logger.Error("Failed to delete message", "error", err)
