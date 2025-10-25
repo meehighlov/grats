@@ -2,33 +2,31 @@ package wish_list
 
 import (
 	"context"
-	"errors"
 
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func (r *Repository) Filter(ctx context.Context, w *entities.WishList) ([]*entities.WishList, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
+type ListFilter struct {
+	WishListID string
+	UserId     string
+}
+
+func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*models.WishList, error) {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	var wishLists []*entities.WishList
-	query := db.Model(&entities.WishList{})
+	var wishLists []*models.WishList
+	query := db.WithContext(ctx).Model(&models.WishList{})
 
-	if w.UserId != "" {
-		query = query.Where("user_id = ?", w.UserId)
+	if filter.UserId != "" {
+		query = query.Where("user_id = ?", filter.UserId)
 	}
-	if w.Name != "" {
-		query = query.Where("name = ?", w.Name)
-	}
-	if w.ChatId != "" {
-		query = query.Where("chat_id = ?", w.ChatId)
-	}
-	if w.ID != "" {
-		query = query.Where("id = ?", w.ID)
+	if filter.WishListID != "" {
+		query = query.Where("id = ?", filter.WishListID)
 	}
 
 	if err := query.Find(&wishLists).Error; err != nil {
@@ -39,10 +37,10 @@ func (r *Repository) Filter(ctx context.Context, w *entities.WishList) ([]*entit
 	return wishLists, nil
 }
 
-func (r *Repository) Save(ctx context.Context, w *entities.WishList) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+func (r *Repository) Save(ctx context.Context, w *models.WishList) error {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
 	db = db.Session(&gorm.Session{
@@ -64,13 +62,13 @@ func (r *Repository) Save(ctx context.Context, w *entities.WishList) error {
 	return nil
 }
 
-func (r *Repository) Delete(ctx context.Context, w *entities.WishList) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+func (r *Repository) Delete(ctx context.Context, w *models.WishList) error {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
-	query := db.Model(&entities.WishList{})
+	query := db.Model(&models.WishList{})
 
 	if w.ID != "" {
 		query = query.Where("id = ?", w.ID)
@@ -85,7 +83,7 @@ func (r *Repository) Delete(ctx context.Context, w *entities.WishList) error {
 		query = query.Where("name = ?", w.Name)
 	}
 
-	result := query.Delete(&entities.WishList{})
+	result := query.Delete(&models.WishList{})
 	if result.Error != nil {
 		r.logger.Error("Error when trying to delete wishList: " + result.Error.Error())
 		return result.Error

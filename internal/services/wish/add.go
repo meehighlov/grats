@@ -11,21 +11,30 @@ import (
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
+	"github.com/meehighlov/grats/internal/repositories/wish"
 )
 
 func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
 	var (
 		wishListId string
 		userId     string
+		wishes     []*models.Wish
 	)
 
 	userId = strconv.Itoa(update.GetMessage().From.Id)
 	wishListId = s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data).ID
 
-	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{UserId: userId})
+	err := s.db.Tx(ctx, func(ctx context.Context) error {
+		var err error
+		wishes, err = s.repositories.Wish.List(ctx, &wish.ListFilter{UserId: userId})
+		if err != nil {
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
 		return err
 	}
 
@@ -78,12 +87,12 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 		return errors.New("wish name contains invalid characters")
 	}
 
-	bf, err := entities.NewBaseFields(false, s.cfg.Timezone)
+	bf, err := models.NewBaseFields(false, s.cfg.Timezone)
 	if err != nil {
 		return err
 	}
 
-	wish := entities.Wish{
+	wish := models.Wish{
 		BaseFields: bf,
 		Name:       validatedName,
 		ChatId:     message.GetChatIdStr(),
@@ -91,7 +100,9 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 		WishListId: wishListId,
 	}
 
-	err = s.repositories.Wish.Save(ctx, &wish)
+	err = s.db.Tx(ctx, func(ctx context.Context) error {
+		return s.repositories.Wish.Save(ctx, &wish)
+	})
 	if err != nil {
 		return err
 	}

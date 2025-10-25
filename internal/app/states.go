@@ -21,7 +21,7 @@ func RegisterStates(
 	cfg *config.Config,
 	clients *clients.Clients,
 	repositories *repositories.Repositories,
-	t *postgres.Tx,
+	db *postgres.DB,
 ) {
 	c := cfg.Constants
 
@@ -32,7 +32,7 @@ func RegisterStates(
 	f.AddMiddleware(clients.Telegram.AnswerCallbackQuery)
 
 	f.Activate(
-		t.Wrap(s.User.Start),
+		s.User.Start,
 		when.Command(c.CMD_START),
 	)
 
@@ -68,106 +68,106 @@ func RegisterStates(
 	// ------------------------ wishlist --------------------------------
 
 	addWish := f.Activate(
-		t.Wrap(s.Wish.AddWish),
+		s.Wish.AddWish,
 		when.CallbackDataContains(c.CMD_ADD_TO_WISH),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.SaveWish),
+		s.Wish.SaveWish,
 		when.MessageHasText(),
 		with.AcceptFrom(addWish),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.List),
+		s.Wish.List,
 		when.Command(c.CMD_WISHLIST),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.List),
+		s.Wish.List,
 		when.CallbackDataContains(c.CMD_LIST),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.WishInfo),
+		s.Wish.WishInfo,
 		when.CallbackDataContains(c.CMD_WISH_INFO),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.DeleteWish),
+		s.Wish.DeleteWish,
 		when.CallbackDataContains(c.CMD_DELETE_WISH),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.ConfirmDeleteWish),
+		s.Wish.ConfirmDeleteWish,
 		when.CallbackDataContains(c.CMD_CONFIRM_DELETE_WISH),
 	)
 
 	editWishName := f.Activate(
-		t.Wrap(s.Wish.EditWishName),
+		s.Wish.EditWishName,
 		when.CallbackDataContains(c.CMD_EDIT_WISH_NAME),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.SaveEditWishName),
+		s.Wish.SaveEditWishName,
 		when.MessageHasText(),
 		with.AcceptFrom(editWishName),
 	)
 
 	editWishLink := f.Activate(
-		t.Wrap(s.Wish.EditLink),
+		s.Wish.EditLink,
 		when.CallbackDataContains(c.CMD_EDIT_LINK),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.SaveEditLink),
+		s.Wish.SaveEditLink,
 		when.MessageHasText(),
 		with.AcceptFrom(editWishLink),
 	)
 
 	editWishPrice := f.Activate(
-		t.Wrap(s.Wish.EditPrice),
+		s.Wish.EditPrice,
 		when.CallbackDataContains(c.CMD_EDIT_PRICE),
 		with.BeforeAction(resetUserCache),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.SaveEditPrice),
+		s.Wish.SaveEditPrice,
 		when.MessageHasText(),
 		with.AcceptFrom(editWishPrice),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.DeleteLink),
+		s.Wish.DeleteLink,
 		when.CallbackDataContains(c.CMD_DELETE_LINK),
 		with.AcceptFrom(editWishLink),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.ShareWishList),
+		s.Wish.ShareWishList,
 		when.CallbackDataContains(c.CMD_SHARE_WISH_LIST),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.ToggleWishLock),
+		s.Wish.ToggleWishLock,
 		when.CallbackDataContains(c.CMD_TOGGLE_WISH_LOCK),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.ShowSharedWishlist),
+		s.Wish.ShowSharedWishlist,
 		appconditions.ShowSharedListCondition(),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.WishInfo),
+		s.Wish.WishInfo,
 		when.CallbackDataContains(c.CMD_SHOW_SWI),
 	)
 
 	f.Activate(
-		t.Wrap(s.Wish.ShowSharedWishlist),
+		s.Wish.ShowSharedWishlist,
 		when.CallbackDataContains(c.CMD_SHOW_SWL),
 	)
 

@@ -9,7 +9,7 @@ import (
 	"github.com/meehighlov/grats/internal/repositories"
 )
 
-type Service struct {
+type UserRegistration struct {
 	logger       *slog.Logger
 	repositories *repositories.Repositories
 	clients      *clients.Clients
@@ -23,8 +23,8 @@ func New(
 	repositories *repositories.Repositories,
 	clients *clients.Clients,
 	builders *builders.Builders,
-) *Service {
-	return &Service{
+) *UserRegistration {
+	return &UserRegistration{
 		logger:       logger,
 		repositories: repositories,
 		clients:      clients,

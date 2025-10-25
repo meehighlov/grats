@@ -6,28 +6,24 @@ import (
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 )
 
 func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *models.Wish
+	)
 	callbackQuery := update.CallbackQuery
 
 	params := s.builders.CallbackDataBuilder.FromString(callbackQuery.Data)
 
-	baseFields := entities.BaseFields{ID: params.ID}
-	wishes, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: baseFields})
+	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, params.ID)
+		return err
+	})
 	if err != nil {
 		return err
 	}
-
-	if len(wishes) == 0 {
-		if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_WAS_DELETED, update); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	wish := wishes[0]
 
 	offset := params.Offset
 	sourceId := wish.WishListId
@@ -47,7 +43,7 @@ func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
 	return nil
 }
 
-func (s *Service) buildWishInfoKeyboard(wish *entities.Wish, offset string) *inlinekeyboard.Builder {
+func (s *Service) buildWishInfoKeyboard(wish *models.Wish, offset string) *inlinekeyboard.Builder {
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsLine(

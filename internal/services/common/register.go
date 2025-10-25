@@ -5,20 +5,21 @@ import (
 	"strconv"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
+	"github.com/meehighlov/grats/internal/repositories/wish_list"
 )
 
-func (s *Service) RegisterOrUpdateUser(ctx context.Context, update *telegram.Update) error {
+func (u *UserRegistration) RegisterOrUpdateUser(ctx context.Context, update *telegram.Update) error {
 	message := update.GetMessage()
 
 	userId := strconv.Itoa(message.From.Id)
 
-	bf, err := entities.NewBaseFields(false, s.cfg.Timezone)
+	bf, err := models.NewBaseFields(false, u.cfg.Timezone)
 	if err != nil {
 		return err
 	}
 
-	user := entities.User{
+	user := models.User{
 		BaseFields: bf,
 		Name:       message.From.FirstName,
 		TgUsername: message.From.Username,
@@ -27,31 +28,31 @@ func (s *Service) RegisterOrUpdateUser(ctx context.Context, update *telegram.Upd
 		IsAdmin:    message.From.IsAdmin(),
 	}
 
-	err = s.repositories.User.Save(ctx, &user)
+	err = u.repositories.User.Save(ctx, &user)
 	if err != nil {
 		return err
 	}
 
-	wishLists, err := s.repositories.WishList.Filter(ctx, &entities.WishList{UserId: userId})
+	wishLists, err := u.repositories.WishList.List(ctx, &wish_list.ListFilter{UserId: userId})
 	if err != nil {
 		return err
 	}
 
-	bf, err = entities.NewBaseFields(true, s.cfg.Timezone)
+	bf, err = models.NewBaseFields(true, u.cfg.Timezone)
 	if err != nil {
 		return err
 	}
 
 	if len(wishLists) == 0 {
-		wishList := entities.WishList{
+		wishList := models.WishList{
 			BaseFields: bf,
-			Name:       s.cfg.Constants.DEFAULT_WISHLIST_NAME,
+			Name:       u.cfg.Constants.DEFAULT_WISHLIST_NAME,
 			ChatId:     message.GetChatIdStr(),
 			UserId:     userId,
 		}
-		err = s.repositories.WishList.Save(ctx, &wishList)
+		err = u.repositories.WishList.Save(ctx, &wishList)
 		if err != nil {
-			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISHLIST_CREATION_ERROR, update)
+			u.clients.Telegram.Reply(ctx, u.cfg.Constants.WISHLIST_CREATION_ERROR, update)
 			return err
 		}
 	}

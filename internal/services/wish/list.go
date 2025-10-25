@@ -6,7 +6,7 @@ import (
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish"
 )
 
@@ -15,6 +15,8 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 		listId string
 		userId string
 		offset string = s.cfg.Constants.LIST_DEFAULT_OFFSET
+		wishes []*models.Wish
+		count  int64
 	)
 	userId = strconv.Itoa(update.GetMessage().From.Id)
 	if update.IsCallback() {
@@ -34,12 +36,19 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 		offset_ = s.cfg.Constants.LIST_START_OFFSET
 	}
 
-	entities, err := s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: listId, Limit: s.cfg.ListLimitLen, Offset: offset_})
-	if err != nil {
-		return err
-	}
+	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wishes, err = s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: listId, Limit: s.cfg.ListLimitLen, Offset: offset_})
+		if err != nil {
+			return err
+		}
 
-	count, err := s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: listId})
+		count, err = s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: listId})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -47,18 +56,18 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 	if update.IsCallback() {
 		if _, err := s.clients.Telegram.Edit(
 			ctx,
-			s.buildListHeaderMessage(entities),
+			s.buildListHeaderMessage(wishes),
 			update,
-			telegram.WithReplyMurkup(s.buildListMarkup(int(count), entities, offset_, listId).Murkup()),
+			telegram.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
 		); err != nil {
 			return err
 		}
 	} else {
 		if _, err := s.clients.Telegram.Reply(
 			ctx,
-			s.buildListHeaderMessage(entities),
+			s.buildListHeaderMessage(wishes),
 			update,
-			telegram.WithReplyMurkup(s.buildListMarkup(int(count), entities, offset_, listId).Murkup()),
+			telegram.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
 		); err != nil {
 			return err
 		}
@@ -67,14 +76,14 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 	return nil
 }
 
-func (s *Service) buildListMarkup(totalEntities int, entities []*entities.Wish, offset int, listId string) *inlinekeyboard.Builder {
+func (s *Service) buildListMarkup(totalmodels int, models []*models.Wish, offset int, listId string) *inlinekeyboard.Builder {
 	callbackDataBuilder := func(id string, offset int) string {
 		return s.builders.CallbackDataBuilder.Build(id, s.cfg.Constants.CMD_WISH_INFO, strconv.Itoa(offset)).String()
 	}
-	entityListAsButtons := s.BuildEntityButtons(entities, offset, callbackDataBuilder)
+	entityListAsButtons := s.BuildEntityButtons(models, offset, callbackDataBuilder)
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
-	if len(entities) > 0 {
+	if len(models) > 0 {
 		keyboard.AppendAsLine(
 			s.builders.KeyboardBuilder.NewButton(s.cfg.Constants.BTN_ADD_WISH, s.builders.CallbackDataBuilder.Build(listId, s.cfg.Constants.CMD_ADD_TO_WISH, strconv.Itoa(offset)).String()),
 			s.builders.KeyboardBuilder.NewButton(s.cfg.Constants.BTN_SHARE_LIST, s.builders.CallbackDataBuilder.Build(listId, s.cfg.Constants.CMD_SHARE_WISH_LIST, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
@@ -85,12 +94,12 @@ func (s *Service) buildListMarkup(totalEntities int, entities []*entities.Wish, 
 		)
 	}
 
-	controls := s.builders.PaginationBuilder.BuildControls(totalEntities, s.cfg.Constants.CMD_LIST, listId, offset)
+	controls := s.builders.PaginationBuilder.BuildControls(totalmodels, s.cfg.Constants.CMD_LIST, listId, offset)
 
 	return keyboard.Append(entityListAsButtons).Append(controls)
 }
 
-func (s *Service) buildListHeaderMessage(wishes []*entities.Wish) string {
+func (s *Service) buildListHeaderMessage(wishes []*models.Wish) string {
 	if len(wishes) == 0 {
 		return s.cfg.Constants.WISHLIST_EMPTY
 	}
