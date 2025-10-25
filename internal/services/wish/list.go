@@ -12,31 +12,32 @@ import (
 
 func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 	var (
-		listId string
-		userId string
-		offset string = s.cfg.Constants.LIST_DEFAULT_OFFSET
-		wishes []*models.Wish
-		count  int64
+		listId  string
+		userId  string
+		offset  string = s.cfg.Constants.LIST_DEFAULT_OFFSET
+		wishes  []*models.Wish
+		count   int64
+		offset_ int
 	)
-	userId = strconv.Itoa(update.GetMessage().From.Id)
-	if update.IsCallback() {
-		callbackData := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
-		listId = callbackData.ID
-		offset = callbackData.Offset
-	} else {
-		l, err := s.PickFirstWishList(ctx, userId)
-		if err != nil {
-			return err
-		}
-		listId = l.ID
-	}
-
-	offset_, _ := strconv.Atoi(offset)
-	if offset_ == 0 {
-		offset_ = s.cfg.Constants.LIST_START_OFFSET
-	}
-
 	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		userId = strconv.Itoa(update.GetMessage().From.Id)
+		if update.IsCallback() {
+			callbackData := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+			listId = callbackData.ID
+			offset = callbackData.Offset
+		} else {
+			l, err := s.PickFirstWishList(ctx, userId)
+			if err != nil {
+				return err
+			}
+			listId = l.ID
+		}
+
+		offset_, _ := strconv.Atoi(offset)
+		if offset_ == 0 {
+			offset_ = s.cfg.Constants.LIST_START_OFFSET
+		}
+
 		wishes, err = s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: listId, Limit: s.cfg.ListLimitLen, Offset: offset_})
 		if err != nil {
 			return err

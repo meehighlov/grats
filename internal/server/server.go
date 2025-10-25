@@ -40,6 +40,7 @@ func New(
 	return &Server{
 		logger:        logger,
 		builders:      builders,
+		telegram:      telegram,
 		handleTimeout: time.Duration(cfg.TelegramHandlerTimeoutSec) * time.Second,
 		allowedUsers:  cfg.AdminList(),
 		cfg:           cfg,
