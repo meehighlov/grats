@@ -1,9 +1,9 @@
 package pagination
 
 import (
-	callbackdata "github.com/meehighlov/grats/internal/builders/callback_data"
-	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
-	"github.com/meehighlov/grats/internal/config"
+	callbackdata "github.com/meehighlov/grats/pkg/telegram/builders/callback_data"
+	inlinekeyboard "github.com/meehighlov/grats/pkg/telegram/builders/inline_keyboard"
+	"github.com/meehighlov/grats/pkg/telegram/config"
 )
 
 type Builder struct {
@@ -18,6 +18,6 @@ func New(cfg *config.Config, callbackDataBuilder *callbackdata.Builder, keyboard
 		callbackDataBuilder: callbackDataBuilder,
 		keyboardBuilder:     keyboardBuilder,
 		BaseOffset:          5,
-		Limit:               cfg.ListLimitLen,
+		Limit:               cfg.TelegramListLimitLen,
 	}
 }
