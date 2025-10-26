@@ -3,7 +3,7 @@ package pagination
 import (
 	"strconv"
 
-	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
+	inlinekeyboard "github.com/meehighlov/grats/pkg/telegram/builders/inline_keyboard"
 )
 
 func (p *Builder) BuildControls(total int, command, chat_id string, offset int) *inlinekeyboard.Builder {

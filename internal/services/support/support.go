@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
+	inlinekeyboard "github.com/meehighlov/grats/pkg/telegram/builders/inline_keyboard"
 	tgc "github.com/meehighlov/grats/pkg/telegram/client"
 	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )

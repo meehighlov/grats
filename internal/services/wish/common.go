@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish_list"
+	inlinekeyboard "github.com/meehighlov/grats/pkg/telegram/builders/inline_keyboard"
 )
 
 func (s *Service) PickFirstWishList(ctx context.Context, userId string) (*models.WishList, error) {

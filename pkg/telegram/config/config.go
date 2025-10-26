@@ -11,4 +11,5 @@ type Config struct {
 	TelegramUseTLS             bool   `env:"TELEGRAM_USE_TLS" env-default:"false"`
 	TelegramHandlerTimeoutSec  int    `env:"TELEGRAM_HANDLER_TIMEOUT_SEC" env-default:"2"`
 	TelegramPollingWorkers     int    `env:"TELEGRAM_POLLING_WORKERS" env-default:"10"`
+	TelegramListLimitLen       int    `env:"TELEGRAM_LIST_LIMIT_LEN" env-default:"5"`
 }

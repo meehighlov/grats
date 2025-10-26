@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish"
 	"github.com/meehighlov/grats/internal/repositories/wish_list"
+	inlinekeyboard "github.com/meehighlov/grats/pkg/telegram/builders/inline_keyboard"
 	tgc "github.com/meehighlov/grats/pkg/telegram/client"
 	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
