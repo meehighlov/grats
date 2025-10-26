@@ -8,16 +8,23 @@ import (
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish"
+	"github.com/meehighlov/grats/internal/repositories/wish_list"
 )
 
 func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) error {
+	var (
+		wishlist []*models.WishList
+	)
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
 
 	wishListId := params.ID
 
-	wishlist, err := s.repositories.WishList.Filter(ctx, &entities.WishList{BaseFields: entities.BaseFields{ID: wishListId}})
+	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wishlist, err = s.repositories.WishList.List(ctx, &wish_list.ListFilter{WishListID: wishListId})
+		return err
+	})
 	if err != nil {
 		return err
 	}
@@ -53,66 +60,69 @@ func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) er
 }
 
 func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Update) error {
-	// case when called from /start or comes from link
-	isFromStartOption := !update.IsCallback()
+	var (
+		wishes     []*models.Wish
+		count      int64
+		offset     int
+		wishlistId string
+		header     string
+	)
+	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		// case when called from /start or comes from link
+		isFromStartOption := !update.IsCallback()
 
-	if isFromStartOption {
-		if err := s.common.RegisterOrUpdateUser(ctx, update); err != nil {
+		if isFromStartOption {
+			if err := s.userRegistration.RegisterOrUpdateUser(ctx, update); err != nil {
+				return err
+			}
+		}
+
+		message := update.GetMessage()
+
+		listPrefix := s.cfg.Constants.CMD_START + " " + s.cfg.Constants.SHARED_LIST_ID_PREFIX
+
+		wishlistId = strings.TrimPrefix(message.Text, listPrefix)
+		offset = s.cfg.Constants.LIST_START_OFFSET
+		if update.IsCallback() {
+			params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+			wishlistId = params.ID
+			offset, _ = strconv.Atoi(params.Offset)
+			if offset == 0 {
+				offset = s.cfg.Constants.LIST_START_OFFSET
+			}
+		}
+
+		wishes, err = s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: wishlistId, Limit: s.cfg.ListLimitLen, Offset: offset})
+		if err != nil {
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.FAILED_TO_LOAD_WISHES, update)
 			return err
 		}
-	}
 
-	message := update.GetMessage()
-
-	listPrefix := s.cfg.Constants.CMD_START + " " + s.cfg.Constants.SHARED_LIST_ID_PREFIX
-
-	wishlistId := strings.TrimPrefix(message.Text, listPrefix)
-	offset := s.cfg.Constants.LIST_START_OFFSET
-	if update.IsCallback() {
-		params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
-		wishlistId = params.ID
-		offset, _ = strconv.Atoi(params.Offset)
-		if offset == 0 {
-			offset = s.cfg.Constants.LIST_START_OFFSET
-		}
-	}
-
-	wishes, err := s.repositories.Wish.List(ctx, &wish.ListFilter{WishListID: wishlistId, Limit: s.cfg.ListLimitLen, Offset: offset})
-	if err != nil {
-		s.logger.Error(
-			"StartHandler - Shared wishlist",
-			"error", "error getting wishes",
-			"details", err.Error(),
-			"wl_id", wishlistId,
-			"chatId", message.GetChatIdStr(),
-		)
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.FAILED_TO_LOAD_WISHES, update)
-		return err
-	}
-
-	if len(wishes) == 0 {
-		// TODO: update message when user list is empty
-		s.logger.Debug("Not found wishes to share")
-		return nil
-	}
-
-	// user used his own link
-	// just send greeting
-	if s.cfg.IsProd() {
-		if wishes[0].UserId == strconv.Itoa(message.From.Id) {
-			s.clients.Telegram.Reply(ctx, s.cfg.Constants.HELLO_AGAIN, update)
+		if len(wishes) == 0 {
+			// TODO: update message when user list is empty
+			s.logger.Debug("Not found wishes to share")
 			return nil
 		}
-	}
 
-	userInfo, _ := s.clients.Telegram.GetChatMember(ctx, wishes[0].UserId)
-	name := userInfo.Result.User.Username
-	if name == "" {
-		name = userInfo.Result.User.FirstName
-	}
-	header := fmt.Sprintf(s.cfg.Constants.WISHLIST_HEADER_TEMPLATE, "@"+name)
+		// user used his own link
+		// just send greeting
+		if s.cfg.IsProd() {
+			if wishes[0].UserId == strconv.Itoa(message.From.Id) {
+				s.clients.Telegram.Reply(ctx, s.cfg.Constants.HELLO_AGAIN, update)
+				return nil
+			}
+		}
 
-	count, err := s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: wishlistId})
+		userInfo, _ := s.clients.Telegram.GetChatMember(ctx, wishes[0].UserId)
+		name := userInfo.Result.User.Username
+		if name == "" {
+			name = userInfo.Result.User.FirstName
+		}
+		header = fmt.Sprintf(s.cfg.Constants.WISHLIST_HEADER_TEMPLATE, "@"+name)
+
+		count, err = s.repositories.Wish.Count(ctx, &wish.CountFilter{WishListID: wishlistId})
+		return err
+	})
 	if err != nil {
 		return err
 	}
@@ -144,7 +154,7 @@ func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Updat
 	return nil
 }
 
-func (s *Service) buildSharedWishlistMarkup(wishes []*entities.Wish, totalEntities int, offset int, sourceId string) *inlinekeyboard.Builder {
+func (s *Service) buildSharedWishlistMarkup(wishes []*models.Wish, totalmodels int, offset int, sourceId string) *inlinekeyboard.Builder {
 	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
 
 	keyboard.AppendAsLine(
@@ -154,14 +164,14 @@ func (s *Service) buildSharedWishlistMarkup(wishes []*entities.Wish, totalEntiti
 			return s.builders.CallbackDataBuilder.Build(id, s.cfg.Constants.CMD_SHOW_SWI, strconv.Itoa(offset)).String()
 		}),
 	).Append(
-		s.builders.PaginationBuilder.BuildControls(totalEntities, s.cfg.Constants.CMD_SHOW_SWL, sourceId, offset),
+		s.builders.PaginationBuilder.BuildControls(totalmodels, s.cfg.Constants.CMD_SHOW_SWL, sourceId, offset),
 	)
 
 	return keyboard
 }
 
 func (s *Service) buildSharedWishInfoKeyboard(
-	wish *entities.Wish,
+	wish *models.Wish,
 	offset,
 	sourceId string,
 	viewerId string,

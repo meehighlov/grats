@@ -1,4 +1,4 @@
-package entities
+package models
 
 type ChatContext struct {
 	ChatId        string   `json:"chatId"`
