@@ -33,8 +33,8 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 			listId = l.ID
 		}
 
-		offset_, _ := strconv.Atoi(offset)
-		if offset_ == 0 {
+		offset_, err = strconv.Atoi(offset)
+		if err != nil || offset_ == 0 {
 			offset_ = s.cfg.Constants.LIST_START_OFFSET
 		}
 
