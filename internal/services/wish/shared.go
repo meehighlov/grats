@@ -7,13 +7,14 @@ import (
 	"strings"
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish"
 	"github.com/meehighlov/grats/internal/repositories/wish_list"
+	tgc "github.com/meehighlov/grats/pkg/telegram/client"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ShareWishList(ctx context.Context, update *tgm.Update) error {
 	var (
 		wishlist []*models.WishList
 	)
@@ -51,7 +52,7 @@ func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) er
 		ctx,
 		shareMessage,
 		update,
-		telegram.WithReplyMurkup(keyboard.Murkup()),
+		tgc.WithReplyMurkup(keyboard.Murkup()),
 	); err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func (s *Service) ShareWishList(ctx context.Context, update *telegram.Update) er
 	return nil
 }
 
-func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ShowSharedWishlist(ctx context.Context, update *tgm.Update) error {
 	var (
 		wishes     []*models.Wish
 		count      int64
@@ -134,7 +135,7 @@ func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Updat
 			ctx,
 			header,
 			update,
-			telegram.WithReplyMurkup(keyboard.Murkup()),
+			tgc.WithReplyMurkup(keyboard.Murkup()),
 		); err != nil {
 			return err
 		}
@@ -146,7 +147,7 @@ func (s *Service) ShowSharedWishlist(ctx context.Context, update *telegram.Updat
 		ctx,
 		header,
 		update,
-		telegram.WithReplyMurkup(keyboard.Murkup()),
+		tgc.WithReplyMurkup(keyboard.Murkup()),
 	); err != nil {
 		return err
 	}

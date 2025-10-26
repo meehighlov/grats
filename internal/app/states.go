@@ -5,18 +5,18 @@ import (
 
 	appconditions "github.com/meehighlov/grats/internal/app/conditions"
 	"github.com/meehighlov/grats/internal/clients"
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/config"
-	"github.com/meehighlov/grats/internal/fsm"
-	"github.com/meehighlov/grats/internal/fsm/when"
-	"github.com/meehighlov/grats/internal/fsm/with"
 	"github.com/meehighlov/grats/internal/infra/postgres"
 	"github.com/meehighlov/grats/internal/repositories"
 	"github.com/meehighlov/grats/internal/services"
+	tfsm "github.com/meehighlov/grats/pkg/telegram/fsm"
+	"github.com/meehighlov/grats/pkg/telegram/fsm/when"
+	"github.com/meehighlov/grats/pkg/telegram/fsm/with"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
 func RegisterStates(
-	f *fsm.FSM,
+	f *tfsm.FSM,
 	s *services.Services,
 	cfg *config.Config,
 	clients *clients.Clients,
@@ -25,7 +25,7 @@ func RegisterStates(
 ) {
 	c := cfg.Constants
 
-	resetUserCache := func(ctx context.Context, update *telegram.Update) error {
+	resetUserCache := func(ctx context.Context, update *tgm.Update) error {
 		return repositories.Cache.Reset(ctx, update.GetChatIdStr())
 	}
 

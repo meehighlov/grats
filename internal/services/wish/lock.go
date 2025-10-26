@@ -4,11 +4,12 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
+	tgc "github.com/meehighlov/grats/pkg/telegram/client"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) ToggleWishLock(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ToggleWishLock(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -80,9 +81,9 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *telegram.Update) e
 	)
 }
 
-func (s *Service) refreshWishInfo(ctx context.Context, update *telegram.Update, wish *models.Wish, offset string, wishListId string, viewerId string) error {
+func (s *Service) refreshWishInfo(ctx context.Context, update *tgm.Update, wish *models.Wish, offset string, wishListId string, viewerId string) error {
 	keyboard := s.buildSharedWishInfoKeyboard(wish, offset, wishListId, viewerId)
-	if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 	return nil

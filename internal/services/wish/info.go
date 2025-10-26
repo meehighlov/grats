@@ -5,11 +5,12 @@ import (
 	"strconv"
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
+	tgc "github.com/meehighlov/grats/pkg/telegram/client"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
+func (s *Service) WishInfo(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -31,11 +32,11 @@ func (s *Service) WishInfo(ctx context.Context, update *telegram.Update) error {
 	viewerId := strconv.Itoa(update.CallbackQuery.From.Id)
 
 	if params.Command == s.cfg.Constants.CMD_SHOW_SWI {
-		if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, telegram.WithReplyMurkup(s.buildSharedWishInfoKeyboard(wish, offset, sourceId, viewerId).Murkup())); err != nil {
+		if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, tgc.WithReplyMurkup(s.buildSharedWishInfoKeyboard(wish, offset, sourceId, viewerId).Murkup())); err != nil {
 			return err
 		}
 	} else {
-		if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, telegram.WithReplyMurkup(s.buildWishInfoKeyboard(wish, offset).Murkup())); err != nil {
+		if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, tgc.WithReplyMurkup(s.buildWishInfoKeyboard(wish, offset).Murkup())); err != nil {
 			return err
 		}
 	}

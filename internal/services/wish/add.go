@@ -10,12 +10,13 @@ import (
 	"strings"
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish"
+	tgc "github.com/meehighlov/grats/pkg/telegram/client"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
+func (s *Service) AddWish(ctx context.Context, update *tgm.Update) error {
 	var (
 		wishListId string
 		userId     string
@@ -57,7 +58,7 @@ func (s *Service) AddWish(ctx context.Context, update *telegram.Update) error {
 	return nil
 }
 
-func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SaveWish(ctx context.Context, update *tgm.Update) error {
 	message := update.GetMessage()
 	userId := strconv.Itoa(message.From.Id)
 	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
@@ -109,7 +110,7 @@ func (s *Service) SaveWish(ctx context.Context, update *telegram.Update) error {
 
 	msg := s.cfg.Constants.WISH_ADDED
 
-	if _, err := s.clients.Telegram.Reply(ctx, msg, update, telegram.WithReplyMurkup(s.buildWishNavigationMarkup(wish.ID, wishListId).Murkup())); err != nil {
+	if _, err := s.clients.Telegram.Reply(ctx, msg, update, tgc.WithReplyMurkup(s.buildWishNavigationMarkup(wish.ID, wishListId).Murkup())); err != nil {
 		return err
 	}
 

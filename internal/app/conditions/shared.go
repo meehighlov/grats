@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
+	"github.com/meehighlov/grats/pkg/telegram/models"
 )
 
 type SharedCondition struct{}
@@ -13,7 +13,7 @@ func ShowSharedListCondition() *SharedCondition {
 	return &SharedCondition{}
 }
 
-func (c *SharedCondition) Check(ctx context.Context, update *telegram.Update) (bool, error) {
+func (c *SharedCondition) Check(ctx context.Context, update *models.Update) (bool, error) {
 	command := update.GetMessage().GetCommand()
 
 	if strings.HasPrefix(command, "/start") {

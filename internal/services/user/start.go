@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
+	"github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) Start(ctx context.Context, update *telegram.Update) error {
+func (s *Service) Start(ctx context.Context, update *models.Update) error {
 	message := update.GetMessage()
 
 	err := s.db.Tx(ctx, func(ctx context.Context) error {
