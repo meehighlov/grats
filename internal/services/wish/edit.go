@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/meehighlov/grats/internal/clients/clients/telegram"
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 )
 
 func (s *Service) EditPrice(ctx context.Context, update *telegram.Update) error {
@@ -26,6 +26,9 @@ func (s *Service) EditPrice(ctx context.Context, update *telegram.Update) error 
 }
 
 func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *models.Wish
+	)
 	message := update.GetMessage()
 	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
@@ -34,20 +37,23 @@ func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) er
 	params := s.builders.CallbackDataBuilder.FromString(texts[0])
 	wishId := params.ID
 
-	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
+	err = s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, wishId)
+		if err != nil {
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
+			return err
+		}
+
+		price, err := strconv.ParseFloat(message.Text, 64)
+		if err != nil || price <= 0 {
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.PRICE_INVALID_FORMAT, update)
+			return errors.New("price is invalid format")
+		}
+
+		wish.Price = message.Text
+		return s.repositories.Wish.Save(ctx, wish)
+	})
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
-		return err
-	}
-
-	price, err := strconv.ParseFloat(message.Text, 64)
-	if err != nil || price <= 0 {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.PRICE_INVALID_FORMAT, update)
-		return errors.New("price is invalid format")
-	}
-
-	wish[0].Price = message.Text
-	if err := s.repositories.Wish.Save(ctx, wish[0]); err != nil {
 		return err
 	}
 
@@ -57,8 +63,14 @@ func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) er
 }
 
 func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *models.Wish
+	)
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
-	wish, err := s.repositories.Wish.Get(ctx, params.ID)
+	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, params.ID)
+		return err
+	})
 	if err != nil {
 		return err
 	}
@@ -87,6 +99,9 @@ func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
 }
 
 func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *models.Wish
+	)
 	message := update.GetMessage()
 	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
@@ -115,13 +130,16 @@ func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) err
 
 	s.logger.Debug("certificate check", "info", info)
 
-	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
-	if len(wish) == 0 || err != nil {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
-		return err
-	}
-	wish[0].Link = link
-	if err := s.repositories.Wish.Save(ctx, wish[0]); err != nil {
+	err = s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, wishId)
+		if err != nil {
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
+			return err
+		}
+		wish.Link = link
+		return s.repositories.Wish.Save(ctx, wish)
+	})
+	if err != nil {
 		return err
 	}
 
@@ -136,14 +154,18 @@ func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) err
 }
 
 func (s *Service) DeleteLink(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *models.Wish
+	)
 	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
-	wish, err := s.repositories.Wish.Get(ctx, params.ID)
-	if err != nil {
-		return err
-	}
-	wish.Link = ""
-
-	err = s.repositories.Wish.Save(ctx, wish)
+	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, params.ID)
+		if err != nil {
+			return err
+		}
+		wish.Link = ""
+		return s.repositories.Wish.Save(ctx, wish)
+	})
 	if err != nil {
 		return err
 	}
@@ -165,6 +187,9 @@ func (s *Service) EditWishName(ctx context.Context, update *telegram.Update) err
 }
 
 func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update) error {
+	var (
+		wish *models.Wish
+	)
 	message := update.GetMessage()
 	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
 	if err != nil {
@@ -179,19 +204,16 @@ func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update)
 		return errors.New("wish name contains invalid characters")
 	}
 
-	wish, err := s.repositories.Wish.Filter(ctx, &entities.Wish{BaseFields: entities.BaseFields{ID: wishId}})
-	if err != nil {
-		s.logger.Error(
-			"SaveEditWishName",
-			"details", err.Error(),
-			"chatId", update.GetMessage().GetChatIdStr(),
-		)
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
-		return err
-	}
+	err = s.db.Tx(ctx, func(ctx context.Context) (err error) {
+		wish, err = s.repositories.Wish.Get(ctx, wishId)
+		if err != nil {
+			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
+			return err
+		}
 
-	wish[0].Name = message.Text
-	err = s.repositories.Wish.Save(ctx, wish[0])
+		wish.Name = message.Text
+		return s.repositories.Wish.Save(ctx, wish)
+	})
 	if err != nil {
 		return err
 	}

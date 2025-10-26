@@ -2,9 +2,8 @@ package wish
 
 import (
 	"context"
-	"errors"
 
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -14,50 +13,21 @@ type ListFilter struct {
 	Offset     int
 	ChatID     string
 	WishListID string
+	UserId     string
 }
 
 type CountFilter struct {
 	WishListID string
 }
 
-func (r *Repository) Filter(ctx context.Context, w *entities.Wish) ([]*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
-	}
-
-	var wishes []*entities.Wish
-	query := db.Model(&entities.Wish{})
-
-	if w.UserId != "" {
-		query = query.Where("user_id = ?", w.UserId)
-	}
-	if w.ID != "" {
-		query = query.Where("id = ?", w.ID)
-	}
-	if w.ChatId != "" {
-		query = query.Where("chat_id = ?", w.ChatId)
-	}
-	if w.WishListId != "" {
-		query = query.Where("wish_list_id = ?", w.WishListId)
-	}
-
-	if err := query.Find(&wishes).Error; err != nil {
-		r.logger.Error("Error when filtering wishes: " + err.Error())
+func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*models.Wish, error) {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	return wishes, nil
-}
-
-func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
-	}
-
-	var wishes []*entities.Wish
-	query := db.Model(&entities.Wish{})
+	var wishes []*models.Wish
+	query := db.Model(&models.Wish{})
 	if filter.Limit != 0 {
 		query = query.Limit(filter.Limit)
 	}
@@ -66,6 +36,9 @@ func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*entities.
 	}
 	if filter.WishListID != "" {
 		query = query.Where("wish_list_id = ?", filter.WishListID)
+	}
+	if filter.UserId != "" {
+		query = query.Where("user_id = ?", filter.UserId)
 	}
 	query = query.Order("executor_id DESC")
 
@@ -78,13 +51,13 @@ func (r *Repository) List(ctx context.Context, filter *ListFilter) ([]*entities.
 }
 
 func (r *Repository) Count(ctx context.Context, filter *CountFilter) (int64, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return 0, errors.New("not found transaction in context")
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return 0, err
 	}
 
 	var count int64
-	query := db.Model(&entities.Wish{})
+	query := db.Model(&models.Wish{})
 
 	if filter.WishListID != "" {
 		query = query.Where("wish_list_id = ?", filter.WishListID)
@@ -98,14 +71,14 @@ func (r *Repository) Count(ctx context.Context, filter *CountFilter) (int64, err
 	return count, nil
 }
 
-func (r *Repository) GetWithLock(ctx context.Context, w *entities.Wish) ([]*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
+func (r *Repository) GetWithLock(ctx context.Context, w *models.Wish) ([]*models.Wish, error) {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	var wishes []*entities.Wish
-	query := db.Model(&entities.Wish{}).Clauses(clause.Locking{Strength: "UPDATE"})
+	var wishes []*models.Wish
+	query := db.Model(&models.Wish{}).Clauses(clause.Locking{Strength: "UPDATE"})
 
 	if w.ID != "" {
 		query = query.Where("id = ?", w.ID)
@@ -119,14 +92,14 @@ func (r *Repository) GetWithLock(ctx context.Context, w *entities.Wish) ([]*enti
 	return wishes, nil
 }
 
-func (r *Repository) Get(ctx context.Context, wishId string) (*entities.Wish, error) {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return nil, errors.New("not found transaction in context")
+func (r *Repository) Get(ctx context.Context, wishId string) (*models.Wish, error) {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	var wish entities.Wish
-	query := db.Model(&entities.Wish{}).Where("id = ?", wishId)
+	var wish models.Wish
+	query := db.Model(&models.Wish{}).Where("id = ?", wishId)
 
 	if err := query.First(&wish).Error; err != nil {
 		r.logger.Error("Error when getting wish: " + err.Error())
@@ -136,10 +109,10 @@ func (r *Repository) Get(ctx context.Context, wishId string) (*entities.Wish, er
 	return &wish, nil
 }
 
-func (r *Repository) Save(ctx context.Context, w *entities.Wish) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+func (r *Repository) Save(ctx context.Context, w *models.Wish) error {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
 	db = db.Session(&gorm.Session{
@@ -161,17 +134,17 @@ func (r *Repository) Save(ctx context.Context, w *entities.Wish) error {
 	return nil
 }
 
-func (r *Repository) Delete(ctx context.Context, w *entities.Wish) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+func (r *Repository) Delete(ctx context.Context, w *models.Wish) error {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
 	db = db.Session(&gorm.Session{
 		SkipHooks: true,
 	})
 
-	query := db.Model(&entities.Wish{})
+	query := db.Model(&models.Wish{})
 
 	if w.ID != "" {
 		query = query.Where("id = ?", w.ID)
@@ -186,7 +159,7 @@ func (r *Repository) Delete(ctx context.Context, w *entities.Wish) error {
 		query = query.Where("wish_list_id = ?", w.WishListId)
 	}
 
-	result := query.Delete(&entities.Wish{})
+	result := query.Delete(&models.Wish{})
 	if result.Error != nil {
 		r.logger.Error("Error when trying to delete wish: " + result.Error.Error())
 		return result.Error

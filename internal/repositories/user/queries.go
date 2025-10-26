@@ -2,17 +2,16 @@ package user
 
 import (
 	"context"
-	"errors"
 
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func (r *Repository) Save(ctx context.Context, user *entities.User) error {
-	db, ok := ctx.Value(r.cfg.TxKey).(*gorm.DB)
-	if !ok {
-		return errors.New("not found transaction in context")
+func (r *Repository) Save(ctx context.Context, user *models.User) error {
+	db, err := r.db.GetTx(ctx)
+	if err != nil {
+		return err
 	}
 
 	db = db.Session(&gorm.Session{

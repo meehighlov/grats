@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
 )
 
 func (r *Repository) GetState(ctx context.Context, key string) (string, error) {
@@ -24,18 +24,18 @@ func (r *Repository) SetState(ctx context.Context, key, value string) error {
 	return r.saveState(ctx, state)
 }
 
-func newState(key string) *entities.State {
-	return &entities.State{
-		Key:    key,
-		State:  "",
+func newState(key string) *models.State {
+	return &models.State{
+		Key:   key,
+		State: "",
 	}
 }
 
-func (r *Repository) createState(ctx context.Context, key string) (*entities.State, error) {
+func (r *Repository) createState(ctx context.Context, key string) (*models.State, error) {
 	val, err := r.redis.Redis.Get(ctx, key).Result()
 
 	if err == nil {
-		var state entities.State
+		var state models.State
 		if err := json.Unmarshal([]byte(val), &state); err == nil {
 			return &state, nil
 		}
@@ -47,13 +47,13 @@ func (r *Repository) createState(ctx context.Context, key string) (*entities.Sta
 	cmd := r.redis.Redis.Set(ctx, key, jsonState, r.redis.CacheExpiration)
 	_, err = cmd.Result()
 	if err != nil {
-		return &entities.State{}, err
+		return &models.State{}, err
 	}
 
 	return newState, nil
 }
 
-func (r *Repository) saveState(ctx context.Context, state *entities.State) error {
+func (r *Repository) saveState(ctx context.Context, state *models.State) error {
 	jsonState, err := json.Marshal(state)
 	if err != nil {
 		return err

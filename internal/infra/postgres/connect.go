@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-func New(cfg *config.Config, logger *slog.Logger) *gorm.DB {
+func New(cfg *config.Config, logger *slog.Logger) *DB {
 	db, err := gorm.Open(postgres.Open(cfg.PGDSN), &gorm.Config{
 		Logger: WrapAppLogger(logger),
 		NamingStrategy: schema.NamingStrategy{
@@ -57,5 +57,5 @@ func New(cfg *config.Config, logger *slog.Logger) *gorm.DB {
 		}
 	}()
 
-	return db
+	return TransactionWrapper(cfg, db)
 }

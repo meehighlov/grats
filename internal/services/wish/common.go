@@ -5,12 +5,13 @@ import (
 	"errors"
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
-	"github.com/meehighlov/grats/internal/repositories/entities"
+	"github.com/meehighlov/grats/internal/repositories/models"
+	"github.com/meehighlov/grats/internal/repositories/wish_list"
 )
 
-func (s *Service) PickFirstWishList(ctx context.Context, userId string) (*entities.WishList, error) {
-	filter := entities.WishList{UserId: userId}
-	wishList, err := s.repositories.WishList.Filter(ctx, &filter)
+func (s *Service) PickFirstWishList(ctx context.Context, userId string) (*models.WishList, error) {
+	filter := wish_list.ListFilter{UserId: userId}
+	wishList, err := s.repositories.WishList.List(ctx, &filter)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +23,7 @@ func (s *Service) PickFirstWishList(ctx context.Context, userId string) (*entiti
 	return wishList[0], nil
 }
 
-func (s *Service) BuildEntityButtons(wishes []*entities.Wish, offset int, callback func(id string, offset int) string) *inlinekeyboard.Builder {
+func (s *Service) BuildEntityButtons(wishes []*models.Wish, offset int, callback func(id string, offset int) string) *inlinekeyboard.Builder {
 	buttons := s.builders.KeyboardBuilder.NewKeyboard()
 	for _, entity := range wishes {
 		buttonText := entity.ButtonText()
