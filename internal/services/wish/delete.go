@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
+	tgc "github.com/meehighlov/grats/pkg/telegram/client"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) DeleteWish(ctx context.Context, update *telegram.Update) error {
+func (s *Service) DeleteWish(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -38,14 +39,14 @@ func (s *Service) DeleteWish(ctx context.Context, update *telegram.Update) error
 		keyboard.NewButton(s.cfg.Constants.BTN_DELETE, s.builders.CallbackDataBuilder.Build(wishId, s.cfg.Constants.CMD_CONFIRM_DELETE_WISH, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
 	)
 
-	if _, err := s.clients.Telegram.Edit(ctx, fmt.Sprintf(s.cfg.Constants.DELETE_WISH_CONFIRMATION_TEMPLATE, wish.Name), update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := s.clients.Telegram.Edit(ctx, fmt.Sprintf(s.cfg.Constants.DELETE_WISH_CONFIRMATION_TEMPLATE, wish.Name), update, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) ConfirmDeleteWish(ctx context.Context, update *telegram.Update) error {
+func (s *Service) ConfirmDeleteWish(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -82,7 +83,7 @@ func (s *Service) ConfirmDeleteWish(ctx context.Context, update *telegram.Update
 				wish.WishListId,
 				s.cfg.Constants.CMD_LIST, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()))
 
-	if _, err := s.clients.Telegram.Edit(ctx, s.cfg.Constants.WISH_DELETED, update, telegram.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := s.clients.Telegram.Edit(ctx, s.cfg.Constants.WISH_DELETED, update, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 

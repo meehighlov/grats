@@ -4,12 +4,12 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish_list"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (u *UserRegistration) RegisterOrUpdateUser(ctx context.Context, update *telegram.Update) error {
+func (u *UserRegistration) RegisterOrUpdateUser(ctx context.Context, update *tgm.Update) error {
 	message := update.GetMessage()
 
 	userId := strconv.Itoa(message.From.Id)

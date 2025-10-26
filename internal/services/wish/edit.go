@@ -10,11 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
+	tgc "github.com/meehighlov/grats/pkg/telegram/client"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) EditPrice(ctx context.Context, update *telegram.Update) error {
+func (s *Service) EditPrice(ctx context.Context, update *tgm.Update) error {
 	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_PRICE, update)
 
 	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
@@ -25,7 +26,7 @@ func (s *Service) EditPrice(ctx context.Context, update *telegram.Update) error 
 	return nil
 }
 
-func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SaveEditPrice(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -62,7 +63,7 @@ func (s *Service) SaveEditPrice(ctx context.Context, update *telegram.Update) er
 	return nil
 }
 
-func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
+func (s *Service) EditLink(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -84,7 +85,7 @@ func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
 			ctx,
 			s.cfg.Constants.ENTER_LINK,
 			update,
-			telegram.WithReplyMurkup(keyboard.Murkup()),
+			tgc.WithReplyMurkup(keyboard.Murkup()),
 		)
 	} else {
 		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_LINK, update)
@@ -98,7 +99,7 @@ func (s *Service) EditLink(ctx context.Context, update *telegram.Update) error {
 	return nil
 }
 
-func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SaveEditLink(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -153,7 +154,7 @@ func (s *Service) SaveEditLink(ctx context.Context, update *telegram.Update) err
 	return nil
 }
 
-func (s *Service) DeleteLink(ctx context.Context, update *telegram.Update) error {
+func (s *Service) DeleteLink(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)
@@ -175,7 +176,7 @@ func (s *Service) DeleteLink(ctx context.Context, update *telegram.Update) error
 	return nil
 }
 
-func (s *Service) EditWishName(ctx context.Context, update *telegram.Update) error {
+func (s *Service) EditWishName(ctx context.Context, update *tgm.Update) error {
 	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_NEW_WISH_NAME, update)
 
 	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
@@ -186,7 +187,7 @@ func (s *Service) EditWishName(ctx context.Context, update *telegram.Update) err
 	return nil
 }
 
-func (s *Service) SaveEditWishName(ctx context.Context, update *telegram.Update) error {
+func (s *Service) SaveEditWishName(ctx context.Context, update *tgm.Update) error {
 	var (
 		wish *models.Wish
 	)

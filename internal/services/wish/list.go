@@ -5,12 +5,13 @@ import (
 	"strconv"
 
 	inlinekeyboard "github.com/meehighlov/grats/internal/builders/inline_keyboard"
-	"github.com/meehighlov/grats/internal/clients/clients/telegram"
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish"
+	tgc "github.com/meehighlov/grats/pkg/telegram/client"
+	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) List(ctx context.Context, update *telegram.Update) error {
+func (s *Service) List(ctx context.Context, update *tgm.Update) error {
 	var (
 		listId  string
 		userId  string
@@ -59,7 +60,7 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 			ctx,
 			s.buildListHeaderMessage(wishes),
 			update,
-			telegram.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
+			tgc.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
 		); err != nil {
 			return err
 		}
@@ -68,7 +69,7 @@ func (s *Service) List(ctx context.Context, update *telegram.Update) error {
 			ctx,
 			s.buildListHeaderMessage(wishes),
 			update,
-			telegram.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
+			tgc.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
 		); err != nil {
 			return err
 		}
