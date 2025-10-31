@@ -8,8 +8,7 @@ import (
 	"github.com/meehighlov/grats/internal/infra/redis"
 	"github.com/meehighlov/grats/internal/repositories"
 	"github.com/meehighlov/grats/internal/services"
-	"github.com/meehighlov/grats/pkg/telegram/fsm"
-	"github.com/meehighlov/grats/pkg/telegram/server"
+	"github.com/meehighlov/grats/pkg/telegram"
 )
 
 func Run() {
@@ -25,9 +24,9 @@ func Run() {
 	builders := builders.New(cfg, logger)
 	services := services.New(cfg, logger, repositories, clients, builders, db)
 
-	fsm := fsm.New(logger, repositories.State)
-	RegisterStates(fsm, services, cfg, clients, repositories, db)
+	bot := telegram.New(&cfg.Telegram, logger, repositories.State)
 
-	server := server.New(&cfg.Telegram, logger, fsm)
-	server.Serve()
+	RegisterHandlers(bot, services, cfg, repositories)
+
+	bot.Serve()
 }

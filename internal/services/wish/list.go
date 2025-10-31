@@ -6,12 +6,12 @@ import (
 
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish"
+	"github.com/meehighlov/grats/pkg/telegram"
 	inlinekeyboard "github.com/meehighlov/grats/pkg/telegram/builders/inline_keyboard"
 	tgc "github.com/meehighlov/grats/pkg/telegram/client"
-	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) List(ctx context.Context, update *tgm.Update) error {
+func (s *Service) List(ctx context.Context, scope *telegram.Scope) error {
 	var (
 		listId  string
 		userId  string
@@ -21,9 +21,9 @@ func (s *Service) List(ctx context.Context, update *tgm.Update) error {
 		offset_ int
 	)
 	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
-		userId = strconv.Itoa(update.GetMessage().From.Id)
-		if update.IsCallback() {
-			callbackData := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+		userId = strconv.Itoa(scope.Update().GetMessage().From.Id)
+		if scope.Update().IsCallback() {
+			callbackData := scope.CallbackData().FromString(scope.Update().CallbackQuery.Data)
 			listId = callbackData.ID
 			offset = callbackData.Offset
 		} else {
@@ -55,21 +55,19 @@ func (s *Service) List(ctx context.Context, update *tgm.Update) error {
 		return err
 	}
 
-	if update.IsCallback() {
-		if _, err := s.clients.Telegram.Edit(
+	if scope.Update().IsCallback() {
+		if _, err := scope.Edit(
 			ctx,
 			s.buildListHeaderMessage(wishes),
-			update,
-			tgc.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
+			tgc.WithReplyMurkup(s.buildListMarkup(scope, int(count), wishes, offset_, listId).Murkup()),
 		); err != nil {
 			return err
 		}
 	} else {
-		if _, err := s.clients.Telegram.Reply(
+		if _, err := scope.Reply(
 			ctx,
 			s.buildListHeaderMessage(wishes),
-			update,
-			tgc.WithReplyMurkup(s.buildListMarkup(int(count), wishes, offset_, listId).Murkup()),
+			tgc.WithReplyMurkup(s.buildListMarkup(scope, int(count), wishes, offset_, listId).Murkup()),
 		); err != nil {
 			return err
 		}
@@ -78,25 +76,26 @@ func (s *Service) List(ctx context.Context, update *tgm.Update) error {
 	return nil
 }
 
-func (s *Service) buildListMarkup(totalmodels int, models []*models.Wish, offset int, listId string) *inlinekeyboard.Builder {
+func (s *Service) buildListMarkup(scope *telegram.Scope, totalmodels int, models []*models.Wish, offset int, listId string) *inlinekeyboard.Builder {
+	callbackData := scope.CallbackData()
 	callbackDataBuilder := func(id string, offset int) string {
-		return s.builders.CallbackDataBuilder.Build(id, s.cfg.Constants.CMD_WISH_INFO, strconv.Itoa(offset)).String()
+		return callbackData.Build(id, s.cfg.Constants.CMD_WISH_INFO, strconv.Itoa(offset)).String()
 	}
-	entityListAsButtons := s.BuildEntityButtons(models, offset, callbackDataBuilder)
-	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
+	entityListAsButtons := s.BuildEntityButtons(scope, models, offset, callbackDataBuilder)
+	keyboard := scope.Keyboard()
 
 	if len(models) > 0 {
 		keyboard.AppendAsLine(
-			s.builders.KeyboardBuilder.NewButton(s.cfg.Constants.BTN_ADD_WISH, s.builders.CallbackDataBuilder.Build(listId, s.cfg.Constants.CMD_ADD_TO_WISH, strconv.Itoa(offset)).String()),
-			s.builders.KeyboardBuilder.NewButton(s.cfg.Constants.BTN_SHARE_LIST, s.builders.CallbackDataBuilder.Build(listId, s.cfg.Constants.CMD_SHARE_WISH_LIST, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
+			keyboard.NewButton(s.cfg.Constants.BTN_ADD_WISH, callbackData.Build(listId, s.cfg.Constants.CMD_ADD_TO_WISH, strconv.Itoa(offset)).String()),
+			keyboard.NewButton(s.cfg.Constants.BTN_SHARE_LIST, callbackData.Build(listId, s.cfg.Constants.CMD_SHARE_WISH_LIST, s.cfg.Constants.LIST_DEFAULT_OFFSET).String()),
 		)
 	} else {
 		keyboard.AppendAsLine(
-			s.builders.KeyboardBuilder.NewButton(s.cfg.Constants.BTN_ADD_WISH, s.builders.CallbackDataBuilder.Build(listId, s.cfg.Constants.CMD_ADD_TO_WISH, strconv.Itoa(offset)).String()),
+			keyboard.NewButton(s.cfg.Constants.BTN_ADD_WISH, callbackData.Build(listId, s.cfg.Constants.CMD_ADD_TO_WISH, strconv.Itoa(offset)).String()),
 		)
 	}
 
-	controls := s.builders.PaginationBuilder.BuildControls(totalmodels, s.cfg.Constants.CMD_LIST, listId, offset)
+	controls := scope.Pagination().BuildControls(totalmodels, s.cfg.Constants.CMD_LIST, listId, offset)
 
 	return keyboard.Append(entityListAsButtons).Append(controls)
 }

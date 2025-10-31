@@ -1,8 +1,7 @@
-package state
+package fsm
 
 import (
-	"github.com/meehighlov/grats/pkg/telegram/fsm/action"
-	"github.com/meehighlov/grats/pkg/telegram/fsm/condition"
+	"context"
 )
 
 type initialState string
@@ -15,18 +14,25 @@ func (s initialState) String() string {
 	return string(s)
 }
 
+type ActionData interface {
+	UserID() string
+}
+
 type StateOption func(*State) error
+type Action func(context.Context, ActionData) error
+
+type Condition func(context.Context, ActionData) (bool, error)
 
 type State struct {
 	id           string
-	beforeAction []action.Action
-	action       action.Action
-	condition    condition.Condition
+	beforeAction []Action
+	action       Action
+	condition    Condition
 
 	transitions []*State
 }
 
-func New(id string, action action.Action, condition condition.Condition) *State {
+func NewState(id string, action Action, condition Condition) *State {
 	return &State{
 		id:           id,
 		beforeAction: nil,

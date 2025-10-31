@@ -9,11 +9,11 @@ import (
 	"github.com/meehighlov/grats/internal/config"
 	"github.com/meehighlov/grats/internal/infra/postgres"
 	"github.com/meehighlov/grats/internal/repositories"
-	tgm "github.com/meehighlov/grats/pkg/telegram/models"
+	"github.com/meehighlov/grats/pkg/telegram"
 )
 
 type UserRegistration interface {
-	RegisterOrUpdateUser(ctx context.Context, update *tgm.Update) error
+	RegisterOrUpdateUser(ctx context.Context, scope *telegram.Scope) error
 }
 
 type Service struct {

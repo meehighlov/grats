@@ -5,24 +5,24 @@ import (
 	"strconv"
 
 	"github.com/meehighlov/grats/internal/repositories/models"
+	"github.com/meehighlov/grats/pkg/telegram"
 	tgc "github.com/meehighlov/grats/pkg/telegram/client"
-	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) ToggleWishLock(ctx context.Context, update *tgm.Update) error {
+func (s *Service) ToggleWishLock(ctx context.Context, scope *telegram.Scope) error {
 	var (
 		wish *models.Wish
 	)
-	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+	params := scope.CallbackData().FromString(scope.Update().CallbackQuery.Data)
 	wishId := params.ID
 	offset := params.Offset
-	viewerId := strconv.Itoa(update.CallbackQuery.From.Id)
+	viewerId := strconv.Itoa(scope.Update().CallbackQuery.From.Id)
 
 	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
 		baseFields := models.BaseFields{ID: wishId}
 		wishes, err := s.repositories.Wish.GetWithLock(ctx, &models.Wish{BaseFields: baseFields})
 		if err != nil {
-			if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update); err != nil {
+			if _, err := scope.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE); err != nil {
 				return err
 			}
 			return err
@@ -31,7 +31,7 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *tgm.Update) error 
 		// wish info was opened too long and expired
 		// and owner deleted it
 		if len(wishes) == 0 {
-			if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_REMOVED_TRY_REFRESH, update); err != nil {
+			if _, err := scope.Reply(ctx, s.cfg.Constants.WISH_REMOVED_TRY_REFRESH); err != nil {
 				return err
 			}
 			return nil
@@ -44,7 +44,7 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *tgm.Update) error 
 		if wish.ExecutorId != "" && wish.ExecutorId != viewerId {
 			err := s.refreshWishInfo(
 				ctx,
-				update,
+				scope,
 				wish,
 				offset,
 				wish.WishListId,
@@ -53,7 +53,7 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *tgm.Update) error 
 			if err != nil {
 				return err
 			}
-			if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_ALREADY_BOOKED, update); err != nil {
+			if _, err := scope.Reply(ctx, s.cfg.Constants.WISH_ALREADY_BOOKED); err != nil {
 				return err
 			}
 			return nil
@@ -73,7 +73,7 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *tgm.Update) error 
 
 	return s.refreshWishInfo(
 		ctx,
-		update,
+		scope,
 		wish,
 		offset,
 		wish.WishListId,
@@ -81,9 +81,9 @@ func (s *Service) ToggleWishLock(ctx context.Context, update *tgm.Update) error 
 	)
 }
 
-func (s *Service) refreshWishInfo(ctx context.Context, update *tgm.Update, wish *models.Wish, offset string, wishListId string, viewerId string) error {
-	keyboard := s.buildSharedWishInfoKeyboard(wish, offset, wishListId, viewerId)
-	if _, err := s.clients.Telegram.Edit(ctx, wish.Info(viewerId), update, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
+func (s *Service) refreshWishInfo(ctx context.Context, scope *telegram.Scope, wish *models.Wish, offset string, wishListId string, viewerId string) error {
+	keyboard := s.buildSharedWishInfoKeyboard(scope, wish, offset, wishListId, viewerId)
+	if _, err := scope.Edit(ctx, wish.Info(viewerId), tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 	return nil

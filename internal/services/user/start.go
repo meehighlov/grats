@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/meehighlov/grats/pkg/telegram/models"
+	"github.com/meehighlov/grats/pkg/telegram"
 )
 
-func (s *Service) Start(ctx context.Context, update *models.Update) error {
-	message := update.GetMessage()
+func (s *Service) Start(ctx context.Context, scope *telegram.Scope) error {
+	message := scope.Update().GetMessage()
 
 	err := s.db.Tx(ctx, func(ctx context.Context) error {
-		return s.userRegistration.RegisterOrUpdateUser(ctx, update)
+		return s.userRegistration.RegisterOrUpdateUser(ctx, scope)
 	})
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func (s *Service) Start(ctx context.Context, update *models.Update) error {
 		username,
 	)
 
-	if _, err := s.clients.Telegram.Reply(ctx, hello, update); err != nil {
+	if _, err := scope.Reply(ctx, hello); err != nil {
 		return err
 	}
 

@@ -11,43 +11,43 @@ import (
 	"strings"
 
 	"github.com/meehighlov/grats/internal/repositories/models"
+	"github.com/meehighlov/grats/pkg/telegram"
 	tgc "github.com/meehighlov/grats/pkg/telegram/client"
-	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) EditPrice(ctx context.Context, update *tgm.Update) error {
-	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_PRICE, update)
+func (s *Service) EditPrice(ctx context.Context, scope *telegram.Scope) error {
+	scope.Reply(ctx, s.cfg.Constants.ENTER_PRICE)
 
-	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
+	s.repositories.Cache.AppendText(ctx, scope.Update().GetChatIdStr(), scope.Update().CallbackQuery.Data)
 
-	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
-	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
+	refreshMessageId := scope.Update().CallbackQuery.Message.GetMessageIdStr()
+	s.repositories.Cache.AppendText(ctx, scope.Update().GetChatIdStr(), refreshMessageId)
 
 	return nil
 }
 
-func (s *Service) SaveEditPrice(ctx context.Context, update *tgm.Update) error {
+func (s *Service) SaveEditPrice(ctx context.Context, scope *telegram.Scope) error {
 	var (
 		wish *models.Wish
 	)
-	message := update.GetMessage()
-	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
+	message := scope.Update().GetMessage()
+	texts, err := s.repositories.Cache.GetTexts(ctx, scope.Update().GetChatIdStr())
 	if err != nil {
 		return err
 	}
-	params := s.builders.CallbackDataBuilder.FromString(texts[0])
+	params := scope.CallbackData().FromString(texts[0])
 	wishId := params.ID
 
 	err = s.db.Tx(ctx, func(ctx context.Context) (err error) {
 		wish, err = s.repositories.Wish.Get(ctx, wishId)
 		if err != nil {
-			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
+			scope.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND)
 			return err
 		}
 
 		price, err := strconv.ParseFloat(message.Text, 64)
 		if err != nil || price <= 0 {
-			s.clients.Telegram.Reply(ctx, s.cfg.Constants.PRICE_INVALID_FORMAT, update)
+			scope.Reply(ctx, s.cfg.Constants.PRICE_INVALID_FORMAT)
 			return errors.New("price is invalid format")
 		}
 
@@ -58,16 +58,16 @@ func (s *Service) SaveEditPrice(ctx context.Context, update *tgm.Update) error {
 		return err
 	}
 
-	s.clients.Telegram.Reply(ctx, s.cfg.Constants.PRICE_SET, update)
+	scope.Reply(ctx, s.cfg.Constants.PRICE_SET)
 
 	return nil
 }
 
-func (s *Service) EditLink(ctx context.Context, update *tgm.Update) error {
+func (s *Service) EditLink(ctx context.Context, scope *telegram.Scope) error {
 	var (
 		wish *models.Wish
 	)
-	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+	params := scope.CallbackData().FromString(scope.Update().CallbackQuery.Data)
 	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
 		wish, err = s.repositories.Wish.Get(ctx, params.ID)
 		return err
@@ -76,56 +76,55 @@ func (s *Service) EditLink(ctx context.Context, update *tgm.Update) error {
 		return err
 	}
 	if wish.Link != "" {
-		keyboard := s.builders.KeyboardBuilder.NewKeyboard()
-		btnCallback := s.builders.CallbackDataBuilder.Build(wish.ID, s.cfg.Constants.CMD_DELETE_LINK, params.Offset)
+		keyboard := scope.Keyboard()
+		btnCallback := scope.CallbackData().Build(wish.ID, s.cfg.Constants.CMD_DELETE_LINK, params.Offset)
 		keyboard.AppendAsLine(
 			keyboard.NewButton(s.cfg.Constants.BTN_DELETE_LINK, btnCallback.String()),
 		)
-		s.clients.Telegram.Reply(
+		scope.Reply(
 			ctx,
 			s.cfg.Constants.ENTER_LINK,
-			update,
 			tgc.WithReplyMurkup(keyboard.Murkup()),
 		)
 	} else {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_LINK, update)
+		scope.Reply(ctx, s.cfg.Constants.ENTER_LINK)
 	}
 
-	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
+	s.repositories.Cache.AppendText(ctx, scope.Update().GetChatIdStr(), scope.Update().CallbackQuery.Data)
 
-	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
-	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
+	refreshMessageId := scope.Update().CallbackQuery.Message.GetMessageIdStr()
+	s.repositories.Cache.AppendText(ctx, scope.Update().GetChatIdStr(), refreshMessageId)
 
 	return nil
 }
 
-func (s *Service) SaveEditLink(ctx context.Context, update *tgm.Update) error {
+func (s *Service) SaveEditLink(ctx context.Context, scope *telegram.Scope) error {
 	var (
 		wish *models.Wish
 	)
-	message := update.GetMessage()
-	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
+	message := scope.Update().GetMessage()
+	texts, err := s.repositories.Cache.GetTexts(ctx, scope.Update().GetChatIdStr())
 	if err != nil {
 		return err
 	}
-	params := s.builders.CallbackDataBuilder.FromString(texts[0])
+	params := scope.CallbackData().FromString(texts[0])
 	wishId := params.ID
 
 	link := message.Text
 	if len(link) > s.cfg.Constants.WISH_LINK_MAX_LEN {
-		s.clients.Telegram.Reply(ctx, fmt.Sprintf(s.cfg.Constants.LINK_TOO_LONG_TEMPLATE, s.cfg.Constants.WISH_LINK_MAX_LEN), update)
+		scope.Reply(ctx, fmt.Sprintf(s.cfg.Constants.LINK_TOO_LONG_TEMPLATE, s.cfg.Constants.WISH_LINK_MAX_LEN))
 		return errors.New("link is too long")
 	}
 
 	parsedURL, err := url.Parse(link)
 	if err != nil || parsedURL.Host == "" {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.LINK_INVALID_FORMAT, update)
+		scope.Reply(ctx, s.cfg.Constants.LINK_INVALID_FORMAT)
 		return errors.New("link is invalid format")
 	}
 
 	info, err := s.getCertificateInfo(link)
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.LINK_UNTRUSTED_SITE, update)
+		scope.Reply(ctx, s.cfg.Constants.LINK_UNTRUSTED_SITE)
 		return errors.New("link is untrusted site")
 	}
 
@@ -134,7 +133,7 @@ func (s *Service) SaveEditLink(ctx context.Context, update *tgm.Update) error {
 	err = s.db.Tx(ctx, func(ctx context.Context) (err error) {
 		wish, err = s.repositories.Wish.Get(ctx, wishId)
 		if err != nil {
-			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
+			scope.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND)
 			return err
 		}
 		wish.Link = link
@@ -144,21 +143,21 @@ func (s *Service) SaveEditLink(ctx context.Context, update *tgm.Update) error {
 		return err
 	}
 
-	chatId := update.GetMessage().GetChatIdStr()
+	chatId := scope.Update().GetMessage().GetChatIdStr()
 
 	// delete message with link - it's too large
-	s.clients.Telegram.DeleteMessage(ctx, chatId, message.GetMessageIdStr())
+	scope.DeleteMessage(ctx, chatId, message.GetMessageIdStr())
 
-	s.clients.Telegram.Reply(ctx, s.cfg.Constants.LINK_SET, update)
+	scope.Reply(ctx, s.cfg.Constants.LINK_SET)
 
 	return nil
 }
 
-func (s *Service) DeleteLink(ctx context.Context, update *tgm.Update) error {
+func (s *Service) DeleteLink(ctx context.Context, scope *telegram.Scope) error {
 	var (
 		wish *models.Wish
 	)
-	params := s.builders.CallbackDataBuilder.FromString(update.CallbackQuery.Data)
+	params := scope.CallbackData().FromString(scope.Update().CallbackQuery.Data)
 	err := s.db.Tx(ctx, func(ctx context.Context) (err error) {
 		wish, err = s.repositories.Wish.Get(ctx, params.ID)
 		if err != nil {
@@ -171,44 +170,44 @@ func (s *Service) DeleteLink(ctx context.Context, update *tgm.Update) error {
 		return err
 	}
 
-	s.clients.Telegram.Edit(ctx, s.cfg.Constants.LINK_DELETED, update)
+	scope.Edit(ctx, s.cfg.Constants.LINK_DELETED)
 
 	return nil
 }
 
-func (s *Service) EditWishName(ctx context.Context, update *tgm.Update) error {
-	s.clients.Telegram.Reply(ctx, s.cfg.Constants.ENTER_NEW_WISH_NAME, update)
+func (s *Service) EditWishName(ctx context.Context, scope *telegram.Scope) error {
+	scope.Reply(ctx, s.cfg.Constants.ENTER_NEW_WISH_NAME)
 
-	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), update.CallbackQuery.Data)
+	s.repositories.Cache.AppendText(ctx, scope.Update().GetChatIdStr(), scope.Update().CallbackQuery.Data)
 
-	refreshMessageId := update.CallbackQuery.Message.GetMessageIdStr()
-	s.repositories.Cache.AppendText(ctx, update.GetChatIdStr(), refreshMessageId)
+	refreshMessageId := scope.Update().CallbackQuery.Message.GetMessageIdStr()
+	s.repositories.Cache.AppendText(ctx, scope.Update().GetChatIdStr(), refreshMessageId)
 
 	return nil
 }
 
-func (s *Service) SaveEditWishName(ctx context.Context, update *tgm.Update) error {
+func (s *Service) SaveEditWishName(ctx context.Context, scope *telegram.Scope) error {
 	var (
 		wish *models.Wish
 	)
-	message := update.GetMessage()
-	texts, err := s.repositories.Cache.GetTexts(ctx, update.GetChatIdStr())
+	message := scope.Update().GetMessage()
+	texts, err := s.repositories.Cache.GetTexts(ctx, scope.Update().GetChatIdStr())
 	if err != nil {
 		return err
 	}
-	params := s.builders.CallbackDataBuilder.FromString(texts[0])
+	params := scope.CallbackData().FromString(texts[0])
 	wishId := params.ID
 
 	_, err = s.validateWishName(message.Text)
 	if err != nil {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NAME_INVALID_CHARS, update)
+		scope.Reply(ctx, s.cfg.Constants.WISH_NAME_INVALID_CHARS)
 		return errors.New("wish name contains invalid characters")
 	}
 
 	err = s.db.Tx(ctx, func(ctx context.Context) (err error) {
 		wish, err = s.repositories.Wish.Get(ctx, wishId)
 		if err != nil {
-			s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND, update)
+			scope.Reply(ctx, s.cfg.Constants.WISH_NOT_FOUND)
 			return err
 		}
 
@@ -219,7 +218,7 @@ func (s *Service) SaveEditWishName(ctx context.Context, update *tgm.Update) erro
 		return err
 	}
 
-	s.clients.Telegram.Reply(ctx, s.cfg.Constants.WISH_NAME_CHANGED, update)
+	scope.Reply(ctx, s.cfg.Constants.WISH_NAME_CHANGED)
 
 	return nil
 }

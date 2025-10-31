@@ -2,24 +2,20 @@ package fsm
 
 import (
 	"log/slog"
-
-	"github.com/meehighlov/grats/pkg/telegram/fsm/action"
-	"github.com/meehighlov/grats/pkg/telegram/fsm/state"
-	"github.com/meehighlov/grats/pkg/telegram/fsm/store"
 )
 
 type FSM struct {
-	states      map[string]*state.State
+	states      map[string]*State
 	logger      *slog.Logger
-	stateStore  store.StateStore
-	middlewares []action.Action
+	stateStore  StateStore
+	middlewares []Action
 }
 
-func New(logger *slog.Logger, stateStore store.StateStore) *FSM {
+func New(logger *slog.Logger, stateStore StateStore) *FSM {
 	return &FSM{
-		states:      make(map[string]*state.State),
+		states:      make(map[string]*State),
 		logger:      logger,
 		stateStore:  stateStore,
-		middlewares: []action.Action{},
+		middlewares: []Action{},
 	}
 }

@@ -3,20 +3,16 @@ package fsm
 import (
 	"log"
 	"strconv"
-
-	"github.com/meehighlov/grats/pkg/telegram/fsm/action"
-	"github.com/meehighlov/grats/pkg/telegram/fsm/condition"
-	"github.com/meehighlov/grats/pkg/telegram/fsm/state"
 )
 
 func (f *FSM) Activate(
-	action action.Action,
-	condition condition.Condition,
-	opts ...state.StateOption,
-) *state.State {
+	action Action,
+	condition Condition,
+	opts ...StateOption,
+) *State {
 	stateId := strconv.Itoa(len(f.states) + 1)
 
-	s := state.New(stateId, action, condition)
+	s := NewState(stateId, action, condition)
 
 	for _, opt := range opts {
 		opt(s)
@@ -34,17 +30,17 @@ func (f *FSM) Activate(
 }
 
 func (f *FSM) Reset(
-	condition condition.Condition,
-	opts ...state.StateOption,
-) *state.State {
+	condition Condition,
+	opts ...StateOption,
+) *State {
 	return f.Activate(f.reset, condition, opts...)
 }
 
 // only root states have to be reachable from READY state
 func (f *FSM) setRootStates() {
-	ready := state.New("0", nil, nil)
+	ready := NewState("0", nil, nil)
 
-	delete(f.states, state.READY.String())
+	delete(f.states, READY.String())
 
 	statesWithIncomingEdges := make(map[string]bool)
 
@@ -60,5 +56,5 @@ func (f *FSM) setRootStates() {
 		}
 	}
 
-	f.states[state.READY.String()] = ready
+	f.states[READY.String()] = ready
 }

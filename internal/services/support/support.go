@@ -6,44 +6,46 @@ import (
 	"strconv"
 	"strings"
 
-	inlinekeyboard "github.com/meehighlov/grats/pkg/telegram/builders/inline_keyboard"
+	"github.com/meehighlov/grats/pkg/telegram"
 	tgc "github.com/meehighlov/grats/pkg/telegram/client"
-	tgm "github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (s *Service) Support(ctx context.Context, update *tgm.Update) error {
-	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
+func (s *Service) Support(ctx context.Context, scope *telegram.Scope) error {
+	keyboard := scope.Keyboard()
+
+	callbackDataBuilder := scope.CallbackData()
 
 	keyboard.AppendAsStack(
-		keyboard.NewButton(s.cfg.Constants.BTN_WRITE, s.builders.CallbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_WRITE, "").String()),
-		keyboard.NewButton(s.cfg.Constants.BTN_CANCEL, s.builders.CallbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_CANCEL, "").String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_WRITE, callbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_WRITE, "").String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_CANCEL, callbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_CANCEL, "").String()),
 	)
 
-	if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.SUPPORT_REQUEST_MESSAGE, update, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := scope.Reply(ctx, s.cfg.Constants.SUPPORT_REQUEST_MESSAGE, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) SupportWrite(ctx context.Context, update *tgm.Update) error {
-	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
+func (s *Service) SupportWrite(ctx context.Context, scope *telegram.Scope) error {
+	keyboard := scope.Keyboard()
+	callbackData := scope.CallbackData()
 
 	keyboard.AppendAsStack(
-		keyboard.NewButton(s.cfg.Constants.BTN_CANCEL, s.builders.CallbackDataBuilder.Build("", s.cfg.Constants.CMD_SUPPORT_CANCEL, "").String()),
+		keyboard.NewButton(s.cfg.Constants.BTN_CANCEL, callbackData.Build("", s.cfg.Constants.CMD_SUPPORT_CANCEL, "").String()),
 	)
 
-	if _, err := s.clients.Telegram.Edit(ctx, s.cfg.Constants.SUPPORT_SEND_MESSAGE, update, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	if _, err := scope.Edit(ctx, s.cfg.Constants.SUPPORT_SEND_MESSAGE, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) CancelSupportCall(ctx context.Context, update *tgm.Update) error {
-	s.repositories.Cache.Reset(ctx, update.GetChatIdStr())
+func (s *Service) CancelSupportCall(ctx context.Context, scope *telegram.Scope) error {
+	s.repositories.Cache.Reset(ctx, scope.Update().GetChatIdStr())
 
-	if err := s.clients.Telegram.DeleteMessage(ctx, update.GetChatIdStr(), strconv.Itoa(update.CallbackQuery.Message.MessageId)); err != nil {
+	if err := scope.DeleteMessage(ctx, scope.Update().GetChatIdStr(), strconv.Itoa(scope.Update().CallbackQuery.Message.MessageId)); err != nil {
 		s.logger.Error("Failed to delete message", "error", err)
 		return err
 	}
@@ -51,11 +53,11 @@ func (s *Service) CancelSupportCall(ctx context.Context, update *tgm.Update) err
 	return nil
 }
 
-func (s *Service) SendSupportMessage(ctx context.Context, update *tgm.Update) error {
-	message := update.GetMessage()
+func (s *Service) SendSupportMessage(ctx context.Context, scope *telegram.Scope) error {
+	message := scope.Update().GetMessage()
 
 	if len(message.Text) > 2000 {
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.SUPPORT_MESSAGE_TOO_LONG, update)
+		scope.Reply(ctx, s.cfg.Constants.SUPPORT_MESSAGE_TOO_LONG)
 		return nil
 	}
 
@@ -72,27 +74,22 @@ func (s *Service) SendSupportMessage(ctx context.Context, update *tgm.Update) er
 		message.Text,
 	)
 
-	if _, err := s.clients.Telegram.SendMessage(ctx, s.cfg.SupportChatId, supportMessage); err != nil {
+	if _, err := scope.ReplyTo(ctx, supportMessage, s.cfg.SupportChatId); err != nil {
 		s.logger.Error("Failed to send support message", "error", err)
-		s.clients.Telegram.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE, update)
+		scope.Reply(ctx, s.cfg.Constants.ERROR_MESSAGE)
 		return err
 	}
 
-	keyboard := s.buildBackToMenuKeyboard()
-	if _, err := s.clients.Telegram.Reply(ctx, s.cfg.Constants.SUPPORT_MESSAGE_SENT, update, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
+	keyboard := scope.Keyboard()
+	if _, err := scope.Reply(ctx, s.cfg.Constants.SUPPORT_MESSAGE_SENT, tgc.WithReplyMurkup(keyboard.Murkup())); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) buildBackToMenuKeyboard() *inlinekeyboard.Builder {
-	keyboard := s.builders.KeyboardBuilder.NewKeyboard()
-	return keyboard
-}
-
-func (s *Service) ProcessSupportReply(ctx context.Context, update *tgm.Update) error {
-	message := update.GetMessage()
+func (s *Service) ProcessSupportReply(ctx context.Context, scope *telegram.Scope) error {
+	message := scope.Update().GetMessage()
 
 	if message.GetChatIdStr() != s.cfg.SupportChatId {
 		return nil
@@ -110,7 +107,7 @@ func (s *Service) ProcessSupportReply(ctx context.Context, update *tgm.Update) e
 
 	replyMessage := fmt.Sprintf(s.cfg.Constants.SUPPORT_REPLY_TEMPLATE, message.Text)
 
-	if _, err := s.clients.Telegram.SendMessage(ctx, chatId, replyMessage); err != nil {
+	if _, err := scope.ReplyTo(ctx, replyMessage, chatId); err != nil {
 		s.logger.Error("Failed to send reply to user", "error", err, "chatId", chatId)
 		return err
 	}
