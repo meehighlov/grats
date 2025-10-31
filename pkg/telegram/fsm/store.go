@@ -2,11 +2,12 @@ package fsm
 
 import "context"
 
-// TODO make more detailed interface
-// return (Result, error)
-// Result {state, isfound}
-// to check if !isfound -> use ready state as deafult
+type StoreResult interface {
+	Value() string
+	IsFound() bool
+}
+
 type StateStore interface {
-	GetState(ctx context.Context, key string) (string, error)
-	SetState(ctx context.Context, key, value string) error
+	GetState(context.Context, string) (StoreResult, error)
+	SetState(context.Context, string, string) error
 }

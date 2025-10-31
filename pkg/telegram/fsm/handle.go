@@ -11,7 +11,7 @@ func (f *FSM) Handle(ctx context.Context, data ActionData) error {
 		r := recover()
 		if r != nil {
 			critical := fmt.Errorf("recover from panic: %v", r)
-			key := data.UserID() + ":state"
+			key := f.makeKey(data)
 			err := f.stateStore.SetState(ctx, key, READY.String())
 			return errors.Join(critical, err)
 		}
@@ -24,11 +24,17 @@ func (f *FSM) Handle(ctx context.Context, data ActionData) error {
 		}
 	}
 
-	key := data.UserID() + ":state"
+	key := f.makeKey(data)
 
-	currentStateId, err := f.stateStore.GetState(ctx, key)
+	currentStateId := READY.String()
+
+	storeResult, err := f.stateStore.GetState(ctx, key)
 	if err != nil {
 		return err
+	}
+
+	if storeResult.IsFound() {
+		currentStateId = storeResult.Value()
 	}
 
 	var s *State
@@ -60,7 +66,11 @@ func (f *FSM) Handle(ctx context.Context, data ActionData) error {
 }
 
 func (f *FSM) reset(ctx context.Context, data ActionData) error {
-	userId := data.UserID()
-	key := userId + ":state"
+	key := f.makeKey(data)
 	return f.stateStore.SetState(ctx, key, READY.String())
+}
+
+func (f *FSM) makeKey(data ActionData) string {
+	userId := data.UserID()
+	return fmt.Sprintf("%s:state", userId)
 }
