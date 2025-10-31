@@ -4,39 +4,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/meehighlov/grats/pkg/telegram/fsm/state"
-	"github.com/meehighlov/grats/pkg/telegram/models"
 )
 
-func (f *FSM) Handle(ctx context.Context, update *models.Update) error {
+func (f *FSM) Handle(ctx context.Context, data ActionData) error {
 	defer func() error {
 		r := recover()
 		if r != nil {
 			critical := fmt.Errorf("recover from panic: %v", r)
-			key := update.GetChatIdStr() + ":state"
-			err := f.stateStore.SetState(ctx, key, state.READY.String())
+			key := data.UserID() + ":state"
+			err := f.stateStore.SetState(ctx, key, READY.String())
 			return errors.Join(critical, err)
 		}
 		return nil
 	}()
 
 	for _, middleware := range f.middlewares {
-		if err := middleware(ctx, update); err != nil {
+		if err := middleware(ctx, data); err != nil {
 			return err
 		}
 	}
 
-	key := update.GetChatIdStr() + ":state"
+	key := data.UserID() + ":state"
 
 	currentStateId, err := f.stateStore.GetState(ctx, key)
 	if err != nil {
 		return err
 	}
 
-	var s *state.State
+	var s *State
 	for _, state := range f.states[currentStateId].GetTransitions() {
-		ok, err := state.Condition().Check(ctx, update)
+		ok, err := state.Condition(ctx, data)
 		if err != nil {
 			return err
 		}
@@ -51,7 +48,7 @@ func (f *FSM) Handle(ctx context.Context, update *models.Update) error {
 		return fmt.Errorf("not found transition for state %s", currentStateId)
 	}
 
-	err = s.Activate(ctx, update)
+	err = s.Activate(ctx, data)
 
 	cerr := f.stateStore.SetState(
 		ctx,
@@ -62,7 +59,8 @@ func (f *FSM) Handle(ctx context.Context, update *models.Update) error {
 	return errors.Join(err, cerr)
 }
 
-func (f *FSM) reset(ctx context.Context, update *models.Update) error {
-	key := update.GetChatIdStr() + ":state"
-	return f.stateStore.SetState(ctx, key, state.READY.String())
+func (f *FSM) reset(ctx context.Context, data ActionData) error {
+	userId := data.UserID()
+	key := userId + ":state"
+	return f.stateStore.SetState(ctx, key, READY.String())
 }

@@ -6,11 +6,11 @@ import (
 
 	"github.com/meehighlov/grats/internal/repositories/models"
 	"github.com/meehighlov/grats/internal/repositories/wish_list"
-	tgm "github.com/meehighlov/grats/pkg/telegram/models"
+	"github.com/meehighlov/grats/pkg/telegram"
 )
 
-func (u *UserRegistration) RegisterOrUpdateUser(ctx context.Context, update *tgm.Update) error {
-	message := update.GetMessage()
+func (u *UserRegistration) RegisterOrUpdateUser(ctx context.Context, scope *telegram.Scope) error {
+	message := scope.Update().GetMessage()
 
 	userId := strconv.Itoa(message.From.Id)
 
@@ -52,7 +52,7 @@ func (u *UserRegistration) RegisterOrUpdateUser(ctx context.Context, update *tgm
 		}
 		err = u.repositories.WishList.Save(ctx, &wishList)
 		if err != nil {
-			u.clients.Telegram.Reply(ctx, u.cfg.Constants.WISHLIST_CREATION_ERROR, update)
+			scope.Reply(ctx, u.cfg.Constants.WISHLIST_CREATION_ERROR)
 			return err
 		}
 	}

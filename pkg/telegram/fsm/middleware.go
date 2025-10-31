@@ -1,13 +1,11 @@
 package fsm
 
-import "github.com/meehighlov/grats/pkg/telegram/fsm/action"
-
-func (f *FSM) AddMiddleware(action action.Action) error {
-	if action == nil {
+func (f *FSM) AddMiddleware(middleware Action) error {
+	if middleware == nil {
 		return nil
 	}
 
-	f.middlewares = append(f.middlewares, action)
+	f.middlewares = append(f.middlewares, middleware)
 
 	return nil
 }
