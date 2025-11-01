@@ -19,7 +19,7 @@ func SupportReplyCondition(supportChatId string) telegram.Condition {
 	}
 }
 
-func ShowSharedListCondition() func(context.Context, *telegram.Scope) (bool, error) {
+func ShowSharedListCondition() telegram.Condition {
 	return func(ctx context.Context, scope *telegram.Scope) (bool, error) {
 		command := scope.Update().GetMessage().GetCommand()
 
